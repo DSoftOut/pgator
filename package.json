@@ -1,0 +1,9 @@
+{
+	"name": "rpc-sql-proxy",
+	"description": "Server that transforms JSON-RPC calls in SQL queries for PostgreSQL",
+	"copyright": "Copyright © 2014, DSoftOut",
+	"authors": ["NCrashed","Zaramzan"],
+	"targetPath": "bin",
+	"dependencies": {
+	}
+}
