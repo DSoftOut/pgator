@@ -4,6 +4,8 @@
 	"copyright": "Copyright © 2014, DSoftOut",
 	"authors": ["NCrashed","Zaramzan"],
 	"targetPath": "bin",
+	"versions": ["VibeCustomMain"],
 	"dependencies": {
+		"vibe-d" : "~master"
 	}
 }
