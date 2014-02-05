@@ -1,0 +1,8 @@
+language: C
+before_script:
+	curl -L -o dvm https://github.com/jacob-carlborg/dvm/releases/download/v0.4.2/dvm-0.4.2-linux-debian7-x86_64 && chmod +x dvm && ./dvm install dvm
+	dvm install 2.064.2
+	dvm use 2.064.2 -d
+	curl -L -o dub.tar.gz http://code.dlang.org/files/dub-0.9.20-linux-x86_64.tar.gz && tar -zxvf dub.tar.gz
+script: dub build --build=unittest
+after_script: bin/rpc-sql-proxy
