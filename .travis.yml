@@ -6,7 +6,7 @@ before_script:
     dvm install 2.064.2 && 
     dvm use 2.064.2 -d &&
     curl -L -o dub.tar.gz http://code.dlang.org/files/dub-0.9.20-linux-x86_64.tar.gz && 
-    tar -zxvf dub.tar.gz
+    tar -zxvf dub.tar.gz &&
     sudo mv dub /usr/bin/dub
 script: dub build --build=unittest
 after_script: dub run
