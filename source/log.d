@@ -28,10 +28,12 @@
 */
 module log;
 
+import std.array;
 import std.concurrency;
 import std.conv;
 import std.datetime;
 import std.file;
+import std.format;
 import std.path;
 import std.stdio;
 import vibe.core.concurrency;
@@ -59,7 +61,11 @@ private void shutdownLoggingSystem() nothrow
 {
 	scope(failure) {}
 	if(logSys !is null)
-		logSys.lock.file.close();
+	{
+		auto s = logSys.lock;
+		s.file.finalize();
+		s.file.close();
+	}
 }
 
 /**
@@ -69,11 +75,7 @@ private void shutdownLoggingSystem() nothrow
 *
 *	Also prints current time as an addition to the message.
 */
-void logInfo(lazy string msg) nothrow
-{
-	scope(failure) {}
-	logWithLevel("Info", stdout, msg);
-}
+alias logInfo = logWithLevel!("Info", "stdout");
 
 /**
 *	Prints message string in log file and in stderr if application is running
@@ -82,20 +84,23 @@ void logInfo(lazy string msg) nothrow
 *
 *	Also prints current time as an addition to the message.
 */
-void logError(lazy string msg) nothrow
+alias logError = logWithLevel!("Error", "stderr");
+
+private void logWithLevel(string level, string stream)(lazy string msg) nothrow
 {
 	scope(failure) {}
-	logWithLevel("Error", stderr, msg);
-}
 
-private void logWithLevel(string level, File stream, lazy string msg)
-{
 	if(logSys is null || !logSys.lock.isSystemReady) return;
 	
-	auto fulMsg = level ~ " [" ~ Clock.currTime.toISOExtString ~ "]: " ~ msg;
+	auto fullMsg = level ~ " [" ~ Clock.currTime.toISOExtString ~ "]: " ~ msg;
+	
 	auto s = logSys.lock();
-	s.file.write(fulMsg~'\n');
-	if(!s.daemonMode) stream.writeln(fulMsg);
+	s.file.write(fullMsg~'\n');
+	s.file.flush();
+	if(!s.daemonMode) 
+	{
+		mixin(stream ~ ".writeln(fullMsg);");
+	}
 }
 
 private class LogSystem
@@ -121,9 +126,9 @@ shared static ~this()
 
 version(unittest)
 {
-	void testThread(std.concurrency.Tid owner, int i)
+	void testThread(std.concurrency.Tid owner, int i, uint n)
 	{
-		foreach(j; 1 .. 50)
+		foreach(j; 1 .. n)
 		{
 			logInfo(to!string(j));
 			logError(to!string(j));
@@ -134,13 +139,6 @@ version(unittest)
 }
 unittest
 {
-	scope(exit)
-	{
-		shutdownLoggingSystem();
-		if(exists(tempFileName))
-			remove(tempFileName);
-	}
-	
 	string tempFileName = buildPath(tempDir(), "logging_test.log"); 
 	try
 	{
@@ -150,10 +148,17 @@ unittest
 		assert(false, "Failed to init logging system: " ~ e.msg);
 	}
 	
-	immutable n = 50;
+	scope(exit)
+	{
+		shutdownLoggingSystem();
+		if(exists(tempFileName))
+			remove(tempFileName);
+	}
+	
+	immutable n = 200;
 	foreach(i; 1 .. n)
 	{
-		spawn(&testThread, thisTid, i);
+		spawn(&testThread, thisTid, i, n);
 	}
 	
 	auto t = TickDuration.currSystemTick + cast(TickDuration)dur!"seconds"(2);
