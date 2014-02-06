@@ -1,4 +1,9 @@
 build.rf
 .buildpath
 .project
+.dprojectoptions
+__dummy.html
+docs.json
 bin/*
+docs/*
+.dub/*
