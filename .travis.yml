@@ -19,5 +19,5 @@ install:
   - sudo tar -C /usr/local/bin -zxf ${DUB}.tar.gz
 
 script:
-  - dub --config=unittest --build=unittest
-after_script: dub run
+  # dub --config=unittest --build=unittest
+  - dub --build=unittest
