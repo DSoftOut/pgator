@@ -2,3 +2,5 @@ build.rf
 .buildpath
 .project
 bin/*
+.dub/
+ddtEclipse/
