@@ -25,7 +25,42 @@ struct AppConfig
 {
 	this(in Json src)
 	{
-		fromJson(src);
+		foreach(string k, v; src)
+		{
+			if (k == "port")
+			{
+				port = v.to!ushort();
+			}
+			else if (k == "maxConn")
+			{
+				maxConn = v.to!uint();
+			}
+			else if (k == "sqlTimeout")
+			{
+				sqlTimeout = dur!"msecs"(v.to!uint());
+			}
+			else if (k == "sqlAuth")
+			{
+				sqlAuth = v.to!string();
+			}
+			else if (k == "sqlJsonTable")
+			{
+				sqlJsonTable = v.to!string();
+			}
+			else if (k == "sqlServers")
+			{
+				foreach (serv; v.get!(Json[]))
+				{
+					sqlServers ~= SqlConfig(serv);
+				}
+			}
+			else
+			{
+				throw new InvalidConfig("Config fields do not complete");
+			}
+		}
+		
+		optional = AppOptionalConfig(src);
 	}
 	
 	this (in string path)
@@ -43,7 +78,7 @@ struct AppConfig
 			
 			auto json = parseJson(str);
 			
-			fromJson(json); 
+			this(json); 
 		}
 		catch (ErrnoException ex)
 		{
@@ -82,47 +117,16 @@ struct AppConfig
 	
 	void fromJson(in Json src)
 	{
-		foreach(string k, v; src)
-		{
-			if (k == "port")
-			{
-				port = v.to!ushort();
-			}
-			else if (k == "maxConn")
-			{
-				maxConn = v.to!uint();
-			}
-			else if (k == "sqlTimeout")
-			{
-				sqlTimeout = dur!"msecs"(v.to!uint());
-			}
-			else if (k == "sqlAuth")
-			{
-				sqlAuth = v.to!string();
-			}
-			else if (k == "sqlJsonTable")
-			{
-				sqlJsonTable = v.to!string();
-			}
-			else if (k == "sqlServers")
-			{
-				alias Json[] JsonArr;
-				foreach (serv; v.get!JsonArr())
-				{
-					sqlServers ~= SqlConfig(serv);
-				}
-			}
-		}
-		optional = AppOptionalConfig(src);
+		
 	}
 		
-	ushort port;
+	immutable ushort port;
 	
-	uint maxConn;
+	immutable uint maxConn;
 	
-	SqlConfig[] sqlServers;
+	immutable SqlConfig[] sqlServers;
 	
-	Duration sqlTimeout;
+	immutable Duration sqlTimeout;
 	
 	Duration sqlWait() @property
 	{
@@ -134,62 +138,17 @@ struct AppConfig
 	}
 	
 	
-	string sqlAuth;
+	immutable string sqlAuth;
 	
-	string sqlJsonTable;
+	immutable string sqlJsonTable;
 	
-	AppOptionalConfig optional;	
+	immutable AppOptionalConfig optional;	
 }
 
 
 struct AppOptionalConfig
 {
 	this(in Json src)
-	{
-		fromJson(src);
-	}
-	
-	version(unittest)
-	{
-		this(string[] addrs, string hostname, Duration sqlWait)
-		{
-			bindAddresses = addrs;
-			this.existBindAddr = true;
-			this.hostname = hostname;
-			this.existHostname = true;
-			this.sqlWait = sqlWait;
-			this.existSqlWait = true;
-		}
-	}
-	
-	string[] bindAddresses;
-	
-	private bool existBindAddr;
-	
-	bool isExistBindAddresses() @property
-	{
-		return existBindAddr;
-	}
-	
-	string hostname;
-	
-	private bool existHostname;
-	
-	bool isExistHostname() @property
-	{
-		return existHostname;
-	}
-	
-	Duration sqlWait;
-	
-	private bool existSqlWait;
-	
-	bool isExistSqlWait() @property
-	{
-		return existSqlWait;
-	}
-	
-	void fromJson(in Json src)
 	{
 		foreach(string k, v; src)
 		{
@@ -214,32 +173,54 @@ struct AppOptionalConfig
 		}
 	}
 	
+	version(unittest)
+	{
+		this(string[] addrs, string hostname, Duration sqlWait)
+		{
+			bindAddresses = addrs;
+			this.existBindAddr = true;
+			this.hostname = hostname;
+			this.existHostname = true;
+			this.sqlWait = sqlWait;
+			this.existSqlWait = true;
+		}
+	}
+	
+	immutable string[] bindAddresses;
+	
+	private immutable bool existBindAddr;
+	
+	bool isExistBindAddresses() @property
+	const
+	{
+		return existBindAddr;
+	}
+	
+	immutable string hostname;
+	
+	private immutable bool existHostname;
+	
+	bool isExistHostname() @property
+	const
+	{
+		return existHostname;
+	}
+	
+	immutable Duration sqlWait;
+	
+	private immutable bool existSqlWait;
+	
+	bool isExistSqlWait() @property
+	const
+	{
+		return existSqlWait;
+	}
+	
 }
 
 struct SqlConfig
 {
 	this(in Json src)
-	{
-		fromJson(src);
-	}
-	
-	version (unittest)
-	{
-		this(string name, string connString, uint maxConn)
-		{
-			this.name = name;
-			this.connString = connString;
-			this.maxConn = maxConn;
-		}
-	}
-	
-	string name;
-	
-	string connString;
-	
-	uint maxConn;
-	
-	void fromJson(in Json src)
 	{
 		foreach(string k, v; src)
 		{
@@ -258,6 +239,29 @@ struct SqlConfig
 		}
 	}
 	
+	version (unittest)
+	{
+		this(string name, string connString, uint maxConn)
+		{
+			this.name = name;
+			this.connString = connString;
+			this.maxConn = maxConn;
+		}
+	}
+	
+	immutable string name;
+	
+	immutable string connString;
+	
+	immutable uint maxConn;	
+}
+
+class InvalidConfig:Exception
+{
+	this(in string msg)
+	{
+		super(msg);
+	}
 }
 
 version(unittest)
