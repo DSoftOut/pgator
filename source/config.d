@@ -94,7 +94,7 @@ struct AppConfig
 		{
 			this.port = port;
 			this.maxConn = maxConn;
-			this.sqlServers = conf;
+			this.sqlServers = cast(immutable SqlConfig[]) conf;
 			this.sqlTimeout = sqlTimeout;
 			this.sqlAuth = sqlAuth;
 			this.sqlJsonTable = sqlJsonTable;
@@ -177,7 +177,7 @@ struct AppOptionalConfig
 	{
 		this(string[] addrs, string hostname, Duration sqlWait)
 		{
-			bindAddresses = addrs;
+			bindAddresses = cast(immutable string[]) addrs;
 			this.existBindAddr = true;
 			this.hostname = hostname;
 			this.existHostname = true;
