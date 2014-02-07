@@ -57,7 +57,7 @@ void initLoggingSystem(string logFileName, bool daemonMode = false)
 	s.daemonMode = daemonMode;
 }
 
-private void shutdownLoggingSystem() nothrow
+void shutdownLoggingSystem() nothrow
 {
 	scope(failure) {}
 	if(logSys !is null)
@@ -86,7 +86,7 @@ alias logInfo = logWithLevel!("Info", "stdout");
 */
 alias logError = logWithLevel!("Error", "stderr");
 
-private void logWithLevel(string level, string stream)(lazy string msg) nothrow
+void logWithLevel(string level, string stream)(lazy string msg) nothrow
 {
 	scope(failure) {}
 
@@ -155,7 +155,7 @@ unittest
 			remove(tempFileName);
 	}
 	
-	immutable n = 200;
+	immutable n = 30;
 	foreach(i; 1 .. n)
 	{
 		spawn(&testThread, thisTid, i, n);

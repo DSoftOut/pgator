@@ -1,6 +1,10 @@
 build.rf
 .buildpath
 .project
+.dprojectoptions
+__dummy.html
 bin/*
-.dub/
+docs/*
+docs.json
+.dub/*
 ddtEclipse/
