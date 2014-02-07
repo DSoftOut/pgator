@@ -85,6 +85,11 @@ struct AppConfig
 		}
 		
 		optional = AppOptionalConfig(src);
+		
+		if (!isComplete)
+		{
+			throw new InvalidConfig("Config is not complete");
+		}
 						
 	}
 	
@@ -150,7 +155,7 @@ struct AppConfig
 	}
 	
 	
-	private bool isComplete()
+	private bool isComplete() @property
 	{
 		return f_port && f_maxConn && f_sqlServers && f_sqlTimeout && f_sqlAuth && f_sqlJsonTable;
 	}	
