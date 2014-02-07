@@ -21,10 +21,35 @@ import vibe.core.log;
 
 enum CONFIG_PATH = "config.json";
 
+private mixin template t_field(T, alias fieldName)
+{
+	mixin("private "~T.stringof~" m_"~fieldName~";");
+	
+	mixin("private bool f_"~fieldName~";");
+	
+	mixin(T.stringof~" "~fieldName~"() @property { return m_"~fieldName~";}");
+	
+	mixin("void "~fieldName~"("~T.stringof~" f) @property { m_"~fieldName~"= f; f_"~fieldName~"=true;}");
+}
+
 struct AppConfig
 {
+	mixin t_field!(ushort, "port");
+	
+	mixin t_field!(uint, "maxConn");
+	
+	mixin t_field!(SqlConfig[], "sqlServers");
+	
+	mixin t_field!(Duration, "sqlTimeout");
+	
+	mixin t_field!(string, "sqlAuth");
+	
+	mixin t_field!(string, "sqlJsonTable");
+	
+	mixin t_field!(AppOptionalConfig, "optional");
+	
 	this(in Json src)
-	{
+	{		
 		foreach(string k, v; src)
 		{
 			if (k == "port")
@@ -49,18 +74,18 @@ struct AppConfig
 			}
 			else if (k == "sqlServers")
 			{
+				SqlConfig[] sqlServers = new SqlConfig[0];
 				foreach (serv; v.get!(Json[]))
 				{
 					sqlServers ~= SqlConfig(serv);
 				}
-			}
-			else
-			{
-				throw new InvalidConfig("Config fields do not complete");
+				
+				this.sqlServers = sqlServers;
 			}
 		}
 		
 		optional = AppOptionalConfig(src);
+						
 	}
 	
 	this (in string path)
@@ -94,7 +119,7 @@ struct AppConfig
 		{
 			this.port = port;
 			this.maxConn = maxConn;
-			this.sqlServers = cast(immutable SqlConfig[]) conf;
+			this.sqlServers = conf;
 			this.sqlTimeout = sqlTimeout;
 			this.sqlAuth = sqlAuth;
 			this.sqlJsonTable = sqlJsonTable;
@@ -115,19 +140,6 @@ struct AppConfig
 		}
 	}
 	
-	void fromJson(in Json src)
-	{
-		
-	}
-		
-	immutable ushort port;
-	
-	immutable uint maxConn;
-	
-	immutable SqlConfig[] sqlServers;
-	
-	immutable Duration sqlTimeout;
-	
 	Duration sqlWait() @property
 	{
 		if (optional.isExistSqlWait)
@@ -138,16 +150,21 @@ struct AppConfig
 	}
 	
 	
-	immutable string sqlAuth;
-	
-	immutable string sqlJsonTable;
-	
-	immutable AppOptionalConfig optional;	
+	private bool isComplete()
+	{
+		return f_port && f_maxConn && f_sqlServers && f_sqlTimeout && f_sqlAuth && f_sqlJsonTable;
+	}	
 }
 
 
 struct AppOptionalConfig
 {
+	mixin t_field!(string[], "bindAddresses");
+	
+	mixin t_field!(string, "hostname");
+	
+	mixin t_field!(Duration, "sqlWait");
+	
 	this(in Json src)
 	{
 		foreach(string k, v; src)
@@ -155,20 +172,19 @@ struct AppOptionalConfig
 			if (k == "sqlWait")
 			{
 				sqlWait = dur!"msecs"(v.to!uint());
-				existSqlWait = true;
 			}
 			else if (k == "hostname")
 			{
 				hostname = v.to!string();
-				existHostname = true;
 			}
 			else if (k == "bindAddresses")
 			{
+				string[] bindAddresses = new string[0];
 				foreach(addr; v.get!(Json[])())
 				{
 					bindAddresses ~= addr.to!string();
-					existBindAddr = true;
 				}
+				this.bindAddresses = bindAddresses;
 			}
 		}
 	}
@@ -177,7 +193,7 @@ struct AppOptionalConfig
 	{
 		this(string[] addrs, string hostname, Duration sqlWait)
 		{
-			bindAddresses = cast(immutable string[]) addrs;
+			bindAddresses = addrs;
 			this.existBindAddr = true;
 			this.hostname = hostname;
 			this.existHostname = true;
@@ -186,40 +202,45 @@ struct AppOptionalConfig
 		}
 	}
 	
-	immutable string[] bindAddresses;
 	
-	private immutable bool existBindAddr;
 	
 	bool isExistBindAddresses() @property
 	const
 	{
-		return existBindAddr;
+		return f_bindAddresses;
 	}
-	
-	immutable string hostname;
-	
-	private immutable bool existHostname;
 	
 	bool isExistHostname() @property
 	const
 	{
-		return existHostname;
+		return f_hostname;
 	}
 	
-	immutable Duration sqlWait;
-	
-	private immutable bool existSqlWait;
 	
 	bool isExistSqlWait() @property
 	const
 	{
-		return existSqlWait;
+		return f_sqlWait;
 	}
+	
+	bool isEmpty()
+	const
+	{
+		return !(f_bindAddresses || f_hostname || f_sqlWait);
+	}
+	
+	
 	
 }
 
 struct SqlConfig
 {
+	mixin t_field!(string, "name");
+	
+	mixin t_field!(string, "connString");
+	
+	mixin t_field!(uint, "maxConn");
+	
 	this(in Json src)
 	{
 		foreach(string k, v; src)
@@ -248,12 +269,6 @@ struct SqlConfig
 			this.maxConn = maxConn;
 		}
 	}
-	
-	immutable string name;
-	
-	immutable string connString;
-	
-	immutable uint maxConn;	
 }
 
 class InvalidConfig:Exception
