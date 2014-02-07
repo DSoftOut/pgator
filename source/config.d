@@ -194,11 +194,8 @@ struct AppOptionalConfig
 		this(string[] addrs, string hostname, Duration sqlWait)
 		{
 			bindAddresses = addrs;
-			this.existBindAddr = true;
 			this.hostname = hostname;
-			this.existHostname = true;
 			this.sqlWait = sqlWait;
-			this.existSqlWait = true;
 		}
 	}
 	
