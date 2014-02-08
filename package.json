@@ -4,8 +4,9 @@
 	"copyright": "Copyright © 2014, DSoftOut",
 	"authors": ["NCrashed","Zaramzan"],
 	"targetPath": "bin",
-	"versions": ["VibeCustomMain"],
+	"versions": ["VibeCustomMain", "Have_vibe_d"],
 	"dependencies": {
-		"vibe-d" : "~master"
+		"vibe-d" : "~master",
+		"derelict:pq": "~master"
 	}
 }
