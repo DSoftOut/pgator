@@ -39,7 +39,7 @@ interface IConnectionPool
     *    server every $(B reconnectTime) is connection
     *    is dropped (or is down initially).
     */
-    void addServer(string connString, uint connNum);
+    void addServer(string connString, size_t connNum);
     
     /**
     *    If connection to a SQL server is down,
@@ -59,11 +59,11 @@ interface IConnectionPool
     /**
     *    Returns current alive connections number.
     */
-    uint aliveConnections() @property;
+    size_t aliveConnections() @property;
     
     /**
     *    Awaits all queries to finish and then closes each connection.
     *    Calls $(B callback) when connections are closed.
     */
-    void finalize(void delegate() callback);
+    void finalize(shared void delegate() callback);
 }

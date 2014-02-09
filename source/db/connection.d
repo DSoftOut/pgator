@@ -17,6 +17,32 @@ class ConnectException : Exception
 }
 
 /**
+*   Describes result of connection status polling.
+*/
+enum ConnectionStatus
+{
+    /// Connection is in progress
+    Pending,
+    /// Connection is finished with error
+    Error,
+    /// Connection is finished successfully
+    Finished
+}
+
+/**
+*   Describes result of quering status polling.
+*/
+enum QueringStatus
+{
+    /// Quering is in progress
+    Pending,
+    /// SQL server returned an error
+    Error,
+    /// SQL server returned normal result
+    Finished
+}
+
+/**
 *    Handles a single connection to a SQL server.
 */
 interface IConnection
@@ -30,12 +56,23 @@ interface IConnection
     void connect(string connString);
     
     /**
-    *    Closes connection to the SQL server after current query completion or
-    *    instantly if there is no query processing.    
+    *   Returns current status of connection.
+    */
+    ConnectionStatus pollConnectionStatus();
+    
+    /**
+    *   Returns quering status of connection.
+    */
+    QueringStatus pollQueringStatus();
+    
+    /**
+    *    Closes connection to the SQL server instantly.    
     *    
+    *    Also should interrupt connections in progress.
+    *
     *    Calls $(B callback) when closed.
     */
-    void disconnect(void delegate() callback) nothrow;
+    void disconnect() nothrow;
     
 }
 
