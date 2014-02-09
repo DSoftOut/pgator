@@ -368,7 +368,7 @@ unittest
 		auto req5 = RpcRequest(example5);
 		assert(true, "RpcRequest test failed");
 	}
-	catch(RpcInvalidRequest ex)
+	catch(RpcParseError ex)
 	{
 		//nothiing
 	}
