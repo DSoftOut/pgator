@@ -10,9 +10,23 @@ module db.connection;
 */
 class ConnectException : Exception
 {
+    string server;
+    
+    @safe pure nothrow this(string server, string msg, string file = __FILE__, size_t line = __LINE__)
+    {
+        this.server = server;
+        super("Failed to connect to SQL server "~server~", reason: " ~ msg, file, line); 
+    }
+}
+
+/**
+*   The exception is thrown when query is failed due some reason.
+*/
+class QueryException : Exception
+{
     @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__)
     {
-        super("Failed to connect to SQL server, reason: " ~ msg, file, line); 
+        super("Query to SQL server is failed, reason: " ~ msg, file, line); 
     }
 }
 
@@ -50,8 +64,6 @@ interface IConnection
     /**
     *    Tries to establish connection with a SQL server described
     *    in $(B connString). 
-    *
-    *    Throws: ConnectException
     */
     void connect(string connString);
     
@@ -61,9 +73,25 @@ interface IConnection
     ConnectionStatus pollConnectionStatus();
     
     /**
+    *   If connection process is ended with error state, then
+    *   throws ConnectException, else do nothing.
+    *
+    *   Throws: ConnectException
+    */    
+    void pollConnectionException();
+    
+    /**
     *   Returns quering status of connection.
     */
     QueringStatus pollQueringStatus();
+    
+    /**
+    *   If quering process is ended with error state, then
+    *   throws QueryException, else do nothing.
+    *
+    *   Throws: QueryException
+    */
+    void pollQueryException();
     
     /**
     *    Closes connection to the SQL server instantly.    
@@ -75,4 +103,3 @@ interface IConnection
     void disconnect() nothrow;
     
 }
-

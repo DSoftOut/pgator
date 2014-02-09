@@ -5,12 +5,15 @@
 */
 module db.assyncPool;
 
+import log;
 import db.pool;
 import db.connection;
 import std.algorithm;
+import std.conv;
 import std.container;
 import std.concurrency;
 import std.range;
+import std.typecons;
 import core.time;
 import vibe.core.concurrency : lock;
 
@@ -23,7 +26,7 @@ class AssyncPool : IConnectionPool
     {
         allocateConnection = connAllocator;
         
-        closedConns     = new shared ConnectionList();
+        closedConns     = new shared TimedConnectionList();
         connectingConns = new shared ConnectionList();
         freeConns       = new shared ConnectionList();
         queringConns    = new shared ConnectionList();
@@ -32,7 +35,7 @@ class AssyncPool : IConnectionPool
         mFreeConnTimeout = pFreeConnTimeout;
         
         queringCheckerId    = spawn(&queringChecker, queringConns, freeConns);
-        connectingCheckerId = spawn(&connectingChecker, connectingConns, freeConns, queringCheckerId);
+        connectingCheckerId = spawn(&connectingChecker, closedConns, connectingConns, freeConns, queringCheckerId, reconnectTime);
         closedCheckerId     = spawn(&closedChecker, closedConns, connectingConns, connectingCheckerId);
     }
     
@@ -109,7 +112,7 @@ class AssyncPool : IConnectionPool
        
        shared
        {
-           ConnectionList closedConns;
+           TimedConnectionList closedConns;
            ConnectionList connectingConns;
            ConnectionList freeConns;
            ConnectionList queringConns;
@@ -120,7 +123,13 @@ class AssyncPool : IConnectionPool
            DList!IConnection list;
        }
        
-       static void closedChecker( shared ConnectionList closedConns
+       static class TimedConnectionList
+       {
+           alias Tuple!(IConnection, TickDuration) Element;
+           DList!Element list;
+       }
+       
+       static void closedChecker( shared TimedConnectionList closedConns
                                 , shared ConnectionList connectingConns
                                 , Tid connectingCheckerId)
        {
@@ -130,14 +139,33 @@ class AssyncPool : IConnectionPool
                receiveTimeout(dur!"msecs"(1),
                    (bool v) {exit = v;}
                );
+               
+               {
+                   auto qs = closedConns.lock;
+                   
+                   foreach(elem; qs.list)
+                   {
+                       auto conn = elem[0];
+                       auto time = elem[1];
+                       
+                       if(TickDuration.currSystemTick > time)
+                       {
+                           auto toRemove = qs.list[].find(elem);
+                           qs.list.remove(toRemove);
+                           connectingConns.lock.list.insert(conn);
+                       }
+                   }
+                }   
            }
            
            connectingCheckerId.send("done");
        }
        
-       static void connectingChecker( shared ConnectionList connectingConns
+       static void connectingChecker( shared TimedConnectionList closedCons
+                                    , shared ConnectionList connectingConns
                                     , shared ConnectionList freeConns
-                                    , Tid queringCheckerId)
+                                    , Tid queringCheckerId
+                                    , Duration reconnectTime)
        {
            bool exit = false;
            while(!exit)
@@ -147,6 +175,7 @@ class AssyncPool : IConnectionPool
                );
                {
                    auto cq = connectingConns.lock;
+                   
                    foreach(conn; cq.list)
                    {
                        final switch(conn.pollConnectionStatus())
@@ -156,9 +185,19 @@ class AssyncPool : IConnectionPool
                                continue;
                            }
                            case ConnectionStatus.Error:
-                           {
-                               /// TODO: pass to special list with durations
-                               /// don't forget to logg
+                           {  
+                               try conn.pollConnectionException();
+                               catch(ConnectException e)
+                               {
+                                   logError(e.msg);
+                                   logInfo("Will retry to connect to "~e.server~" over "~to!string(reconnectTime.seconds)~" seconds.");
+                                   
+                                   auto toRemove = cq.list[].find(conn);
+                                   cq.list.remove(toRemove);
+                               
+                                   auto whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
+                                   closedCons.lock.list.insert(TimedConnectionList.Element(conn, whenRetry));
+                               }
                                break;
                            }
                            case ConnectionStatus.Finished:
@@ -176,8 +215,8 @@ class AssyncPool : IConnectionPool
            queringCheckerId.send("done");
            auto val = receiveOnly!string();
            {
-               auto conns = connectingConns.lock.list;
-               foreach(conn; conns)
+               auto s = connectingConns.lock;
+               foreach(conn; s.list)
                {
                    conn.disconnect();
                } 
@@ -226,8 +265,8 @@ class AssyncPool : IConnectionPool
            
            auto val = receiveOnly!string();
            {
-               auto conns = freeConns.lock.list;
-               foreach(conn; conns)
+               auto s = freeConns.lock;
+               foreach(conn; s.list)
                {
                    conn.disconnect();
                } 
