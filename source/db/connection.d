@@ -61,9 +61,13 @@ enum QueringStatus
 */
 interface IConnection
 {
+    synchronized:
+    
     /**
     *    Tries to establish connection with a SQL server described
     *    in $(B connString). 
+    *
+    *    Throws: ConnectException
     */
     void connect(string connString);
     

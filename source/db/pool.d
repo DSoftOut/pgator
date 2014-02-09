@@ -59,8 +59,13 @@ interface IConnectionPool
     /**
     *    Returns current alive connections number.
     */
-    size_t aliveConnections() @property;
-    
+    size_t activeConnections() @property;
+
+    /**
+    *    Returns current frozen connections number.
+    */
+    size_t inactiveConnections() @property;
+        
     /**
     *    Awaits all queries to finish and then closes each connection.
     *    Calls $(B callback) when connections are closed.
