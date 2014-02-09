@@ -18,6 +18,8 @@ import log;
 private 
 {
     void delegate() savedListener;
+    shared ILogger savedLogger;
+    
     extern (C) 
     {
         version (linux) 
@@ -28,7 +30,7 @@ private
             
             void sighandler(int sig)
             {
-                logInfo("Signal %d caught..." ~ to!string(sig));
+                savedLogger.logInfo("Signal %d caught..." ~ to!string(sig));
                 savedListener();
             }
         }
@@ -37,12 +39,13 @@ private
 
 /**
 *    Run application as casual process (attached to tty) with $(B progMain) main function and passes $(B args) into it. 
-*    Function also initializes logging system with $(B logFile) name. If daemon catches SIGHUP signal, $(B listener)
-*    delegate is called (available on linux only).
+*    If daemon catches SIGHUP signal, $(B listener) delegate is called (available on linux only).
+*
+*    Daemon writes log message into provided $(B logger).
 */
-int runTerminal(string logFile, int function(string[]) progMain, string[] args, void delegate() listener)
+int runTerminal(shared ILogger logger, int function(string[]) progMain, string[] args, void delegate() listener)
 {
-    initLoggingSystem(logFile, false);
+    savedLogger = logger;
         
     version (linux) 
     {
@@ -50,9 +53,9 @@ int runTerminal(string logFile, int function(string[]) progMain, string[] args, 
         signal(SIGHUP, &sighandler);
     } else
     {
-        logError("This platform doesn't support signals. Updating json-sql table by signal is disabled!");
+        logger.logError("This platform doesn't support signals. Updating json-sql table by signal is disabled!");
     }
 
-    logInfo("Server is starting in terminal mode...");
+    logger.logInfo("Server is starting in terminal mode...");
     return progMain(args);
 }

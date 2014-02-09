@@ -18,6 +18,7 @@ import log;
 private 
 {
     void delegate() savedListener;
+    shared ILogger savedLogger;
     
     extern(C)
     {
@@ -42,13 +43,13 @@ private
     
             void termHandler(int sig) 
             {
-                logError("Signal %d caught..." ~ to!string(sig));
+                savedLogger.logError("Signal %d caught..." ~ to!string(sig));
                 terminate(EXIT_SUCCESS);
             }
             
             void customHandler(int sig)
             {
-                logInfo("Signal %d caught..." ~ to!string(sig));
+                savedLogger.logInfo("Signal %d caught..." ~ to!string(sig));
                 savedListener();
             }
         }
@@ -57,8 +58,8 @@ private
 
 private void terminate(int code) 
 {
-    logError("Daemon is terminating with code: " ~ to!string(code));
-    shutdownLoggingSystem();
+    savedLogger.logError("Daemon is terminating with code: " ~ to!string(code));
+    savedLogger.finalize();
     
     gc_term();
     version (linux) 
@@ -71,12 +72,15 @@ private void terminate(int code)
 }
 
 /**
-*    Forks daemon process with $(B progMain) main function and passes $(B args) to it. Function also
-*    initializes logging system with $(B logFile) name. If daemon catches SIGHUP signal, $(B listener)
-*    delegate is called.
+*   Forks daemon process with $(B progMain) main function and passes $(B args) to it. If daemon 
+*   catches SIGHUP signal, $(B listener) delegate is called.
+*
+*   Daemon writes log message into provided $(B logger) and will close it while exiting.
 */
-int runDaemon(string logFile, int function(string[]) progMain, string[] args, void delegate() listener)
+int runDaemon(shared ILogger logger, int function(string[]) progMain, string[] args, void delegate() listener)
 {
+    savedLogger = logger;
+    
     // Daemonize under Linux
     version (linux) 
     {
@@ -86,21 +90,21 @@ int runDaemon(string logFile, int function(string[]) progMain, string[] args, vo
         // Fork off the parent process
         pid = fork();
         if (pid < 0) {
-            writeln("Failed to start daemon: fork failed");
+            savedLogger.logError("Failed to start daemon: fork failed");
             exit(EXIT_FAILURE);
         }
         // If we got a good PID, then we can exit the parent process.
         if (pid > 0) {
-            writeln("Daemon detached with pid ", pid);
+            savedLogger.logError(text("Daemon detached with pid ", pid));
             exit(EXIT_SUCCESS);
         }
         
         // Change the file mode mask
         umask(0);
-        initLoggingSystem(logFile, true);
+        savedLogger.minOutputLevel(LoggingLevel.Muted);
     } else
     {
-        initLoggingSystem(logFile, false);
+        savedLogger.minOutputLevel(LogLevel.Notice);
         logError("Daemon mode isn't supported for this platform!");
     }
 
@@ -124,15 +128,15 @@ int runDaemon(string logFile, int function(string[]) progMain, string[] args, vo
         signal(SIGHUP, &customHandler);
     }
 
-    logInfo("Server is starting in daemon mode...");
+    savedLogger.logInfo("Server is starting in daemon mode...");
     int code = EXIT_FAILURE;
     try 
     {
         code = progMain(args);
     } catch (Exception ex) 
     {
-        logError("Catched unhandled exception in daemon level: " ~ ex.msg);
-        logError("Terminating...");
+        savedLogger.logError(text("Catched unhandled exception in daemon level: ", ex.msg));
+        savedLogger.logError("Terminating...");
     } finally 
     {
         terminate(code);
