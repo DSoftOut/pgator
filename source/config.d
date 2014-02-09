@@ -19,18 +19,9 @@ import core.time;
 import vibe.data.json;
 import vibe.core.log;
 
-enum CONFIG_PATH = "config.json";
+import util;
 
-private mixin template t_field(T, alias fieldName)
-{
-	mixin("private "~T.stringof~" m_"~fieldName~";");
-	
-	mixin("private bool f_"~fieldName~";");
-	
-	mixin(T.stringof~" "~fieldName~"() @property { return m_"~fieldName~";}");
-	
-	mixin("void "~fieldName~"("~T.stringof~" f) @property { m_"~fieldName~"= f; f_"~fieldName~"=true;}");
-}
+enum CONFIG_PATH = "config.json";
 
 struct AppConfig
 {
@@ -145,11 +136,11 @@ struct AppConfig
 		}
 	}
 	
-	Duration sqlWait() @property
+	Duration sqlReconnectTime() @property
 	{
-		if (optional.isExistSqlWait)
+		if (optional.isExistSqlReconnectTime)
 		{
-			return optional.sqlWait;
+			return optional.sqlReconnectTime;
 		}
 		else return sqlTimeout;
 	}
@@ -168,15 +159,15 @@ struct AppOptionalConfig
 	
 	mixin t_field!(string, "hostname");
 	
-	mixin t_field!(Duration, "sqlWait");
+	mixin t_field!(Duration, "sqlReconnectTime");
 	
 	this(in Json src)
 	{
 		foreach(string k, v; src)
 		{
-			if (k == "sqlWait")
+			if (k == "sqlReconnectTime")
 			{
-				sqlWait = dur!"msecs"(v.to!uint());
+				sqlReconnectTime = dur!"msecs"(v.to!uint());
 			}
 			else if (k == "hostname")
 			{
@@ -196,11 +187,11 @@ struct AppOptionalConfig
 	
 	version(unittest)
 	{
-		this(string[] addrs, string hostname, Duration sqlWait)
+		this(string[] addrs, string hostname, Duration sqlReconnectTime)
 		{
 			bindAddresses = addrs;
 			this.hostname = hostname;
-			this.sqlWait = sqlWait;
+			this.sqlReconnectTime = sqlReconnectTime;
 		}
 	}
 	
@@ -219,16 +210,16 @@ struct AppOptionalConfig
 	}
 	
 	
-	bool isExistSqlWait() @property
+	bool isExistSqlReconnectTime() @property
 	const
 	{
-		return f_sqlWait;
+		return f_sqlReconnectTime;
 	}
 	
 	bool isEmpty()
 	const
 	{
-		return !(f_bindAddresses || f_hostname || f_sqlWait);
+		return !(f_bindAddresses || f_hostname || f_sqlReconnectTime);
 	}
 	
 	
@@ -311,7 +302,7 @@ version(unittest)
 	
 	    \"sqlTimeout\": 100,
 	
-	    \"sqlWait\": 150,
+	    \"sqlReconnectTime\": 150,
 	
 	    \"sqlAuth\" : \"login and pass\",
 	
