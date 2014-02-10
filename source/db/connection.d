@@ -5,6 +5,8 @@
 */
 module db.connection;
 
+import dunit.mockable;
+
 /**
 *    The exception is thrown when connection attempt to SQL server is failed due some reason.
 */
@@ -16,6 +18,19 @@ class ConnectException : Exception
     {
         this.server = server;
         super("Failed to connect to SQL server "~server~", reason: " ~ msg, file, line); 
+    }
+}
+
+/**
+*   The exception is thrown when $(B reconnect) method is called, but there wasn't any call of
+*   $(B connect) method to grab connection string from.
+*/
+class ReconnectException : ConnectException
+{
+    @safe pure nothrow this(string server, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(server, "Connection reconnect method is called, but there wasn't any call of "
+                      "connect method to grab connection string from", file, line);
     }
 }
 
@@ -72,6 +87,17 @@ interface IConnection
     void connect(string connString);
     
     /**
+    *   Tries to establish connection with a SQL server described
+    *   in previous call of $(B connect). 
+    *
+    *   Should throw ReconnectException if method cannot get stored
+    *   connection string (the $(B connect) method wasn't called).
+    *
+    *   Throws: ConnectException, ReconnectException
+    */
+    void reconnect();
+    
+    /**
     *   Returns current status of connection.
     */
     ConnectionStatus pollConnectionStatus();
@@ -106,6 +132,13 @@ interface IConnection
     */
     void disconnect() nothrow;
     
+    /**
+    *   Returns SQL server name (domain) the connection is desired to connect to.
+    *   If connection isn't ever established (or tried) the method returns empty string.
+    */
+    string server() nothrow const @property;
+    
+    mixin Mockable!IConnection;
 }
 
 /**
@@ -119,4 +152,6 @@ interface IConnectionProvider
     *   Allocates new connection shared across threads.
     */
     shared(IConnection) allocate();
+    
+    mixin Mockable!IConnection;
 }

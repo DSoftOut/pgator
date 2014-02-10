@@ -12,9 +12,11 @@ import std.algorithm;
 import std.conv;
 import std.container;
 import std.concurrency;
+import std.exception;
 import std.range;
 import std.typecons;
 import core.time;
+import core.thread;
 
 /**
 *    Describes asynchronous connection pool.
@@ -29,7 +31,7 @@ class AssyncPool : IConnectionPool
         mReconnectTime   = pReconnectTime;
         mFreeConnTimeout = pFreeConnTimeout;      
         
-        ids = ThreadIds(  spawn(&closedChecker, logger)
+        ids = ThreadIds(  spawn(&closedChecker, logger, reconnectTime)
                         , spawn(&freeChecker, logger, reconnectTime)
                         , spawn(&connectingChecker, logger, reconnectTime)
                         , spawn(&queringChecker, logger));
@@ -130,14 +132,15 @@ class AssyncPool : IConnectionPool
         ids.connectingCheckerId.send(thisTid, "length");
         
         foreach(i;0..2)
-            receive((Tid sender, size_t answer) 
+            enforce(receiveTimeout(dur!"seconds"(1),
+                (Tid sender, size_t answer) 
                 {
                     if(sender == ids.closedCheckerId)
                         closedCount = answer;
                     else if(sender == ids.connectingCheckerId)
                         connectingCount = answer;
                 }
-            );
+            ), "Async pool internal problem! Workers don't respond!");
         
         return closedCount + connectingCount;
     }
@@ -152,7 +155,8 @@ class AssyncPool : IConnectionPool
         ids.connectingCheckerId.send(thisTid, "length");
         
         foreach(i;0..4)
-            receive((Tid sender, size_t answer) 
+            enforce(receiveTimeout(dur!"seconds"(1),
+                (Tid sender, size_t answer) 
                 {
                     if(sender == ids.freeCheckerId)
                         freeCount = answer;
@@ -163,7 +167,7 @@ class AssyncPool : IConnectionPool
                     else if(sender == ids.connectingCheckerId)
                         connectingCount = answer;
                 }
-            );
+            ), "Async pool internal problem! Workers don't respond!");
         
         return freeCount + queringCount + closedCount + connectingCount;
     }
@@ -231,10 +235,11 @@ class AssyncPool : IConnectionPool
        alias DList!(shared IConnection) ConnectionList;
        alias DList!(Tuple!(shared IConnection, TickDuration)) TimedConnList;
        
-       static void closedChecker(shared ILogger logger)
+       static void closedChecker(shared ILogger logger, Duration reconnectTime)
        {
            scope(failure) {logger.logError("AsyncPool: closed connections thread died!");}
            setMaxMailboxSize(thisTid, 0, OnCrowding.block);
+           Thread.getThis.isDaemon = true;
            
            TimedConnList list;
            auto ids = ThreadIds.receive();
@@ -258,26 +263,37 @@ class AssyncPool : IConnectionPool
                    , (Variant v) { assert(false, "Unhandled message!"); }
                )) {}
                
-               foreach(elem; list)
+               foreach(ref elem; list)
                {
                    auto conn = elem[0];
                    auto time = elem[1];
                    
                    if(TickDuration.currSystemTick > time)
                    {
-                       list.removeOne(elem);
-                       ids.connectingCheckerId.send("add", conn);
+                       try
+                       {
+                           scope(success)
+                           {
+                               list.removeOne(elem);
+                               ids.connectingCheckerId.send("add", conn);
+                           }
+                           conn.reconnect();      
+                       } catch(ConnectException e)
+                       {
+                           logger.logInfo("Connection to server "~e.server~" is still failing! Will retry over "
+                               ~to!string(reconnectTime.seconds)~" seconds.");
+                           elem[1] = TickDuration.currSystemTick + cast(TickDuration)reconnectTime; 
+                       }
                    }
                }  
            }
-           
-           writeln("1 closed");
        }
        
        static void freeChecker(shared ILogger logger, Duration reconnectTime)
        {
            scope(failure) {logger.logError("AsyncPool: free connections thread died!");}
            setMaxMailboxSize(thisTid, 0, OnCrowding.block);
+           Thread.getThis.isDaemon = true;
            
            ConnectionList list;
            auto ids = ThreadIds.receive();
@@ -310,27 +326,29 @@ class AssyncPool : IConnectionPool
                        {
                            logger.logError(e.msg);
                            logger.logInfo("Will retry to connect to "~e.server~" over "~to!string(reconnectTime.seconds)~" seconds.");
-                           
                            list.removeOne(conn);
                        
                            TickDuration whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
-                           ids.closedCheckerId.send(conn, whenRetry);
+                           ids.closedCheckerId.send("add", conn, whenRetry);
                        }
                    }
                }
            }
            
-           foreach(conn; list)
+           scope(exit)
            {
-               conn.disconnect();
+               foreach(conn; list)
+               {
+                   conn.disconnect();
+               }
            } 
-           writeln("2 closed");
        }
        
        static void connectingChecker(shared ILogger logger, Duration reconnectTime)
        {
            scope(failure) {logger.logError("AsyncPool: connecting thread died!");}
            setMaxMailboxSize(thisTid, 0, OnCrowding.block);
+           Thread.getThis.isDaemon = true;
            
            ConnectionList list;
            auto ids = ThreadIds.receive();
@@ -369,7 +387,6 @@ class AssyncPool : IConnectionPool
                            {
                                logger.logError(e.msg);
                                logger.logInfo("Will retry to connect to "~e.server~" over "~to!string(reconnectTime.seconds)~" seconds.");
-                               
                                list.removeOne(conn);
                            
                                TickDuration whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
@@ -387,18 +404,20 @@ class AssyncPool : IConnectionPool
                }
            }
 
-           foreach(conn; list)
+           scope(exit)
            {
-               conn.disconnect();
-           } 
-           
-           writeln("3 closed");
+               foreach(conn; list)
+               {
+                   conn.disconnect();
+               } 
+           }
        }
        
        static void queringChecker(shared ILogger logger)
        {
            scope(failure) {logger.logError("AsyncPool: quering thread died!");}
            setMaxMailboxSize(thisTid, 0, OnCrowding.block);
+           Thread.getThis.isDaemon = true;
            
            ConnectionList list;
            auto ids = ThreadIds.receive();
@@ -453,7 +472,6 @@ class AssyncPool : IConnectionPool
            }
 
            exitCallback();
-           writeln("4 closed");
        }
     }
 }
@@ -475,6 +493,7 @@ version(unittest)
     import std.random;
     import core.thread;
     import stdlog;
+    import dunit.mockable;
     
     bool choose(float chance)
     {
@@ -490,38 +509,17 @@ version(unittest)
         }
         
         void connect(string connString)
-        {
-            if(choose(0.1))
-            {
-                throw new ConnectException("", "Test connection is failed!");
-            } 
+        { 
             currConnStatus = ConnectionStatus.Pending;
+        }
+        
+        void reconnect()
+        {
+            connect("");
         }
         
         ConnectionStatus pollConnectionStatus()
         {
-            final switch(currConnStatus)
-            {
-                case ConnectionStatus.Pending:
-                {
-                    if(choose(0.3))
-                    {
-                        currConnStatus = ConnectionStatus.Finished;
-                    } else if (choose(0.1))
-                    {
-                        currConnStatus = ConnectionStatus.Error;
-                    }
-                    break;
-                }
-                case ConnectionStatus.Error:
-                {
-                    break;
-                }
-                case ConnectionStatus.Finished:
-                {
-                    break;
-                }
-            }
             return currConnStatus;
         }
         
@@ -532,31 +530,31 @@ version(unittest)
 
         QueringStatus pollQueringStatus()
         {
-           final switch(currQueringStatus)
-            {
-                case QueringStatus.Pending:
-                {
-                    if(choose(0.3))
-                    {
-                        currQueringStatus = QueringStatus.Finished;
-                    } else if (choose(0.1))
-                    {
-                        currQueringStatus = QueringStatus.Error;
-                    }
-                    break;
-                }
-                case QueringStatus.Error:
-                {
-                    break;
-                }
-                case QueringStatus.Finished:
-                {
-                    if(choose(0.01))
-                    {
-                        currQueringStatus = QueringStatus.Error;
-                    }
-                }
-            }
+//           final switch(currQueringStatus)
+//            {
+//                case QueringStatus.Pending:
+//                {
+//                    if(choose(0.3))
+//                    {
+//                        currQueringStatus = QueringStatus.Finished;
+//                    } else if (choose(0.1))
+//                    {
+//                        currQueringStatus = QueringStatus.Error;
+//                    }
+//                    break;
+//                }
+//                case QueringStatus.Error:
+//                {
+//                    break;
+//                }
+//                case QueringStatus.Finished:
+//                {
+//                    if(choose(0.01))
+//                    {
+//                        currQueringStatus = QueringStatus.Error;
+//                    }
+//                }
+//            }
             return currQueringStatus;
         } 
 
@@ -570,36 +568,274 @@ version(unittest)
             currConnStatus = ConnectionStatus.Error;
         }
         
-        private ConnectionStatus currConnStatus;
-        private QueringStatus currQueringStatus;
-    }
-    
-    class TestConnProvider : IConnectionProvider
-    {
-        shared(IConnection) allocate()
+        string server() const nothrow
         {
-            return new shared TestConnection();
+            return "";
         }
+        
+        protected ConnectionStatus currConnStatus;
+        protected QueringStatus currQueringStatus;
+        
+        mixin Mockable!TestConnection;
     }
 }
+/**
+*   Testing connection process. Some connections can fail and then they should be reconnected again.
+*/
 unittest
 {
-    auto logger = new shared CLogger("asyncPool");
-    auto pool = new AssyncPool(logger, new TestConnProvider(), dur!"seconds"(1), dur!"seconds"(1));
+    write("Testing async pool. Connection fail immediately... ");
+    scope(success) writeln("Finished!");
+    scope(failure) writeln("Failed!");
     
-    immutable n = 10;
-    pool.addServer("noserver", n);
-    foreach(i; 0..5)
+    auto logger = new shared CLogger("asyncPool.unittest2");
+    scope(exit) logger.finalize();
+    logger.minOutputLevel = LoggingLevel.Muted;
+    
+    synchronized class ConnectionCheckConn : TestConnection
     {
-        auto active = pool.activeConnections;
-        auto inactive = pool.inactiveConnections;
-        auto total = pool.totalConnections;
-        writeln("Pool active connections: ", pool.activeConnections);
-        writeln("Pool inactive connections: ", pool.inactiveConnections);
-        assert(active + inactive == total);
-        assert(total == n);
-        Thread.sleep(dur!"seconds"(1));
+        this(bool fail)
+        {
+            this.fail = fail;
+        }
+        
+        override void connect(string connString)
+        {
+            if(fail)
+                throw new ConnectException("", "Test fail");
+        }
+        
+        override void reconnect()
+        {
+            if(fail)
+                throw new ReconnectException("");
+        }
+        
+        override ConnectionStatus pollConnectionStatus()
+        {
+            return fail ? ConnectionStatus.Error : ConnectionStatus.Finished;
+        }
+        
+        private bool fail;
     }
-    pool.finalize((){});
-    logger.finalize();
+    immutable succConns = 18;
+    immutable failConns = 12;
+    immutable n = succConns + failConns;
+    auto provider = new class IConnectionProvider {
+        override shared(IConnection) allocate()
+        {
+            if(succs < succConns)
+            {
+                succs++;
+                return new shared ConnectionCheckConn(false);
+            } else if(fails < failConns)
+            {
+                fails++;
+                return new shared ConnectionCheckConn(true);
+            }
+            assert(0);
+        }
+        
+        private uint succs, fails;
+    };
+   
+    auto pool = new AssyncPool(logger, cast(IConnectionProvider)provider, dur!"msecs"(500), dur!"msecs"(500));
+    scope(exit) pool.finalize((){});
+    pool.addServer("noserver", n);
+    
+    auto active = pool.activeConnections;
+    auto inactive = pool.inactiveConnections;
+    auto total = pool.totalConnections;
+    
+    assert(active + inactive == total, text("Total connections count != active + inactive. ", total, "!=", active,"+",inactive));
+    assert(total == n, text("Some connections are lost! ", total, "!=", n));
+
+    Thread.sleep(dur!"seconds"(1));
+
+    active = pool.activeConnections;
+    inactive = pool.inactiveConnections;
+    total = pool.totalConnections;
+
+    assert(active + inactive == total, text("Total connections count != active + inactive. ", total, "!=", active,"+",inactive));
+    assert(total == n, text("Some connections are lost! ", total, "!=", n));
+    assert(active == succConns, text("Active connections != succeed connections. ", active,"!=", succConns));
+    assert(inactive == failConns, text("Inactive connections != failed connections. ", inactive,"!=", failConns));
+}
+/**
+*   Testing connection process. Some connections can fail while connecting.
+*/
+unittest
+{
+    write("Testing async pool. Connection fail while connecting... ");
+    scope(success) writeln("Finished!");
+    scope(failure) writeln("Failed!");
+    
+    auto logger = new shared CLogger("asyncPool.unittest1");
+    scope(exit) logger.finalize();
+    logger.minOutputLevel = LoggingLevel.Muted;
+    
+    synchronized class ConnectionCheckConn : TestConnection
+    {
+        this(uint ticks, uint failAfter)
+        {
+            this.ticks = ticks;
+            this.failAfter = failAfter;
+        }
+        
+        override ConnectionStatus pollConnectionStatus()
+        {
+            if(currConnStatus == ConnectionStatus.Pending)
+            {
+                if(currTicks > ticks) 
+                {
+                    currConnStatus = ConnectionStatus.Finished;
+                } else if (currTicks > failAfter)
+                {
+                    currConnStatus = ConnectionStatus.Error;
+                }
+            }
+            currTicks++;
+            return super.pollConnectionStatus();
+        }
+        
+        private uint currTicks;
+        private uint ticks, failAfter;
+    }
+    immutable succConns = 18;
+    immutable failConns = 12;
+    immutable n = succConns + failConns;
+    immutable maxTicks = 50;
+    auto provider = new class IConnectionProvider {
+        override shared(IConnection) allocate()
+        {
+            if(succs < succConns)
+            {
+                succs++;
+                return new shared ConnectionCheckConn(uniform(0, maxTicks), maxTicks);
+            } else if(fails < failConns)
+            {
+                fails++;
+                return new shared ConnectionCheckConn(maxTicks, uniform(0, maxTicks));
+            }
+            assert(0);
+        }
+        
+        private uint succs, fails;
+    };
+   
+    auto pool = new AssyncPool(logger, cast(IConnectionProvider)provider, dur!"seconds"(100), dur!"seconds"(100));
+    scope(exit) pool.finalize((){});
+    pool.addServer("noserver", n);
+    
+    auto active = pool.activeConnections;
+    auto inactive = pool.inactiveConnections;
+    auto total = pool.totalConnections;
+    
+    assert(active + inactive == total, text("Total connections count != active + inactive. ", total, "!=", active,"+",inactive));
+    assert(total == n, text("Some connections are lost! ", total, "!=", n));
+    
+    Thread.sleep(dur!"seconds"(1));
+    
+    active = pool.activeConnections;
+    inactive = pool.inactiveConnections;
+    total = pool.totalConnections;
+    
+    assert(active + inactive == total, text("Total connections count != active + inactive. ", total, "!=", active,"+",inactive));
+    assert(total == n, text("Some connections are lost! ", total, "!=", n));
+    assert(active == succConns, text("Active connections != succeed connections. ", active,"!=", succConns));
+    assert(inactive == failConns, text("Inactive connections != failed connections. ", inactive,"!=", failConns));
+}
+/**
+*   Testing connection process. Some connections can fail and then they should be reconnected again.
+*/
+unittest
+{
+    write("Testing async pool. Connection fail after connected... ");
+    scope(success) writeln("Finished!");
+    scope(failure) writeln("Failed!");
+    
+    auto logger = new shared CLogger("asyncPool.unittest2");
+    scope(exit) logger.finalize();
+    logger.minOutputLevel = LoggingLevel.Muted;
+    
+    synchronized class ConnectionCheckConn : TestConnection
+    {
+        this(uint ticks, uint failAfter)
+        {
+            this.ticks = ticks;
+            this.failAfter = failAfter;
+        }
+        
+        override void connect(string connString)
+        {
+            currTicks = 0;
+            super.connect(connString);
+        }
+        
+        override ConnectionStatus pollConnectionStatus()
+        {
+            if(currConnStatus == ConnectionStatus.Pending)
+            {
+                if(currTicks > ticks) 
+                {
+                    currConnStatus = ConnectionStatus.Finished;
+                } 
+            } else if (currConnStatus == ConnectionStatus.Finished)
+            {
+                if (currTicks > failAfter)
+                {
+                    currConnStatus = ConnectionStatus.Error;
+                    failAfter = uint.max;
+                }
+            }
+            currTicks++;
+            return super.pollConnectionStatus();
+        }
+        
+        private uint currTicks;
+        private uint ticks, failAfter;
+    }
+    immutable succConns = 18;
+    immutable failConns = 12;
+    immutable n = succConns + failConns;
+    immutable maxTicks = 100;
+    immutable maxFailTicks = 50;
+    auto provider = new class IConnectionProvider {
+        override shared(IConnection) allocate()
+        {
+            if(succs < succConns)
+            {
+                succs++;
+                return new shared ConnectionCheckConn(uniform(0, maxTicks), uint.max);
+            } else if(fails < failConns)
+            {
+                fails++;
+                return new shared ConnectionCheckConn(uniform(0, maxTicks), uniform(0, maxFailTicks));
+            }
+            assert(0);
+        }
+        
+        private uint succs, fails;
+    };
+   
+    auto pool = new AssyncPool(logger, cast(IConnectionProvider)provider, dur!"msecs"(100), dur!"msecs"(100));
+    scope(exit) pool.finalize((){});
+    pool.addServer("noserver", n);
+    
+    auto active = pool.activeConnections;
+    auto inactive = pool.inactiveConnections;
+    auto total = pool.totalConnections;
+    
+    assert(active + inactive == total, text("Total connections count != active + inactive. ", total, "!=", active,"+",inactive));
+    assert(total == n, text("Some connections are lost! ", total, "!=", n));
+
+    Thread.sleep(dur!"seconds"(1));
+
+    active = pool.activeConnections;
+    inactive = pool.inactiveConnections;
+    total = pool.totalConnections;
+
+    assert(active + inactive == total, text("Total connections count != active + inactive. ", total, "!=", active,"+",inactive));
+    assert(total == n, text("Some connections are lost! ", total, "!=", n));
+    assert(active == n);
 }

@@ -2,6 +2,7 @@ build.rf
 .buildpath
 .project
 .dprojectoptions
+.settings
 __dummy.html
 bin/*
 docs/*
