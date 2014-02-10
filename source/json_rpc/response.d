@@ -19,7 +19,16 @@ import util;
 
 import json_rpc.error;
 
-
+/**
+* Struct desctibes JSON-RPC 2.0 response
+*
+* Example
+* ------
+*  auto res1 = RpcResponse(1, error);
+*  auto res2 = RpcResponse(null, result);
+*  aut0 res3 = RpcResponse("mycustomidsystem", result);
+* ------
+*/
 struct RpcResponse
 {	
 	private string jsonrpc = RPC_VERSION;
@@ -81,10 +90,20 @@ struct RpcResponse
 	}
 }
 
+
+/**
+* Struct describes JSON-RPC 2.0 result which used in RpcRequest
+*
+* Example
+* ------
+*  auto res = RpcResult(res);
+* ------ 
+*/
 struct RpcResult
 {
 	mixin t_field!(Bson, "bson");
 	
+	///Supported only ctor from $(B Bson) yet
 	this(in Bson bson)
 	{
 		this.bson = bson;
