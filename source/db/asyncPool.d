@@ -21,11 +21,11 @@ import core.time;
 */
 class AssyncPool : IConnectionPool
 {
-    this(shared ILogger logger, shared(IConnection) delegate() connAllocator, Duration pReconnectTime, Duration pFreeConnTimeout)
+    this(shared ILogger logger, IConnectionProvider provider, Duration pReconnectTime, Duration pFreeConnTimeout)
     {
         this.logger = logger;
-        allocateConnection = connAllocator;
-        
+        this.provider = provider;
+
         mReconnectTime   = pReconnectTime;
         mFreeConnTimeout = pFreeConnTimeout;      
         
@@ -33,7 +33,7 @@ class AssyncPool : IConnectionPool
                         , spawn(&freeChecker, logger, reconnectTime)
                         , spawn(&connectingChecker, logger, reconnectTime)
                         , spawn(&queringChecker, logger));
-        
+
         ids.sendTids;
     }
     
@@ -51,7 +51,7 @@ class AssyncPool : IConnectionPool
         ConnectionList connsList;
         foreach(i; 0..connNum)
         {
-            auto conn = allocateConnection();
+            auto conn = provider.allocate;
 
             bool failed = false;
             try
@@ -70,7 +70,7 @@ class AssyncPool : IConnectionPool
             
             if(!failed) connsList.insert(conn);
         }
-        
+
         foreach(conn; connsList)
             ids.connectingCheckerId.send("add", conn);
         foreach(elem; failedList)
@@ -103,11 +103,20 @@ class AssyncPool : IConnectionPool
     */
     size_t activeConnections() @property
     {
-        ids.freeCheckerId.send("length", thisTid);
-        size_t freeCount = receiveOnly!size_t();
-        ids.queringCheckerId.send("length", thisTid);
-        size_t queringCount = receiveOnly!size_t();
+        size_t freeCount, queringCount;
+        ids.freeCheckerId.send(thisTid, "length");
+        ids.queringCheckerId.send(thisTid, "length");
         
+        foreach(i;0..2)
+            receive((Tid sender, size_t answer) 
+                {
+                    if(sender == ids.freeCheckerId)
+                        freeCount = answer;
+                    else if(sender == ids.queringCheckerId)
+                        queringCount = answer;
+                }
+            );
+
         return freeCount + queringCount;
     }
     
@@ -116,12 +125,47 @@ class AssyncPool : IConnectionPool
     */
     size_t inactiveConnections() @property
     {
-        ids.closedCheckerId.send("length", thisTid);
-        size_t closedCount = receiveOnly!size_t();
-        ids.connectingCheckerId.send("length", thisTid);
-        size_t connectingCount = receiveOnly!size_t();
+        size_t closedCount, connectingCount;
+        ids.closedCheckerId.send(thisTid, "length");
+        ids.connectingCheckerId.send(thisTid, "length");
+        
+        foreach(i;0..2)
+            receive((Tid sender, size_t answer) 
+                {
+                    if(sender == ids.closedCheckerId)
+                        closedCount = answer;
+                    else if(sender == ids.connectingCheckerId)
+                        connectingCount = answer;
+                }
+            );
         
         return closedCount + connectingCount;
+    }
+    
+    size_t totalConnections() @property
+    {
+        size_t freeCount, queringCount;
+        size_t closedCount, connectingCount;
+        ids.freeCheckerId.send(thisTid, "length");
+        ids.queringCheckerId.send(thisTid, "length");
+        ids.closedCheckerId.send(thisTid, "length");
+        ids.connectingCheckerId.send(thisTid, "length");
+        
+        foreach(i;0..4)
+            receive((Tid sender, size_t answer) 
+                {
+                    if(sender == ids.freeCheckerId)
+                        freeCount = answer;
+                    else if(sender == ids.queringCheckerId)
+                        queringCount = answer;
+                    else if(sender == ids.closedCheckerId)
+                        closedCount = answer;
+                    else if(sender == ids.connectingCheckerId)
+                        connectingCount = answer;
+                }
+            );
+        
+        return freeCount + queringCount + closedCount + connectingCount;
     }
     
     /**
@@ -137,7 +181,7 @@ class AssyncPool : IConnectionPool
     private
     {
        shared ILogger logger;
-       shared(IConnection) delegate() allocateConnection;
+       IConnectionProvider provider;
        Duration mReconnectTime;
        Duration mFreeConnTimeout;
        
@@ -190,6 +234,8 @@ class AssyncPool : IConnectionPool
        static void closedChecker(shared ILogger logger)
        {
            scope(failure) {logger.logError("AsyncPool: closed connections thread died!");}
+           setMaxMailboxSize(thisTid, 0, OnCrowding.block);
+           
            TimedConnList list;
            auto ids = ThreadIds.receive();
            
@@ -198,17 +244,18 @@ class AssyncPool : IConnectionPool
            {
                while (receiveTimeout(dur!"msecs"(1)
                    , (bool v) {exit = v;}
-                   , (string com, shared IConnection conn, TickDuration time) {
+                   , (string com, shared(IConnection) conn, TickDuration time) { 
                        if(com == "add")
                        {
                           list.insert(ElementType!TimedConnList(conn, time));
                        }}
-                   , (string com, Tid sender) {
+                   , (Tid sender, string com) {
                        if(com == "length")
                        {
-                           sender.send(list.length);
+                           sender.send(thisTid, list.length);
                        }
                    }
+                   , (Variant v) { assert(false, "Unhandled message!"); }
                )) {}
                
                foreach(elem; list)
@@ -230,6 +277,8 @@ class AssyncPool : IConnectionPool
        static void freeChecker(shared ILogger logger, Duration reconnectTime)
        {
            scope(failure) {logger.logError("AsyncPool: free connections thread died!");}
+           setMaxMailboxSize(thisTid, 0, OnCrowding.block);
+           
            ConnectionList list;
            auto ids = ThreadIds.receive();
                       
@@ -243,12 +292,13 @@ class AssyncPool : IConnectionPool
                        {
                           list.insert(conn);
                        }}
-                   , (string com, Tid sender) {
+                   , (Tid sender, string com) {
                        if(com == "length")
                        {
-                           sender.send(list.length);
+                           sender.send(thisTid, list.length);
                        }
                    }
+                   , (Variant v) { assert(false, "Unhandled message!"); }
                )) {}
                
                foreach(conn; list)
@@ -263,8 +313,8 @@ class AssyncPool : IConnectionPool
                            
                            list.removeOne(conn);
                        
-                           auto whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
-                           ids.closedCheckerId.send(ElementType!TimedConnList(conn, whenRetry));
+                           TickDuration whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
+                           ids.closedCheckerId.send(conn, whenRetry);
                        }
                    }
                }
@@ -279,8 +329,9 @@ class AssyncPool : IConnectionPool
        
        static void connectingChecker(shared ILogger logger, Duration reconnectTime)
        {
-           //scope(failure) {logError("AsyncPool: connecting thread died!");}
-           try{
+           scope(failure) {logger.logError("AsyncPool: connecting thread died!");}
+           setMaxMailboxSize(thisTid, 0, OnCrowding.block);
+           
            ConnectionList list;
            auto ids = ThreadIds.receive();
            
@@ -294,22 +345,22 @@ class AssyncPool : IConnectionPool
                        {
                           list.insert(conn);
                        }}
-                   , (string com, Tid sender) {
+                   , (Tid sender, string com) {
                        if(com == "length")
                        {
-                           sender.send(list.length);
+                           sender.send(thisTid, list.length);
                        }
                    }
+                   , (Variant v) { assert(false, "Unhandled message!"); }
                )) {}
 
                foreach(conn; list)
                {
-                   logger.logInfo(text(conn.pollConnectionStatus()));
                    final switch(conn.pollConnectionStatus())
                    {
                        case ConnectionStatus.Pending:
                        {
-                           continue;
+                           break;
                        }
                        case ConnectionStatus.Error:
                        {  
@@ -321,7 +372,7 @@ class AssyncPool : IConnectionPool
                                
                                list.removeOne(conn);
                            
-                               auto whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
+                               TickDuration whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
                                ids.closedCheckerId.send("add", conn, whenRetry);
                            }
                            break;
@@ -342,12 +393,13 @@ class AssyncPool : IConnectionPool
            } 
            
            writeln("3 closed");
-           } catch(Throwable ex) {writeln(ex);}
        }
        
        static void queringChecker(shared ILogger logger)
        {
            scope(failure) {logger.logError("AsyncPool: quering thread died!");}
+           setMaxMailboxSize(thisTid, 0, OnCrowding.block);
+           
            ConnectionList list;
            auto ids = ThreadIds.receive();
           
@@ -365,12 +417,13 @@ class AssyncPool : IConnectionPool
                        {
                           list.insert(conn);
                        }}
-                   , (string com, Tid sender) {
+                   , (Tid sender, string com) {
                        if(com == "length")
                        {
-                           sender.send(list.length);
+                           sender.send(thisTid, list.length);
                        }
                    }
+                   , (Variant v) { assert(false, "Unhandled message!"); }
                )) {}
                
                foreach(conn; list)
@@ -405,13 +458,13 @@ class AssyncPool : IConnectionPool
     }
 }
 
-private void removeOne(T)(DList!T list, T elem)
+private void removeOne(T)(ref DList!T list, T elem)
 {
-   auto toRemove = list[].find(elem);
-   list.remove(toRemove);
+   auto toRemove = list[].find(elem).take(1);
+   list.linearRemove(toRemove);
 }
 
-private size_t length(T)(DList!T list)
+private size_t length(T)(ref DList!T list)
 {
     return list[].walkLength;
 }
@@ -466,13 +519,9 @@ version(unittest)
                 }
                 case ConnectionStatus.Finished:
                 {
-                    if(choose(0.01))
-                    {
-                        currConnStatus = ConnectionStatus.Error;
-                    }
+                    break;
                 }
             }
-            writeln(currConnStatus);
             return currConnStatus;
         }
         
@@ -524,16 +573,31 @@ version(unittest)
         private ConnectionStatus currConnStatus;
         private QueringStatus currQueringStatus;
     }
+    
+    class TestConnProvider : IConnectionProvider
+    {
+        shared(IConnection) allocate()
+        {
+            return new shared TestConnection();
+        }
+    }
 }
 unittest
 {
     auto logger = new shared CLogger("asyncPool");
-    auto pool = new AssyncPool(logger, (){return new shared TestConnection();}, dur!"msecs"(500), dur!"msecs"(500));
-    pool.addServer("", 0);
+    auto pool = new AssyncPool(logger, new TestConnProvider(), dur!"seconds"(1), dur!"seconds"(1));
+    
+    immutable n = 10;
+    pool.addServer("noserver", n);
     foreach(i; 0..5)
     {
+        auto active = pool.activeConnections;
+        auto inactive = pool.inactiveConnections;
+        auto total = pool.totalConnections;
         writeln("Pool active connections: ", pool.activeConnections);
         writeln("Pool inactive connections: ", pool.inactiveConnections);
+        assert(active + inactive == total);
+        assert(total == n);
         Thread.sleep(dur!"seconds"(1));
     }
     pool.finalize((){});

@@ -107,3 +107,16 @@ interface IConnection
     void disconnect() nothrow;
     
 }
+
+/**
+*   Interface that produces connection objects. Used
+*   to isolate connection pool from particular connection
+*   realization.
+*/
+interface IConnectionProvider
+{
+    /**
+    *   Allocates new connection shared across threads.
+    */
+    shared(IConnection) allocate();
+}
