@@ -55,6 +55,21 @@ static this()
 	RPC_ERROR_MSG[RPC_ERROR_CODE.SERVER_ERROR] = "Server error";	
 }
 
+
+/**
+* Struct describes JSON-RPC 2.0 error object which used in RpcRequest
+*
+* Example
+* ------
+*  auto err1 = RpcError(bson);
+*  auto err2 = RpcError(RPC_ERROR_CODE.INVALID_PARAMS, RPC_ERROR_MSG[RPC_ERROR_CODE.INVALID_PARAMS]);
+*  auto err3 = RpcError(RPC_ERROR_CODE.INVALID_PARAMS, "mycustommessage");
+*  auto err4 = RRpcError(RPC_ERROR_CODE.INVALID_PARAMS, RPC_ERROR_MSG[RPC_ERROR_CODE.INVALID_PARAMS], erroData); 
+*
+*  //toJson
+*  err2.toJson(); 
+* ------ 
+*/
 struct RpcError
 {
 	mixin t_field!(RPC_ERROR_CODE, "code");
@@ -127,7 +142,17 @@ struct RpcError
 	}
 }
 
-///ditto
+/**
+* Struct describes JSON-RPC 2.0 error.data
+*
+* Example
+* ------
+*  auto data = RpcErrorData(bson); //supported only ctor from bson yet
+*  
+*  //to Json
+*  data.toJson();
+* ------
+*/
 struct RpcErrorData
 {
 	mixin t_field!(Json, "json");
@@ -311,10 +336,6 @@ unittest
 	auto error = Json.emptyObject;
 	error.code = code;
 	error.message = message; 
-	
-//	std.stdio.writeln(error);
-//	std.stdio.writeln(error1);
-//	std.stdio.writeln(error2);
 	
 	assert(error == error1, "RpcError unittest failed");
 	assert(error == error2, "RpcError unittest failed");
