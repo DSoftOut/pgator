@@ -125,7 +125,7 @@ unittest
 	res2.jsonrpc = RPC_VERSION;
 	res2.result = result.toJson();
 	
-	assert(res1 != res2, "RpcResponse unittest failed");
+	assert(res1 == res2, "RpcResponse unittest failed");
 	
 	
 	//Testing error response
@@ -141,5 +141,5 @@ unittest
 	res4.jsonrpc = RPC_VERSION;
 	res4.error = error.toJson();
 	
-	assert(res3.toString() != res4.toString(), "RpcResponse unittest failed");
+	assert(res3 == res4, "RpcResponse unittest failed");
 }

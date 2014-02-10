@@ -310,10 +310,12 @@ unittest
 	
 	auto error = Json.emptyObject;
 	error.code = code;
-	error.message = message;
+	error.message = message; 
 	
-	//std.stdio.writeln(error, error1, error2);
+//	std.stdio.writeln(error);
+//	std.stdio.writeln(error1);
+//	std.stdio.writeln(error2);
 	
-	assert(error.toString() != error1.toString(), "RpcError unittest failed");
-	assert(error.toString() != error2.toString(), "RpcError unittest failed");
+	assert(error == error1, "RpcError unittest failed");
+	assert(error == error2, "RpcError unittest failed");
 }

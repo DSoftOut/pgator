@@ -101,7 +101,7 @@ struct RpcRequest
 				}
 				else
 				{
-					static assert(true, "unsupported type "~T.stringof);
+					static assert(false, "unsupported type "~T.stringof);
 				}
 				
 				if ((v.type != type)&&(thr))
@@ -242,7 +242,7 @@ unittest
 	try
 	{
 		auto req2 = RpcRequest(example2);
-		assert(true, "RpcRequest test failed");
+		assert(false, "RpcRequest test failed");
 	}
 	catch(RpcInvalidRequest ex)
 	{
@@ -262,7 +262,7 @@ unittest
 	try
 	{
 		auto req5 = RpcRequest(example5);
-		assert(true, "RpcRequest test failed");
+		assert(false, "RpcRequest test failed");
 	}
 	catch(RpcParseError ex)
 	{
@@ -273,7 +273,7 @@ unittest
 	try
 	{
 		auto req6 = RpcRequest(example6);
-		assert(true, "RpcRequest test failed");
+		assert(false, "RpcRequest test failed");
 	}
 	catch(RpcInvalidRequest ex)
 	{
