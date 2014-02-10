@@ -1,5 +1,7 @@
 module app;
 
+import stdlog;
+
 version(unittest)
 {
 	void main()
@@ -50,9 +52,10 @@ else
 			return 0;
 		}
 		
+		auto logger = new shared CLogger(logName);
 		if(daemon) 
-			return runDaemon(logName, (nargs) => 0, args, (){});
+			return runDaemon(logger, (nargs) => 0, args, (){});
 		else 
-			return runTerminal(logName, (nargs) => 0, args, (){});
+			return runTerminal(logger, (nargs) => 0, args, (){});
 	}
 }
