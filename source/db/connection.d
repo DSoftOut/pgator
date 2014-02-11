@@ -100,7 +100,7 @@ interface IConnection
     /**
     *   Returns current status of connection.
     */
-    ConnectionStatus pollConnectionStatus();
+    ConnectionStatus pollConnectionStatus() nothrow;
     
     /**
     *   If connection process is ended with error state, then
@@ -113,7 +113,7 @@ interface IConnection
     /**
     *   Returns quering status of connection.
     */
-    QueringStatus pollQueringStatus();
+    QueringStatus pollQueringStatus() nothrow;
     
     /**
     *   If quering process is ended with error state, then

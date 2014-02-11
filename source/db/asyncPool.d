@@ -287,6 +287,14 @@ class AssyncPool : IConnectionPool
                    }
                }  
            }
+           
+           scope(exit)
+           {
+               foreach(elem; list)
+               {
+                   elem[0].disconnect();
+               } 
+           }
        }
        
        static void freeChecker(shared ILogger logger, Duration reconnectTime)
@@ -466,7 +474,8 @@ class AssyncPool : IConnectionPool
                    }
                    
                    list.removeOne(conn);
-                   ids.freeCheckerId.send("add", conn);
+                   if(exit) conn.disconnect();
+                   else ids.freeCheckerId.send("add", conn);
                }
                last = list.length;
            }
