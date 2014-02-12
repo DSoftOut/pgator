@@ -192,3 +192,20 @@ synchronized class PQConnection : IConnection
     }
     mixin Mockable!IConnection;
 }
+
+class PQConnProvider : IConnectionProvider
+{
+    this(shared ILogger logger, IPostgreSQL api)
+    {
+        this.logger = logger;
+        this.api = api;
+    }
+    
+    shared(IConnection) allocate()
+    {
+        return new shared PQConnection(logger, api);
+    }
+    
+    private shared ILogger logger;
+    private IPostgreSQL api;
+}

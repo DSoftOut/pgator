@@ -12,5 +12,17 @@
 		"vibe-d" : "~master",
 		"derelict-pq": "~master",
 		"dunit": ">=1.0.0-beta"
-	}
+	},
+	
+	"configurations": [
+		{
+			"name": "production",
+			"targetType": "executable"
+		},
+		{
+			"name": "test1",
+			"targetType": "executable",
+			"versions": ["IntegrationTest1"]
+		}
+	]
 }

@@ -13,6 +13,7 @@ import derelict.util.exception;
 import std.exception;
 import std.string;
 import core.atomic;
+import core.memory;
 import util;
 
 synchronized class CPGconn : IPGconn
@@ -214,20 +215,29 @@ class PostgreSQL : IPostgreSQL
             if(refCount > 0) return;
             scope(success) atomicOp!"+="(refCount, 1);
              
-            version(linux)
+            try
             {
-                try
+                version(linux)
+                {
+                    try
+                    {
+                        DerelictPQ.load();
+                    } catch(DerelictException e)
+                    {
+                        // try with some frequently names
+                        DerelictPQ.load("libpq.so.0,libpq.so.5");
+                    }
+                }
+                else
                 {
                     DerelictPQ.load();
-                } catch(DerelictException e)
-                {
-                    // try with some frequently names
-                    DerelictPQ.load("libpq.so.0 libpq.so.5");
                 }
-            }
-            else
+            } catch(SymbolLoadException e)
             {
-                DerelictPQ.load();
+                if(e.symbolName != "PQconninfo")
+                {
+                    throw e;
+                }
             }
         }
         
@@ -243,6 +253,7 @@ class PostgreSQL : IPostgreSQL
             if(refCount == 0)
             {
                 scope(failure) {}
+                GC.collect();
                 DerelictPQ.unload();
             }
         }

@@ -29,7 +29,7 @@
 // This file is written in D programming language
 module stdlog;
 
-import log;
+public import log;
 import std.stream;
 import std.path;
 import std.stdio;

@@ -56,7 +56,7 @@
 module log;
 @safe:
 
-import std.conv;
+public import std.conv;
 
 /**
 *   Log levels defines style of the messages.

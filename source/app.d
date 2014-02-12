@@ -9,6 +9,48 @@ version(unittest)
 		
 	}
 }
+else version(IntegrationTest1)
+{
+    import std.getopt;
+    import stdlog;
+    import db.pq.libpq;
+    import db.pq.connection;
+    import db.assyncPool;
+    import core.time;
+    import core.thread;
+    
+    int main(string[] args)
+    {
+        string connString;
+        string logName = "test.log";
+        uint connCount = 100;
+        getopt(args
+            , "conn",  &connString
+            , "log",   &logName
+            , "count", &connCount);
+        
+        auto logger = new shared CLogger(logName);
+        scope(exit) logger.finalize();
+        
+        auto api = new PostgreSQL();
+        logger.logInfo("PostgreSQL was inited.");
+        auto connProvider = new PQConnProvider(logger, api);
+        
+        auto pool = new AssyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(1));
+        scope(exit) pool.finalize(() {});
+        logger.logInfo("AssyncPool was created.");
+        
+        pool.addServer(connString, connCount);
+        logger.logInfo(text(connCount, " new connections were added to the pool."));
+        
+        Thread.sleep(dur!"seconds"(5));
+        
+        logger.logInfo("Test ended. Results:"); 
+        logger.logInfo(text("active connections:   ", pool.activeConnections));
+        logger.logInfo(text("inactive connections: ", pool.inactiveConnections));
+        return 0;
+    }
+}
 else
 {
 	import std.stdio;
