@@ -802,6 +802,16 @@ version(unittest)
             throw new QueryException("Test query is failed!");
         }
         
+        DList!(shared IPGresult) getQueryResult()
+        {
+            assert(false, "Not used!"); ///TODO: fix when you are adding query unittests
+        }
+        
+        void postQuery(string com, string[] params)
+        {
+            assert(false, "Not used!"); ///TODO: fix when you are adding query unittests
+        }
+        
         void disconnect() nothrow
         {
             currConnStatus = ConnectionStatus.Error;
@@ -811,6 +821,7 @@ version(unittest)
         {
             return "";
         }
+
         
         protected ConnectionStatus currConnStatus;
         protected QueringStatus currQueringStatus;
