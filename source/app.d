@@ -61,6 +61,62 @@ else version(IntegrationTest1)
         return 0;
     }
 }
+else version(IntegrationTest2)
+{
+    import std.getopt;
+    import std.stdio;
+    import stdlog;
+    import db.pq.libpq;
+    import db.pq.connection;
+    import db.assyncPool;
+    import core.time;
+    import core.thread;
+    
+    int main(string[] args)
+    {
+        string connString;
+        string logName = "test.log";
+        uint connCount = 100;
+        getopt(args
+            , "conn",  &connString
+            , "log",   &logName
+            , "count", &connCount);
+        
+        if(connString == "")
+        {
+            writeln("Please, specify connection string.\n"
+                    "Params: --conn=string - connection string to test PostgreSQL connection\n"
+                    "        --log=string  - you can rewrite log file location, default 'test.log'\n"
+                    "        --count=uint  - number of connections in a pool, default 100\n");
+            return 0;
+        }
+        
+        bool canExit = false;
+        auto logger = new shared CLogger(logName);
+        scope(exit) logger.finalize();
+        
+        auto api = new PostgreSQL();
+        logger.logInfo("PostgreSQL was inited.");
+        auto connProvider = new PQConnProvider(logger, api);
+        
+        auto pool = new AssyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5));
+        scope(failure) pool.finalize(() {});
+        logger.logInfo("AssyncPool was created.");
+        
+        pool.addServer(connString, connCount);
+        logger.logInfo(text(connCount, " new connections were added to the pool."));
+        
+        pool.execQuery("SELECT ($1::bigint)*($1::bigint) as field_1;", ["42"]);
+        
+        logger.logInfo("Test ended. Results:"); 
+        logger.logInfo(text("active connections:   ", pool.activeConnections));
+        logger.logInfo(text("inactive connections: ", pool.inactiveConnections));
+        
+        pool.finalize(() {canExit = true;});
+        while(!canExit) {}
+        return 0;
+    }
+}
 else
 {
 	import std.stdio;

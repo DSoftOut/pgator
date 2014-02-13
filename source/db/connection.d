@@ -5,7 +5,9 @@
 */
 module db.connection;
 
+import db.pq.api;
 import dunit.mockable;
+import std.container;
 
 /**
 *    The exception is thrown when connection attempt to SQL server is failed due some reason.
@@ -111,6 +113,12 @@ interface IConnection
     void pollConnectionException();
     
     /**
+    *   Initializes querying process in non-blocking manner.
+    *   Throws: QueryException
+    */
+    void postQuery(string com, string[] params);
+    
+    /**
     *   Returns quering status of connection.
     */
     QueringStatus pollQueringStatus() nothrow;
@@ -122,6 +130,13 @@ interface IConnection
     *   Throws: QueryException
     */
     void pollQueryException();
+    
+    /**
+    *   Returns query result, if $(B pollQueringStatus) shows that
+    *   query is processed without errors, else blocks the caller
+    *   until the answer is arrived.
+    */
+    DList!(shared IPGresult) getQueryResult();
     
     /**
     *    Closes connection to the SQL server instantly.    

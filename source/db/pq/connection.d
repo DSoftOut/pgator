@@ -12,6 +12,7 @@ import db.connection;
 import db.pq.api;
 import log;
 import std.conv;
+import std.container;
 
 /**
 *   PostgreSQL specific connection type. Although it can use
@@ -45,7 +46,7 @@ synchronized class PQConnection : IConnection
             logger.logError(text("Failed to connect to SQL server, reason:", e.msg));
             throw new ConnectException(server, e.msg);
         }
-    }
+    }import std.container;
     
     /**
     *   Tries to establish connection with a SQL server described
@@ -136,11 +137,44 @@ synchronized class PQConnection : IConnection
     }
     
     /**
+    *   Initializes querying process in non-blocking manner.
+    *   Throws: QueryException
+    */
+    void postQuery(string com, string[] params)
+    in
+    {
+        assert(conn !is null, "Connection start wasn't established!");
+    }
+    body
+    {
+        try conn.sendQueryParams(com, params);
+        catch (PGQueryException e)
+        {
+            throw new QueryException(e.msg);
+        }
+    }
+    
+    /**
     *   Returns quering status of connection.
     */
     QueringStatus pollQueringStatus() nothrow
+    in
     {
-        assert(false, "Undefined!");
+        assert(conn !is null, "Connection start wasn't established!");
+    }
+    body
+    {
+        savedQueryException = null;
+        try conn.consumeInput();
+        catch (Exception e) // PGQueryException
+        {
+            savedQueryException = new QueryException(e.msg);
+            while(conn.getResult !is null) {}
+            return QueringStatus.Error;
+        }
+        
+        if(conn.isBusy) return QueringStatus.Pending;
+        else return QueringStatus.Finished;
     }
     
     /**
@@ -151,7 +185,35 @@ synchronized class PQConnection : IConnection
     */
     void pollQueryException()
     {
-        assert(false, "Undefined!");
+        if (savedQueryException !is null) throw savedQueryException;
+    }
+    
+    /**
+    *   Returns query result, if $(B pollQueringStatus) shows that
+    *   query is processed without errors, else blocks the caller
+    *   until the answer is arrived.
+    */
+    DList!(shared IPGresult) getQueryResult()
+    in
+    {
+        assert(conn !is null, "Connection start wasn't established!");
+    }
+    body
+    {
+        if(conn.isBusy)
+        {
+            while(pollQueringStatus != QueringStatus.Finished) pollQueryException();
+        }
+        
+        DList!(shared IPGresult) resList;
+        shared IPGresult res = conn.getResult;
+        while(res !is null) 
+        {
+            resList.insert(res);
+            res = conn.getResult;
+        }
+        
+        return resList;
     }
     
     /**
@@ -189,6 +251,7 @@ synchronized class PQConnection : IConnection
         __gshared IPostgreSQL api;
         shared IPGconn conn;
         __gshared ConnectException savedException;
+        __gshared QueryException   savedQueryException;
     }
     mixin Mockable!IConnection;
 }

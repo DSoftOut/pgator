@@ -23,6 +23,11 @@
 			"name": "test1",
 			"targetType": "executable",
 			"versions": ["IntegrationTest1"]
+		},
+		{
+			"name": "test2",
+			"targetType": "executable",
+			"versions": ["IntegrationTest2"]
 		}
 	]
 }

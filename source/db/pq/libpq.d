@@ -268,8 +268,10 @@ synchronized class CPGconn : IPGconn
         // type error in bindings int -> size_t, const(char)* -> const(char*), const(ubyte)** -> const(ubyte**)
         auto res = PQsendQueryParams(conn, command.toStringz, cast(int)paramValues.length, null
             , toPlainArray(paramValues), null, null, 1);
-        if (res == 1)
+        if (res == 0)
+        {
             throw new PGQueryException(errorMessage);
+        }
     }
     
     /**
@@ -306,7 +308,7 @@ synchronized class CPGconn : IPGconn
     body
     {
         auto res = PQconsumeInput(conn);
-        if(res == 1) 
+        if(res == 0) 
             throw new PGQueryException(errorMessage);
     }
     

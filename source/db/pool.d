@@ -8,6 +8,9 @@
 */
 module db.pool;
 
+import db.connection;
+import db.pq.api;
+import std.range;
 import core.time;
 
 /**
@@ -19,6 +22,31 @@ class ConnTimeoutException : Exception
     @safe pure nothrow this(string file = __FILE__, size_t line = __LINE__)
     {
         super("There is no any free connection to SQL servers!", file, line); 
+    }
+}
+
+/**
+*   The exception is thrown when invalid query interface is passed to
+*   $(B isQueryReady) and $(B getQuery) methods.
+*/
+class UnknownQueryException : Exception
+{
+    @safe pure nothrow this(string file = __FILE__, size_t line = __LINE__)
+    {
+        super("There is no such query that is processing now!", file, line); 
+    }
+}
+
+/**
+*   The exception is thrown when something bad has happen while 
+*   query passing to server or loading from server. This exception
+*   has no bearing on the SQL errors.
+*/
+class QueryProcessingException : Exception
+{
+    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(msg, file, line); 
     }
 }
 
@@ -40,6 +68,49 @@ interface IConnectionPool
     *    is dropped (or is down initially).
     */
     void addServer(string connString, size_t connNum);
+    
+    /**
+    *   Synchronous blocking way to execute query.
+    *   Throws: ConnTimeoutException, QueryProcessingException
+    */
+    InputRange!(shared IPGresult) execQuery(string command, string[] params);
+    
+    /**
+    *   Asynchronous way to execute query. User can check
+    *   query status by calling $(B isQueryReady) method.
+    *   When $(B isQueryReady) method returns true, the
+    *   query can be finalized by $(B getQuery) method.
+    * 
+    *   Returns: Specific interface to distinct the query
+    *            among others.
+    *   See_Also: isQueryReady, getQuery.
+    *   Throws: ConnTimeoutException
+    */
+    shared(IQuery) postQuery(string command, string[] params);
+    
+    /**
+    *   Returns true if query processing is finished (doesn't
+    *   matter the actual reason, error or query object is invalid,
+    *   or successful completion).
+    *
+    *   If the method returns true, then $(B getQuery) method
+    *   can be called in non-blocking manner.
+    *
+    *   See_Also: postQuery, getQuery.
+    */
+    bool isQueryReady(shared IQuery query) nothrow;
+    
+    /**
+    *   Retrieves SQL result from specified query.
+    *   
+    *   If previously called $(B isQueryReady) returns true,
+    *   then the method is not blocking, else it falls back
+    *   to $(B execQuery) behave.
+    *
+    *   See_Also: postQuery, isQueryReady
+    *   Throws: UnknownQueryException, QueryProcessingException
+    */
+    InputRange!(shared IPGresult) getQuery(shared IQuery query);
     
     /**
     *    If connection to a SQL server is down,
@@ -71,4 +142,12 @@ interface IConnectionPool
     *    Calls $(B callback) when connections are closed.
     */
     void finalize(shared void delegate() callback);
+    
+    /**
+    *   Returns first free connection from the pool.
+    *   Throws: ConnTimeoutException
+    */
+    protected shared(IConnection) fetchFreeConnection();
+    
+    protected interface IQuery {}
 }
