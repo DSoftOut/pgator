@@ -16,9 +16,79 @@ import core.atomic;
 import core.memory;
 import util;
 
+synchronized class CPGresult : IPGresult
+{
+    this(PGresult* result) nothrow
+    {
+        this.result = result;
+    }
+    
+    /**
+    *   Prototype: PQresultStatus
+    */
+    ExecStatusType resultStatus() nothrow const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQresultStatus !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return PQresultStatus(result);
+    }
+    
+    /**
+    *   Prototype: PQresStatus
+    *   Note: same as resultStatus, but converts 
+    *         the enum to human-readable string.
+    */
+    string resStatus() nothrow const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQresultStatus !is null, "DerelictPQ isn't loaded!");
+        assert(PQresStatus !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return fromStringz(PQresStatus(PQresultStatus(result)));
+    }
+    
+    /**
+    *   Prototype: PQresultErrorMessage
+    */
+    string resultErrorMessage() nothrow const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQresultErrorMessage !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return fromStringz(PQresultErrorMessage(result));
+    }
+    
+    /**
+    *   Prototype: PQclear
+    */
+    void clear() nothrow
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQclear !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        PQclear(result);
+        result = null;
+    }
+    
+    private __gshared PGresult* result;
+}
+
 synchronized class CPGconn : IPGconn
 {
-    this(PGconn* conn)
+    this(PGconn* conn) nothrow
     {
         this.conn = conn;
     }
@@ -172,6 +242,86 @@ synchronized class CPGconn : IPGconn
     {
         scope(failure) return "";
         return fromStringz(PQerrorMessage(cast()conn));
+    }
+    
+    /**
+    *   Prototype: PQsendQueryParams
+    *   Note: This is simplified version of the command that
+    *         handles only string params.
+    *   Throws: PGQueryException
+    */
+    void sendQueryParams(string command, string[] paramValues)
+    in
+    {
+        assert(conn !is null, "PGconn was finished!");
+        assert(PQsendQueryParams !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        const (ubyte)** toPlainArray(string[] arr)
+        {
+            auto ptrs = new char*[arr.length];
+            foreach(i, ref p; ptrs)
+                p = cast(char*) arr[i].toStringz;
+            return cast(const(ubyte)**)ptrs.ptr;
+        }
+        // type error in bindings int -> size_t, const(char)* -> const(char*), const(ubyte)** -> const(ubyte**)
+        auto res = PQsendQueryParams(conn, command.toStringz, cast(int)paramValues.length, null
+            , toPlainArray(paramValues), null, null, 1);
+        if (res == 1)
+            throw new PGQueryException(errorMessage);
+    }
+    
+    /**
+    *   Prototype: PQgetResult
+    *   Note: Even when PQresultStatus indicates a fatal error, 
+    *         PQgetResult should be called until it returns a null pointer 
+    *         to allow libpq to process the error information completely.
+    *   Note: A null pointer is returned when the command is complete and t
+    *         here will be no more results.
+    */
+    shared(IPGresult) getResult() nothrow
+    in
+    {
+        assert(conn !is null, "PGconn was finished!");
+        assert(PQgetResult !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        auto res = PQgetResult(conn);
+        if(res is null) return null;
+        return new shared CPGresult(res);
+    }
+    
+    /**
+    *   Prototype: PQconsumeInput
+    *   Throws: PGQueryException
+    */
+    void consumeInput()
+    in
+    {
+        assert(conn !is null, "PGconn was finished!");
+        assert(PQconsumeInput !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        auto res = PQconsumeInput(conn);
+        if(res == 1) 
+            throw new PGQueryException(errorMessage);
+    }
+    
+    /**
+    *   Prototype: PQisBusy
+    */
+    bool isBusy() nothrow
+    in
+    {
+        assert(conn !is null, "PGconn was finished!");
+        assert(PQisBusy !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return PQisBusy(conn) > 0;
     }
     
     private __gshared PGconn* conn;

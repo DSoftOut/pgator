@@ -48,6 +48,47 @@ class PGReconnectException : PGException
 }
 
 /**
+*   The exception is thrown when postgres ran in problem with query processing.
+*/
+class PGQueryException : PGException
+{
+    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(msg, file, line); 
+    }
+}
+
+/**
+*   Prototype: PGResult
+*/
+interface IPGresult
+{
+    synchronized:
+    
+    /**
+    *   Prototype: PQresultStatus
+    */
+    ExecStatusType resultStatus() nothrow const;
+    
+    /**
+    *   Prototype: PQresStatus
+    *   Note: same as resultStatus, but converts 
+    *         the enum to human-readable string.
+    */
+    string resStatus() nothrow const;
+    
+    /**
+    *   Prototype: PQresultErrorMessage
+    */
+    string resultErrorMessage() nothrow const;
+    
+    /**
+    *   Prototype: PQclear
+    */
+    void clear() nothrow;
+}
+
+/**
 *   Prototype: PGconn
 */
 interface IPGconn
@@ -106,6 +147,35 @@ interface IPGconn
     *   Prototype: PQerrorMessage
     */
     string errorMessage() const nothrow @property;
+    
+    /**
+    *   Prototype: PQsendQueryParams
+    *   Note: This is simplified version of the command that
+    *         handles only string params.
+    *   Throws: PGQueryException
+    */
+    void sendQueryParams(string command, string[] paramValues); 
+    
+    /**
+    *   Prototype: PQgetResult
+    *   Note: Even when PQresultStatus indicates a fatal error, 
+    *         PQgetResult should be called until it returns a null pointer 
+    *         to allow libpq to process the error information completely.
+    *   Note: A null pointer is returned when the command is complete and t
+    *         here will be no more results.
+    */
+    shared(IPGresult) getResult() nothrow;
+    
+    /**
+    *   Prototype: PQconsumeInput
+    *   Throws: PGQueryException
+    */
+    void consumeInput();
+    
+    /**
+    *   Prototype: PQisBusy
+    */
+    bool isBusy() nothrow;
 }
 
 /**
