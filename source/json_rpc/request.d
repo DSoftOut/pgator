@@ -42,6 +42,9 @@ struct RpcRequest
 	
 	mixin t_field!(string[], "params");
 	
+	/// It is necessary for some db requests.
+	mixin t_field!(string, "auth");
+	
 	mixin t_id;
 	
 	this(in string jsonStr)
@@ -154,6 +157,16 @@ struct RpcRequest
 		}
 		
 		
+	}
+	
+	void setAuth(string authStr)
+	{
+		this.auth = authStr;
+	}
+	
+	bool hasAuth() @property
+	{
+		return f_auth;
 	}
 	
 	private bool isComplete() @property
