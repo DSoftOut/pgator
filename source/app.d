@@ -12,6 +12,7 @@ version(unittest)
 else version(IntegrationTest1)
 {
     import std.getopt;
+    import std.stdio;
     import stdlog;
     import db.pq.libpq;
     import db.pq.connection;
@@ -28,6 +29,15 @@ else version(IntegrationTest1)
             , "conn",  &connString
             , "log",   &logName
             , "count", &connCount);
+        
+        if(connString == "")
+        {
+            writeln("Please, specify connection string.\n"
+                    "Params: --conn=string - connection string to test PostgreSQL connection\n"
+                    "        --log=string  - you can rewrite log file location, default 'test.log'\n"
+                    "        --count=uint  - number of connections in a pool, default 100\n");
+            return 0;
+        }
         
         auto logger = new shared CLogger(logName);
         scope(exit) logger.finalize();
