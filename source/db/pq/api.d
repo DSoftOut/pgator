@@ -86,6 +86,46 @@ interface IPGresult
     *   Prototype: PQclear
     */
     void clear() nothrow;
+    
+    /**
+    *   Prototype: PQntuples
+    */
+    size_t ntuples() const nothrow;
+
+    /**
+    *   Prototype: PQnfields
+    */
+    size_t nfields() const nothrow;
+        
+    /**
+    *   Prototype: PQfname
+    */ 
+    string fname(size_t colNumber) const;
+    
+    /**
+    *   Prototype: PQfformat
+    */
+    bool isBinary(size_t colNumber) const;
+    
+    /**
+    *   Prototype: PQgetvalue
+    */
+    string asString(size_t rowNumber, size_t colNumber) const;
+    
+    /**
+    *   Prototype: PQgetvalue
+    */
+    ubyte[] asBytes(size_t rowNumber, size_t colNumber) const;
+    
+    /**
+    *   Prototype: PQgetisnull
+    */
+    bool getisnull(size_t rowNumber, size_t colNumber) const;
+    
+    /**
+    *   Prototype: PQgetlength
+    */
+    size_t getLength(size_t rowNumber, size_t colNumber) const;
 }
 
 /**

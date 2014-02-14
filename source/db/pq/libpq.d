@@ -83,6 +83,124 @@ synchronized class CPGresult : IPGresult
         result = null;
     }
     
+    /**
+    *   Prototype: PQntuples
+    */
+    size_t ntuples() nothrow const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQntuples !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return cast(size_t)PQntuples(result);
+    }
+    
+    /**
+    *   Prototype: PQnfields
+    */
+    size_t nfields() nothrow const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQnfields !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return cast(size_t)PQnfields(result);
+    }
+    
+    /**
+    *   Prototype: PQfname
+    */ 
+    string fname(size_t colNumber) const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQfname !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return enforceEx!RangeError(fromStringz(PQfname(result, cast(uint)colNumber)));
+    }
+    
+    /**
+    *   Prototype: PQfformat
+    */
+    bool isBinary(size_t colNumber) const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQfformat !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return PQfformat(result, cast(uint)colNumber) == 1;
+    }
+    
+    /**
+    *   Prototype: PQgetvalue
+    */
+    string asString(size_t rowNumber, size_t colNumber) const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQgetvalue !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        import std.stdio; writeln(getLength(rowNumber, colNumber));
+        return fromStringz(cast(immutable(char)*)PQgetvalue(result, cast(uint)rowNumber, cast(uint)colNumber));
+    }
+    
+    /**
+    *   Prototype: PQgetvalue
+    */
+    ubyte[] asBytes(size_t rowNumber, size_t colNumber) const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQgetvalue !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        auto l = getLength(rowNumber, colNumber);
+        auto res = new ubyte[l];
+        auto bytes = PQgetvalue(result, cast(uint)rowNumber, cast(uint)colNumber);
+        foreach(i; 0..l)
+            res[i] = bytes[i];
+        return res;
+    }
+    
+    /**
+    *   Prototype: PQgetisnull
+    */
+    bool getisnull(size_t rowNumber, size_t colNumber) const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQgetisnull !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return PQgetisnull(result, cast(uint)rowNumber, cast(uint)colNumber) != 0;
+    }
+    
+    /**
+    *   Prototype: PQgetlength
+    */
+    size_t getLength(size_t rowNumber, size_t colNumber) const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQgetisnull !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return cast(size_t)PQgetlength(result, cast(uint)rowNumber, cast(uint)colNumber);
+    }
+    
     private __gshared PGresult* result;
 }
 
