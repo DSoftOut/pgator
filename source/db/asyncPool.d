@@ -228,15 +228,22 @@ class AssyncPool : IConnectionPool
         ids.freeCheckerId.send(thisTid, "length");
         ids.queringCheckerId.send(thisTid, "length");
         
-        foreach(i;0..2)
-            receive((Tid sender, size_t answer) 
+        foreach(i;0..2) 
+            try enforce(receiveTimeout(dur!"seconds"(1),
+                (Tid sender, size_t answer) 
                 {
                     if(sender == ids.freeCheckerId)
                         freeCount = answer;
                     else if(sender == ids.queringCheckerId)
                         queringCount = answer;
                 }
-            );
+            ), "Async pool internal problem! Workers don't respond!");
+            catch (LinkTerminated e)
+            {
+                logger.logError("Free conn or quering conn worker is dead!"); 
+                freeCount = 0;
+                queringCount = 0;
+            }
 
         return freeCount + queringCount;
     }
@@ -251,7 +258,7 @@ class AssyncPool : IConnectionPool
         ids.connectingCheckerId.send(thisTid, "length");
         
         foreach(i;0..2)
-            enforce(receiveTimeout(dur!"seconds"(1),
+            try enforce(receiveTimeout(dur!"seconds"(1),
                 (Tid sender, size_t answer) 
                 {
                     if(sender == ids.closedCheckerId)
@@ -260,7 +267,13 @@ class AssyncPool : IConnectionPool
                         connectingCount = answer;
                 }
             ), "Async pool internal problem! Workers don't respond!");
-        
+            catch (LinkTerminated e)
+            {
+                logger.logError("Closed conn or connecting conn worker is dead!");
+                closedCount = 0;
+                connectingCount = 0;
+            }
+
         return closedCount + connectingCount;
     }
     
@@ -274,7 +287,7 @@ class AssyncPool : IConnectionPool
         ids.connectingCheckerId.send(thisTid, "length");
         
         foreach(i;0..4)
-            enforce(receiveTimeout(dur!"seconds"(1),
+            try enforce(receiveTimeout(dur!"seconds"(1),
                 (Tid sender, size_t answer) 
                 {
                     if(sender == ids.freeCheckerId)
@@ -287,7 +300,14 @@ class AssyncPool : IConnectionPool
                         connectingCount = answer;
                 }
             ), "Async pool internal problem! Workers don't respond!");
-        
+            catch (LinkTerminated e)
+            {
+                logger.logError("One of workers is dead!");
+                freeCount = 0;
+                queringCount = 0;
+                closedCount = 0;
+                connectingCount = 0;
+            }
         return freeCount + queringCount + closedCount + connectingCount;
     }
     
@@ -1006,7 +1026,7 @@ unittest
     
     auto logger = new shared CLogger("asyncPool.unittest2");
     scope(exit) logger.finalize();
-    logger.minOutputLevel = LoggingLevel.Muted;
+    logger.minOutputLevel = LoggingLevel.Error;
     
     synchronized class ConnectionCheckConn : TestConnection
     {
