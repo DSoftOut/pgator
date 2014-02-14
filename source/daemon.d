@@ -104,8 +104,8 @@ int runDaemon(shared ILogger logger, int function(string[]) progMain, string[] a
         savedLogger.minOutputLevel(LoggingLevel.Muted);
     } else
     {
-        savedLogger.minOutputLevel(LogLevel.Notice);
-        logError("Daemon mode isn't supported for this platform!");
+        savedLogger.minOutputLevel(LoggingLevel.Notice);
+        savedLogger.logError("Daemon mode isn't supported for this platform!");
     }
 
     version (linux) 
