@@ -1026,7 +1026,7 @@ unittest
     
     auto logger = new shared CLogger("asyncPool.unittest2");
     scope(exit) logger.finalize();
-    logger.minOutputLevel = LoggingLevel.Error;
+    logger.minOutputLevel = LoggingLevel.Fatal;
     
     synchronized class ConnectionCheckConn : TestConnection
     {
