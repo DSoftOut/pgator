@@ -1,13 +1,13 @@
 // Written in D programming language
 /**
-* This module contain json_rpc table from db.<br>
+* This module contain json<->sql table from db.<br>
 *
 * Loads on SIGHUP or on startup
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 *
 */
-module table;
+module sql_json;
 
 import std.traits;
 
@@ -34,7 +34,7 @@ struct Entry
 	string commentary;
 }
 
-class Table
+class SqlJsonTable
 {
 	private Entry[string] map;
 	
@@ -45,9 +45,12 @@ class Table
 	
 	void reset()
 	{
-		foreach(key; map.byKey())
+		synchronized(this)
 		{
-			map.remove(key);
+			foreach(key; map.byKey())
+			{
+				map.remove(key);
+			}
 		}
 	}
 	
@@ -81,7 +84,7 @@ class Table
 		return map[method].reset_by;
 	}
 	
-	bool mayDrop(string method)
+	bool needDrop(string method)
 	{
 		if (need_cache(method))
 		{
@@ -98,3 +101,53 @@ class Table
 		return false;
 	}
 }
+
+private __gshared SqlJsonTable p_table;
+
+SqlJsonTable table() @property
+{
+	return p_table;
+}
+
+version(unittest)
+{
+	shared static initTable()
+	{
+		p_table = new SqlJsonTable();
+		
+		auto entry1 = Entry();
+		entry1.method = "substract";
+		entry1.arg_num = 2;
+		
+		auto entry2 = Entry();
+		entry2.method = "mult";
+		entry2.arg_num = 2;
+		entry2.need_cache = true;
+		entry2.reset_caches = ["sigDrop", "sigDontDrop"];
+		entry2.reset_by = ["sigDrop"];
+		
+		auto entry3 = Entry();
+		entry3.method = "divide";
+		entry3.arg_num = 2;
+		entry3.need_cache = true;
+		entry3.reset_caches = ["sigHello", "sigFlappy"];
+		entry3.reset_by = ["sigBye"];
+		entry3.set_username = true;
+		
+		
+		p_table.add(entry1);
+		p_table.add(entry2);
+		p_table.add(entry3);
+	}
+}
+
+unittest
+{
+	scope(failure)
+	{
+		assert(false, "sql_json unittest failed");
+	}
+	
+	initTable();
+}
+
