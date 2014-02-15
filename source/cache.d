@@ -80,11 +80,20 @@ class Cache
 	}
 	
 	void add(RpcRequest req, RpcResponse res)
-	{
-		synchronized(this)
+	{	
+		if ((req.method in cache) is null)
+		{
+			stash aa;
+			aa[req] = res;
+			
+			synchronized(this)
+				cache[req.method] = aa;
+		}
+		else synchronized (this) 
 		{
 			cache[req.method][req] = res;
 		}
+		
 	}
 	
 	bool get(ref RpcRequest req, out RpcResponse res)
@@ -119,26 +128,26 @@ version(unittest)
 	//get
 	void get()
 	{
-		import std.stdio;
+		//import std.stdio;
 		RpcResponse res;
 		if (cache.get(normalReq, res))
 		{
-			writeln(res.toJson);
+			//writeln(res.toJson);
 		}
 		
 		if (cache.get(notificationReq, res))
 		{
-			writeln(res.toJson);
+			//writeln(res.toJson);
 		}
 		
 		if (cache.get(methodNotFoundReq, res))
 		{
-			writeln(res.toJson);
+			//writeln(res.toJson);
 		}
 		
 		if (cache.get(invalidParamsReq, res))
 		{
-			writeln(res.toJson);
+			//writeln(res.toJson);
 		}
 	}
 	
@@ -147,16 +156,19 @@ version(unittest)
 	{
 		get();
 		
-		std.stdio.writeln("Reseting cache");
+		//std.stdio.writeln("Reseting cache");
 		
 		cache.reset(normalReq);
 		cache.reset(notificationReq);
 		cache.reset(methodNotFoundReq);
 		cache.reset(invalidParamsReq);
 		
-		std.stdio.writeln("Trying to get");
+		//std.stdio.writeln("Trying to get");
 		
 		get();
+		
+		import std.concurrency;
+		send(ownerTid, 1);
 	}
 }
 
@@ -173,11 +185,15 @@ unittest
 	
 	import std.concurrency;
 	
-	for(int i = 0; i < 1; i++)
+	Tid tid;
+	
+	for(int i = 0; i < 10; i++)
 	{
-		spawn(&foo);
+		tid = spawn(&foo);
 	}
 	
-	std.stdio.writeln("Finished");
+	receiveOnly!int();
+	
+	std.stdio.writeln("Caching system test finished");
 		
 }

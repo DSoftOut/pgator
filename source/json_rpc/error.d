@@ -336,14 +336,20 @@ package mixin template t_id()
 	mixin t_field!(string, "sid");
 	mixin t_field!(ulong, "uid");
 	
-	private void id(ulong i) @property
+	private void id(T)(T i) @property
 	{
-		uid = i;
-	}
-	
-	private void id(string str) @property
-	{
-		sid = str;
+		static if (is(T : ulong))
+		{
+			uid = i;
+		}
+		else static if (is(T : string))
+		{
+			sid = i;
+		}
+		else
+		{
+			static assert(false, "Unsopported type id:"~T.stringof);
+		}
 	}
 	
 	string id() @property

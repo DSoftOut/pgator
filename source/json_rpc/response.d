@@ -159,7 +159,7 @@ unittest
 	
 	auto result = RpcResult(Bson(arr));
 	
-	auto id = null;
+	string id = null;
 	
 	auto res1 = RpcResponse(id, result).toJson();
 	

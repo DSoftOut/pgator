@@ -214,15 +214,7 @@ struct RpcRequest
 			return false;
 		}
 		
-		this(string jsonrpc, string method, string[] params, string id)
-		{
-			this.jsonrpc = jsonrpc;
-			this.method = method;
-			this.params = params;
-			this.id = id;
-		}
-		
-		this(string jsonrpc, string method, string[] params, ulong id)
+		this(T)(string jsonrpc, string method, string[] params, T id)
 		{
 			this.jsonrpc = jsonrpc;
 			this.method = method;
@@ -289,11 +281,11 @@ unittest
 	
 	//Testing rpc notification with params
 	auto req3 = RpcRequest("2.0", "update", ["1", "2", "3", "4", "5"], null);
-	assert(!RpcRequest(example3).compare(req3), "RpcRequest test failed");
+	assert(RpcRequest(example3).compare(req3), "RpcRequest test failed");
 	
 	//Testing rpc notification w/o params
 	auto req4 = RpcRequest("2.0", "foobar", new string[0], null);
-	assert(!RpcRequest(example4).compare(req4), "RpcRequest test failed");
+	assert(RpcRequest(example4).compare(req4), "RpcRequest test failed");
 	
 	//Testing invalid json
 	try
