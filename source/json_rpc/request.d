@@ -47,7 +47,7 @@ struct RpcRequest
 	
 	mixin t_id;
 	
-	this(in string jsonStr)
+	this(string jsonStr)
 	{
 		Json json;
 		try
@@ -221,28 +221,52 @@ struct RpcRequest
 			this.params = params;
 			this.id = id;
 		}
+		
+		this(string jsonrpc, string method, string[] params, ulong id)
+		{
+			this.jsonrpc = jsonrpc;
+			this.method = method;
+			this.params = params;
+			this.id = id;
+		}
 	}	
 }
 
 version(unittest)
 {
-	string example1 = 
+	// For local tests
+	enum example1 = 
 		"{\"jsonrpc\": \"2.0\", \"method\": \"subtract\", \"params\": [42, 23], \"id\": 1}";
 		
-	string example2 = 
+	enum example2 = 
 		"{\"jsonrpc\": \"2.0\", \"method\": \"subtract\", \"params\": {\"subtrahend\": 23, \"minuend\": 42}, \"id\": 3}";
 		
-	string example3 = 
+	enum example3 = 
 		"{\"jsonrpc\": \"2.0\", \"method\": \"update\", \"params\": [1,2,3,4,5]}";
 	
-	string example4 = 
+	enum example4 = 
 		"{\"jsonrpc\": \"2.0\", \"method\": \"foobar\"}";
 		
-	string example5 =
+	enum example5 =
 		"{\"jsonrpc\": \"2.0\", \"method\": \"foobar, \"params\": \"bar\", \"baz]";
 		
-	string example6 = 
+	enum example6 = 
 		"[]";
+		
+	enum example7 = 
+		"{\"jsonrpc\": \"2.0\", \"method\": \"divide\", \"params\": [42, 23], \"id\": 1}";
+		
+	enum example8 = 
+		"{\"jsonrpc\": \"2.0\", \"method\": \"mult\", \"params\": [33,22]}";
+		
+	//For global tests
+	__gshared RpcRequest normalReq = RpcRequest("2.0", "subtract", ["42", "23"], 1);
+	
+	__gshared RpcRequest notificationReq = RpcRequest("2.0", "multiply", ["42", "23"], null);
+	
+	__gshared RpcRequest methodNotFoundReq = RpcRequest("2.0","foobar", new string[0], null);
+	
+	__gshared RpcRequest invalidParamsReq = RpcRequest("2.0", "subtract", ["sunday"], null);
 }
 
 unittest
