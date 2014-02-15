@@ -15,15 +15,19 @@ import json_rpc.response;
 import json_rpc.request;
 import json_rpc.error;
 
-import table;
+import sql_json;
 
 private enum VERSION
 {
-	FULL, PART
+	/// Drop all cache by method
+	FULL, 
+	
+	/// Drop only cache by uniq request
+	REQUEST
 }
 
-/// Temp
-private immutable VERSION ver = VERSION.PART;
+/// CHOOSE ME
+private immutable VER = VERSION.REQUEST;
 
 
 class Cache
@@ -32,65 +36,148 @@ class Cache
 	 
 	private stash[string] cache;
 	
-	private Table table;
+	private SqlJsonTable table;
 	
-	this(Table table)
+	this(SqlJsonTable table)
 	{
 		this.table = table;
 	}
 	
-	bool reset(RpcRequest req)
+	bool reset(ref RpcRequest req)
 	{
-		if (!table.mayDrop(req.method))
+		if (!table.needDrop(req.method))
 		{
 			return false;
 		}
 		
-		static if (ver == VERSION.FULL)
+		static if (VER == VERSION.FULL)
 		{
-			return cache.remove(req.method);
+			synchronized (this) 
+			{
+				return cache.remove(req.method);
+			}
 		}
 		else
 		{
-			return cache[req.method].remove(req);
+			synchronized (this)
+			{
+				return cache[req.method].remove(req);
+			}
 		}
 	}
 	
 	bool reset(string method)
 	{
-		if (!table.mayDrop(method))
+		if (!table.needDrop(method))
 		{
 			return false;
 		}
 		
-		return cache.remove(method);
+		synchronized (this) 
+		{
+			return cache.remove(method);
+		}
 	}
 	
 	void add(RpcRequest req, RpcResponse res)
 	{
-		cache[req.method][req] = res;
+		synchronized(this)
+		{
+			cache[req.method][req] = res;
+		}
+	}
+	
+	bool get(ref RpcRequest req, out RpcResponse res)
+	{
+		scope(failure)
+		{
+			return false;
+		}
+		
+		res = cache[req.method][req];
+		
+		return true; 
 	}
 	
 }
 
-static this()
+private __gshared Cache p_cache;
+
+Cache cache() @property
 {
-	string[string] map;
-	
-	map["1"] = "string1";
-	
-	map["2"] = "bla";
-	
-	struct S
+	return p_cache;
+}
+
+
+version(unittest)
+{
+	void initCache()
 	{
-		double foo;
+		p_cache = new Cache(table);
 	}
 	
-	S s; 
+	//get
+	void get()
+	{
+		import std.stdio;
+		RpcResponse res;
+		if (cache.get(normalReq, res))
+		{
+			writeln(res.toJson);
+		}
+		
+		if (cache.get(notificationReq, res))
+		{
+			writeln(res.toJson);
+		}
+		
+		if (cache.get(methodNotFoundReq, res))
+		{
+			writeln(res.toJson);
+		}
+		
+		if (cache.get(invalidParamsReq, res))
+		{
+			writeln(res.toJson);
+		}
+	}
 	
-	S[string] map2;
+	// get -> reset -> get
+	void foo()
+	{
+		get();
+		
+		std.stdio.writeln("Reseting cache");
+		
+		cache.reset(normalReq);
+		cache.reset(notificationReq);
+		cache.reset(methodNotFoundReq);
+		cache.reset(invalidParamsReq);
+		
+		std.stdio.writeln("Trying to get");
+		
+		get();
+	}
+}
+
+unittest
+{	
+	initTable();
+	initCache();
+	initResponses();
 	
-	std.stdio.writeln(map.get("2", null));
-	std.stdio.writeln(map2.get("2", S()));
+	cache.add(normalReq, normalRes);
+	cache.add(notificationReq, notificationRes);
+	cache.add(methodNotFoundReq, mnfRes);
+	cache.add(invalidParamsReq, invalidParasmRes);
 	
+	import std.concurrency;
+	
+	for(int i = 0; i < 1; i++)
+	{
+		spawn(&foo);
+	}
+	
+	std.stdio.writeln("Finished");
+		
 }

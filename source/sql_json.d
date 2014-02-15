@@ -34,6 +34,7 @@ struct Entry
 	string commentary;
 }
 
+//Will expand
 class SqlJsonTable
 {
 	private Entry[string] map;
@@ -111,27 +112,27 @@ SqlJsonTable table() @property
 
 version(unittest)
 {
-	shared static initTable()
+	void initTable()
 	{
 		p_table = new SqlJsonTable();
 		
 		auto entry1 = Entry();
 		entry1.method = "substract";
 		entry1.arg_num = 2;
+		entry1.need_cache = true;
+		entry1.reset_caches = ["drop", "safe", "pure"];
+		entry1.reset_by = ["drop", "unsafe"];
 		
 		auto entry2 = Entry();
-		entry2.method = "mult";
+		entry2.method = "multiply";
 		entry2.arg_num = 2;
-		entry2.need_cache = true;
-		entry2.reset_caches = ["sigDrop", "sigDontDrop"];
-		entry2.reset_by = ["sigDrop"];
 		
 		auto entry3 = Entry();
 		entry3.method = "divide";
 		entry3.arg_num = 2;
 		entry3.need_cache = true;
-		entry3.reset_caches = ["sigHello", "sigFlappy"];
-		entry3.reset_by = ["sigBye"];
+		entry3.reset_caches = ["trusted", "infinity"];
+		entry3.reset_by = ["drop", "unsafe"];
 		entry3.set_username = true;
 		
 		
