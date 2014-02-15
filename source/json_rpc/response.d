@@ -42,17 +42,19 @@ struct RpcResponse
 	
 	this(T)(T id)
 	{
+		static assert(is(T:ulong) || is (T:string), "Bad id type "~T.stringof);
+		
 		this.id = id;
 	}
 	
-	this(T)(T id, ref RpcError error)
+	this(T)(T id, RpcError error)
 	{
 		this(id);
 		
 		this.error = error;
 	}
 	
-	this(T)(T id, ref RpcResult result)
+	this(T)(T id, RpcResult result)
 	{
 		this(id);
 		
@@ -86,7 +88,7 @@ struct RpcResponse
 	
 	bool isValid() @property
 	{
-		return f_id && (f_result || f_error);
+		return (f_sid || f_uid) && (f_result || f_error);
 	}
 }
 
@@ -120,6 +122,28 @@ struct RpcResult
 	}
 }
 
+version(unittest)
+{
+	__gshared RpcResponse normalRes;
+	__gshared RpcResponse notificationRes;
+	__gshared RpcResponse mnfRes;
+	__gshared RpcResponse invalidParasmRes;
+	
+	void initResponses()
+	{
+		normalRes = RpcResponse(cast(ulong)1, 
+			RpcResult(Bson([Bson(19)])));
+		
+		notificationRes = RpcResponse(null,
+			RpcResult(Bson([Bson(966)])));
+		
+		mnfRes = RpcResponse(null,
+			RpcError(new RpcMethodNotFound()));
+		
+		invalidParasmRes = RpcResponse(null,
+			RpcError(new RpcInvalidParams()));
+	}
+}
 
 unittest
 {
@@ -135,7 +159,7 @@ unittest
 	
 	auto result = RpcResult(Bson(arr));
 	
-	auto id = null;
+	string id = null;
 	
 	auto res1 = RpcResponse(id, result).toJson();
 	

@@ -42,9 +42,12 @@ struct RpcRequest
 	
 	mixin t_field!(string[], "params");
 	
+	/// It is necessary for some db requests.
+	mixin t_field!(string, "auth");
+	
 	mixin t_id;
 	
-	this(in string jsonStr)
+	this(string jsonStr)
 	{
 		Json json;
 		try
@@ -156,6 +159,16 @@ struct RpcRequest
 		
 	}
 	
+	void setAuth(string authStr)
+	{
+		this.auth = authStr;
+	}
+	
+	bool hasAuth() @property
+	{
+		return f_auth;
+	}
+	
 	private bool isComplete() @property
 	{
 		return f_jsonrpc && f_method;
@@ -201,7 +214,7 @@ struct RpcRequest
 			return false;
 		}
 		
-		this(string jsonrpc, string method, string[] params, string id)
+		this(T)(string jsonrpc, string method, string[] params, T id)
 		{
 			this.jsonrpc = jsonrpc;
 			this.method = method;
@@ -213,23 +226,39 @@ struct RpcRequest
 
 version(unittest)
 {
-	string example1 = 
+	// For local tests
+	enum example1 = 
 		"{\"jsonrpc\": \"2.0\", \"method\": \"subtract\", \"params\": [42, 23], \"id\": 1}";
 		
-	string example2 = 
+	enum example2 = 
 		"{\"jsonrpc\": \"2.0\", \"method\": \"subtract\", \"params\": {\"subtrahend\": 23, \"minuend\": 42}, \"id\": 3}";
 		
-	string example3 = 
+	enum example3 = 
 		"{\"jsonrpc\": \"2.0\", \"method\": \"update\", \"params\": [1,2,3,4,5]}";
 	
-	string example4 = 
+	enum example4 = 
 		"{\"jsonrpc\": \"2.0\", \"method\": \"foobar\"}";
 		
-	string example5 =
+	enum example5 =
 		"{\"jsonrpc\": \"2.0\", \"method\": \"foobar, \"params\": \"bar\", \"baz]";
 		
-	string example6 = 
+	enum example6 = 
 		"[]";
+		
+	enum example7 = 
+		"{\"jsonrpc\": \"2.0\", \"method\": \"divide\", \"params\": [42, 23], \"id\": 1}";
+		
+	enum example8 = 
+		"{\"jsonrpc\": \"2.0\", \"method\": \"mult\", \"params\": [33,22]}";
+		
+	//For global tests
+	__gshared RpcRequest normalReq = RpcRequest("2.0", "subtract", ["42", "23"], 1);
+	
+	__gshared RpcRequest notificationReq = RpcRequest("2.0", "multiply", ["42", "23"], null);
+	
+	__gshared RpcRequest methodNotFoundReq = RpcRequest("2.0","foobar", new string[0], null);
+	
+	__gshared RpcRequest invalidParamsReq = RpcRequest("2.0", "subtract", ["sunday"], null);
 }
 
 unittest
@@ -252,11 +281,11 @@ unittest
 	
 	//Testing rpc notification with params
 	auto req3 = RpcRequest("2.0", "update", ["1", "2", "3", "4", "5"], null);
-	assert(!RpcRequest(example3).compare(req3), "RpcRequest test failed");
+	assert(RpcRequest(example3).compare(req3), "RpcRequest test failed");
 	
 	//Testing rpc notification w/o params
 	auto req4 = RpcRequest("2.0", "foobar", new string[0], null);
-	assert(!RpcRequest(example4).compare(req4), "RpcRequest test failed");
+	assert(RpcRequest(example4).compare(req4), "RpcRequest test failed");
 	
 	//Testing invalid json
 	try
