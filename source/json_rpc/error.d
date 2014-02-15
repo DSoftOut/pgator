@@ -52,7 +52,9 @@ static this()
 	
 	RPC_ERROR_MSG[RPC_ERROR_CODE.INTERNAL_ERROR] = "Internal error";
 	
-	RPC_ERROR_MSG[RPC_ERROR_CODE.SERVER_ERROR] = "Server error";	
+	RPC_ERROR_MSG[RPC_ERROR_CODE.SERVER_ERROR] = "Server error";
+	
+	RPC_ERROR_MSG.rehash();	
 }
 
 
@@ -120,6 +122,11 @@ struct RpcError
 		this(code, message);
 	}
 	
+	this(RpcErrorEx ex)
+	{
+		this(ex.code, ex.message);
+	}
+	
 	Json toJson()
 	{
 		Json ret = Json.emptyObject;
@@ -179,8 +186,14 @@ struct RpcErrorData
 	}
 }
 
+interface RpcErrorEx
+{
+	RPC_ERROR_CODE code() @property;
+	
+	string message() @property;
+}
 
-class RpcParseError: Exception
+class RpcParseError: Exception, RpcErrorEx
 {	
 	this(in string msg)
 	{
@@ -189,11 +202,21 @@ class RpcParseError: Exception
 	
 	this()
 	{
-		super(RPC_ERROR_MSG[RPC_ERROR_CODE.PARSE_ERROR]);
+		super(RPC_ERROR_MSG[code]);
+	}
+	
+	RPC_ERROR_CODE code() @property
+	{
+		return RPC_ERROR_CODE.PARSE_ERROR;
+	}
+	
+	string message() @property
+	{
+		return this.msg;
 	}
 }
 
-class RpcInvalidRequest: Exception
+class RpcInvalidRequest: Exception, RpcErrorEx
 {	
 	this(in string msg)
 	{
@@ -202,11 +225,21 @@ class RpcInvalidRequest: Exception
 	
 	this()
 	{
-		super(RPC_ERROR_MSG[RPC_ERROR_CODE.INVALID_REQUEST]);
+		super(RPC_ERROR_MSG[code]);
+	}
+	
+	RPC_ERROR_CODE code() @property
+	{
+		return RPC_ERROR_CODE.INVALID_REQUEST;
+	}
+	
+	string message() @property
+	{
+		return this.msg;
 	}
 }
 
-class RpcMethodNotFound: Exception
+class RpcMethodNotFound: Exception, RpcErrorEx
 {
 	this(in string msg)
 	{
@@ -215,11 +248,21 @@ class RpcMethodNotFound: Exception
 	
 	this()
 	{
-		super(RPC_ERROR_MSG[RPC_ERROR_CODE.METHOD_NOT_FOUND]);
+		super(RPC_ERROR_MSG[code]);
+	}
+	
+	RPC_ERROR_CODE code() @property
+	{
+		return RPC_ERROR_CODE.METHOD_NOT_FOUND;
+	}
+	
+	string message() @property
+	{
+		return this.msg;
 	}
 }
 
-class RpcInvalidParams: Exception
+class RpcInvalidParams: Exception, RpcErrorEx
 {	
 	this(in string msg)
 	{
@@ -228,11 +271,21 @@ class RpcInvalidParams: Exception
 	
 	this()
 	{
-		super(RPC_ERROR_MSG[RPC_ERROR_CODE.INVALID_PARAMS]);
+		super(RPC_ERROR_MSG[code]);
+	}
+	
+	RPC_ERROR_CODE code() @property
+	{
+		return RPC_ERROR_CODE.INVALID_PARAMS;
+	}
+	
+	string message() @property
+	{
+		return this.msg;
 	}
 }
 
-class RpcInternalError: Exception
+class RpcInternalError: Exception, RpcErrorEx
 {
 	this(in string msg)
 	{
@@ -241,11 +294,21 @@ class RpcInternalError: Exception
 	
 	this()
 	{
-		super(RPC_ERROR_MSG[RPC_ERROR_CODE.INTERNAL_ERROR]);
+		super(RPC_ERROR_MSG[code]);
+	}
+	
+	RPC_ERROR_CODE code() @property
+	{
+		return RPC_ERROR_CODE.INTERNAL_ERROR;
+	}
+	
+	string message() @property
+	{
+		return this.msg;
 	}
 }
 
-class RpcServerError: Exception
+class RpcServerError: Exception, RpcErrorEx
 {
 	this(in string msg)
 	{
@@ -254,70 +317,53 @@ class RpcServerError: Exception
 	
 	this()
 	{
-		super(RPC_ERROR_MSG[RPC_ERROR_CODE.SERVER_ERROR]);
+		super(RPC_ERROR_MSG[code]);
+	}
+	
+	RPC_ERROR_CODE code() @property
+	{
+		return RPC_ERROR_CODE.SERVER_ERROR;
+	}
+	
+	string message() @property
+	{
+		return this.msg;
 	}
 }
 
 package mixin template t_id()
 {
-	/// Used to determine original request id type
-	enum ID_TYPE
-	{
-		NULL,
-		
-		STRING,
-		
-		INTEGER
-	}
+	mixin t_field!(string, "sid");
+	mixin t_field!(ulong, "uid");
 	
-	mixin t_field!(ID_TYPE, "idType");
-	
-	private string m_id;
-	private bool f_id;
 	private void id(ulong i) @property
 	{
-		m_id = to!string(i);
-		
-		idType = ID_TYPE.INTEGER;
-		
-		f_id = true;
+		uid = i;
 	}
+	
 	private void id(string str) @property
 	{
-		if (str is null)
-		{
-			m_id = "null";
-			
-			idType = ID_TYPE.NULL;			
-		}
-		else
-		{
-			m_id = str;
-			
-			idType = ID_TYPE.STRING;
-		}
-		
-		f_id = true;
+		sid = str;
 	}
+	
 	string id() @property
 	{
-		return m_id;
+		if (f_uid)
+		{
+			return to!string(uid);
+		}
+		
+		return sid;
 	}
 	
 	Json idJson()
 	{
-		final switch (idType)
+		if (f_uid)
 		{
-			case ID_TYPE.NULL:
-				return Json(null);
-				
-			case ID_TYPE.INTEGER:
-				return Json(to!int(id));
-				
-			case ID_TYPE.STRING:
-				return Json(id);
-				
+			return Json(uid);
 		}
+		
+		return Json(sid);
 	}
 }
 
