@@ -923,7 +923,7 @@ unittest
     auto inactive = pool.inactiveConnections;
     auto total = pool.totalConnections;
 
-    Thread.sleep(dur!"seconds"(1));
+    Thread.sleep(dur!"seconds"(3));
 
     active = pool.activeConnections;
     inactive = pool.inactiveConnections;
@@ -1004,7 +1004,7 @@ unittest
     auto inactive = pool.inactiveConnections;
     auto total = pool.totalConnections;
     
-    Thread.sleep(dur!"seconds"(1));
+    Thread.sleep(dur!"seconds"(3));
     
     active = pool.activeConnections;
     inactive = pool.inactiveConnections;
@@ -1096,7 +1096,7 @@ unittest
     auto inactive = pool.inactiveConnections;
     auto total = pool.totalConnections;
 
-    Thread.sleep(dur!"seconds"(1));
+    Thread.sleep(dur!"seconds"(3));
 
     active = pool.activeConnections;
     inactive = pool.inactiveConnections;
