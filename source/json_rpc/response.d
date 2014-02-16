@@ -37,24 +37,22 @@ struct RpcResponse
 	
 	mixin t_field!(RpcError, "error");
 	
-	mixin t_id;
+	mixin t_field!(Json, "id");
 	
 	
-	this(T)(T id)
-	{
-		static assert(is(T:ulong) || is (T:string), "Bad id type "~T.stringof);
-		
+	this(Json id)
+	{		
 		this.id = id;
 	}
 	
-	this(T)(T id, RpcError error)
+	this(Json id, RpcError error)
 	{
 		this(id);
 		
 		this.error = error;
 	}
 	
-	this(T)(T id, RpcResult result)
+	this(Json id, RpcResult result)
 	{
 		this(id);
 		
@@ -81,14 +79,14 @@ struct RpcResponse
 			ret.error = error.toJson();
 		}
 		
-		ret.id = idJson();
+		ret.id = id;
 		
 		return ret;
 	}
 	
 	bool isValid() @property
 	{
-		return (f_sid || f_uid) && (f_result || f_error);
+		return f_id && (f_result || f_error);
 	}
 }
 
@@ -131,16 +129,16 @@ version(unittest)
 	
 	void initResponses()
 	{
-		normalRes = RpcResponse(cast(ulong)1, 
+		normalRes = RpcResponse(Json(1), 
 			RpcResult(Bson([Bson(19)])));
 		
-		notificationRes = RpcResponse(null,
+		notificationRes = RpcResponse(Json(null),
 			RpcResult(Bson([Bson(966)])));
 		
-		mnfRes = RpcResponse(null,
+		mnfRes = RpcResponse(Json(null),
 			RpcError(new RpcMethodNotFound()));
 		
-		invalidParasmRes = RpcResponse(null,
+		invalidParasmRes = RpcResponse(Json(null),
 			RpcError(new RpcInvalidParams()));
 	}
 }
@@ -159,7 +157,7 @@ unittest
 	
 	auto result = RpcResult(Bson(arr));
 	
-	string id = null;
+	auto id = Json(null);
 	
 	auto res1 = RpcResponse(id, result).toJson();
 	
