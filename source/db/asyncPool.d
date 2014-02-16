@@ -220,7 +220,10 @@ class AssyncPool : IConnectionPool
     }
     
     /**
-    *    Returns current alive connections number.
+    *   Returns current alive connections number.
+    *   Warning: The method displays count of active connections at the moment,
+    *            returned value can become invalid as soon as it returned due
+    *            async nature of the pool.
     */
     size_t activeConnections() @property
     {
@@ -249,7 +252,10 @@ class AssyncPool : IConnectionPool
     }
     
     /**
-    *    Returns current frozen connections number.
+    *   Returns current frozen connections number.
+    *   Warning: The method displays count of active connections at the moment,
+    *            returned value can become invalid as soon as it returned due
+    *            async nature of the pool.
     */
     size_t inactiveConnections() @property
     {
@@ -916,9 +922,6 @@ unittest
     auto active = pool.activeConnections;
     auto inactive = pool.inactiveConnections;
     auto total = pool.totalConnections;
-    
-    assert(active + inactive == total, text("Total connections count != active + inactive. ", total, "!=", active,"+",inactive));
-    assert(total == n, text("Some connections are lost! ", total, "!=", n));
 
     Thread.sleep(dur!"seconds"(1));
 
@@ -1000,9 +1003,6 @@ unittest
     auto active = pool.activeConnections;
     auto inactive = pool.inactiveConnections;
     auto total = pool.totalConnections;
-    
-    assert(active + inactive == total, text("Total connections count != active + inactive. ", total, "!=", active,"+",inactive));
-    assert(total == n, text("Some connections are lost! ", total, "!=", n));
     
     Thread.sleep(dur!"seconds"(1));
     
@@ -1095,9 +1095,6 @@ unittest
     auto active = pool.activeConnections;
     auto inactive = pool.inactiveConnections;
     auto total = pool.totalConnections;
-    
-    assert(active + inactive == total, text("Total connections count != active + inactive. ", total, "!=", active,"+",inactive));
-    assert(total == n, text("Some connections are lost! ", total, "!=", n));
 
     Thread.sleep(dur!"seconds"(1));
 
