@@ -74,33 +74,20 @@ static this()
 */
 struct RpcError
 {
-	mixin t_field!(RPC_ERROR_CODE, "code");
+	@required
+	string message;
 	
-	mixin t_field!(string, "message");
+	@required
+	int code;
 	
-	mixin t_field!(RpcErrorData, "data");
+	@possible
+	Json data = Json(null);
 	
 	this(in Bson bson)
 	{
 		try
 		{
-			foreach(string k, v; bson)
-			{
-				if (k == "code")
-				{
-					this.code = cast(RPC_ERROR_CODE)v.get!int;
-				}
-				else if( k == "message")
-				{
-					this.message = v.get!string;
-				}
-				else if (k == "data")
-				{
-					this.data = RpcErrorData(v);
-				}
-			}
-			
-			if(!this.isValid) throw new RpcInternalError();
+			this = deserializeFromJson!RpcError(bson.toJson);
 		}
 		
 		catch(Exception ex)
@@ -115,7 +102,7 @@ struct RpcError
 		this.message = message;
 	}
 	
-	this (RPC_ERROR_CODE code, string message, RpcErrorData errorData)
+	this (RPC_ERROR_CODE code, string message, Json errorData)
 	{
 		this.data = errorData;
 		
@@ -135,17 +122,12 @@ struct RpcError
 		
 		ret.message = message;
 		
-		if (f_data)
+		if (data.type != Json.Type.null_)
 		{
-			ret.data = data.toJson();
+			ret.data = data;
 		}
 		
 		return ret;
-	}
-	
-	bool isValid() @property
-	{
-		return f_code && f_message;
 	}
 }
 
@@ -160,7 +142,8 @@ struct RpcError
 *  data.toJson();
 * ------
 */
-struct RpcErrorData
+@disable
+struct RpcErrorData 
 {
 	mixin t_field!(Json, "json");
 	
@@ -346,9 +329,24 @@ package mixin template t_id()
 		{
 			sid = i;
 		}
+		else static if (is( T == Json))
+		{
+			if (i.type == Json.Type.int_)
+			{
+				uid = i.to!ulong;
+			}
+			else if (i.type == Json.Type.null_)
+			{
+				sid = null;
+			}
+			else if (i.type == Json.Type.string)
+			{
+				sid = i.to!string;
+			}
+		}
 		else
 		{
-			static assert(false, "Unsopported type id:"~T.stringof);
+			static assert(false, "Unsupported type id:"~T.stringof);
 		}
 	}
 	
