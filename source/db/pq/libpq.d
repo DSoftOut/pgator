@@ -201,6 +201,20 @@ synchronized class CPGresult : IPGresult
         return cast(size_t)PQgetlength(result, cast(uint)rowNumber, cast(uint)colNumber);
     }
     
+    /**
+    *   Prototype: PQftype
+    */
+    PQType ftype(size_t colNumber) const
+    in
+    {
+        assert(result !is null, "PGconn was finished!");
+        assert(PQftype !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return cast(PQType)PQftype(result, cast(uint)colNumber);
+    }
+    
     private __gshared PGresult* result;
 }
 

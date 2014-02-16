@@ -13,6 +13,7 @@
 module db.pq.api;
 
 import derelict.pq.pq;
+public import db.pq.types;
 
 /**
 *   All exceptions thrown by postgres api is inherited from this exception.
@@ -126,6 +127,11 @@ interface IPGresult
     *   Prototype: PQgetlength
     */
     size_t getLength(size_t rowNumber, size_t colNumber) const;
+    
+    /**
+    *   Prototype: PQftype
+    */
+    PQType ftype(size_t colNumber) const;
 }
 
 /**
