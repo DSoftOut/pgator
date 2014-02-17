@@ -33,7 +33,7 @@ struct AppConfig
 	SqlConfig[] sqlServers;
 	
 	@required
-	string sqlAuth;
+	string[] sqlAuth;
 	
 	@required
 	uint sqlTimeout;
@@ -52,14 +52,8 @@ struct AppConfig
 	
 	this(Json json)
 	{
-		try
-		{
-			this = deserializeFromJson!AppConfig(json);
-		}
-		catch (Exception ex)
-		{
-			throw new InvalidConfig(ex.msg);
-		}
+
+		this = tryEx!(InvalidConfig, deserializeFromJson!AppConfig)(json);
 	}
 	
 	this(string path)
@@ -101,11 +95,12 @@ struct SqlConfig
 
 class InvalidConfig:Exception
 {
-	this(in string msg)
+	@safe pure nothrow this(string msg = null, string file = __FILE__, size_t line = __LINE__)
 	{
-		super(msg);
+		super(msg, file, line);
 	}
-} 
+}
+ 
 
 version(unittest)
 {
@@ -139,7 +134,7 @@ version(unittest)
 	
 	    \"sqlReconnectTime\": 150,
 	
-	    \"sqlAuth\" : \"login and pass\",
+	    \"sqlAuth\" : [\"login\",\"password\"],
 	
 	    \"sqlJsonTable\" : \"json_rpc\"
 	    }";
@@ -155,7 +150,7 @@ unittest
 	config2.bindAddresses = ["::", "0.0.0.0"];
 	config2.hostname = "";
 	config2.maxConn = cast(uint) 50;
-	config2.sqlAuth = "login and pass";
+	config2.sqlAuth = ["login", "password"];
 	config2.sqlJsonTable = "json_rpc";
 	config2.sqlReconnectTime = 150;
 	config2.sqlTimeout = 100;

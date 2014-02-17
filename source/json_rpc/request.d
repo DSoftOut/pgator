@@ -46,7 +46,7 @@ struct RpcRequest
 	@possible
 	Json id = Json(null);
 	
-	string auth = null;
+	string[string] auth = null;
 	
 	this(Json json)
 	{

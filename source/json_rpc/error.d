@@ -46,9 +46,10 @@ enum RPC_VERSION = "2.0";
 * Example
 * ------
 *  auto err1 = RpcError(bson);
-*  auto err2 = RpcError(RPC_ERROR_CODE.INVALID_PARAMS, RPC_ERROR_MSG[RPC_ERROR_CODE.INVALID_PARAMS]);
+*  auto err2 = RpcError(RPC_ERROR_CODE.INVALID_PARAMS, "Invalid params");
 *  auto err3 = RpcError(RPC_ERROR_CODE.INVALID_PARAMS, "mycustommessage");
-*  auto err4 = RRpcError(RPC_ERROR_CODE.INVALID_PARAMS, RPC_ERROR_MSG[RPC_ERROR_CODE.INVALID_PARAMS], erroData); 
+*  auto err4 = RpcError(RPC_ERROR_CODE.INVALID_PARAMS, "Invalid params", erroData); 
+*  auto err5 = RpcError(new RpcInvalidParams());
 *
 *  //toJson
 *  err2.toJson(); 
