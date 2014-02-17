@@ -10,6 +10,7 @@ module util;
 import std.string;
 import std.conv;
 import std.traits;
+import std.range;
 import vibe.data.json;
 
 mixin template t_field(T, alias fieldName)
@@ -31,7 +32,7 @@ T deserializeFromJson(T)(Json src)
 {
 	T ret;
 	
-	static assert (is(T == struct), "Need aggregate type, not "~T.stringof);
+	static assert (is(T == struct), "Need struct type, not "~T.stringof);
 	
 	if (src.type != Json.Type.object)
 	{
@@ -39,17 +40,19 @@ T deserializeFromJson(T)(Json src)
 	}
 	
 	foreach(mem; __traits(allMembers, T))
-	{			
+	{	
+		alias getMemberType!(T, mem) MemType;
+				
 		static if (isRequired!(mem, T) || isOptional!(mem, T))
 		{
 			if (mixin("src."~mem~".type != Json.Type.undefined"))
 			{
 				
-				static if ((is(typeof(mixin("ret."~mem)) == struct)))
+				static if (is(MemType == struct))
 				{
 					if (mixin("src."~mem~".type == Json.Type.object"))
 					{
-						static if ((is(typeof(mixin("ret."~mem)) == Json)))
+						static if ((is(MemType == Json)))
 						{
 							mixin("ret."~mem~"=src."~mem~";");
 						}	
@@ -61,15 +64,24 @@ T deserializeFromJson(T)(Json src)
 				}
 				else
 				{
-					static if (is(typeof(mixin("ret."~mem)) == string[]))
+					static if (isArray!MemType && !isSomeString!MemType)
 					{
 						if (mixin("src."~mem~".type == Json.Type.array"))
 						{
-							string[] arr = new string[0];
+							alias ElementType!MemType ElemType;
+							
+							ElemType[] arr = new ElemType[0];
 							
 							foreach(json; mixin("src."~mem))
 							{
-								arr ~= json.to!string;
+								static if (is(ElemType == struct))
+								{
+									arr ~= deserializeFromJson!ElemType(json);
+								}
+								else
+								{
+									arr ~= json.to!ElemType;
+								}
 							}
 							
 							mixin("ret."~mem~"= arr;");
@@ -77,7 +89,7 @@ T deserializeFromJson(T)(Json src)
 					}
 					else
 					{
-						static if (is(typeof(mixin("ret."~mem)) == Json))
+						static if (is(MemType == Json))
 						{
 							mixin("ret."~mem~"=src."~mem~";");
 						}

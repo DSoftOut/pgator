@@ -14,8 +14,6 @@ module config;
 import std.exception;
 import std.stdio;
 
-import core.time;
-
 import vibe.data.json;
 import vibe.core.log;
 
@@ -25,66 +23,46 @@ enum CONFIG_PATH = "config.json";
 
 struct AppConfig
 {
-	mixin t_field!(ushort, "port");
+	@required
+	ushort port;
 	
-	mixin t_field!(uint, "maxConn");
+	@required
+	uint maxConn;
 	
-	mixin t_field!(SqlConfig[], "sqlServers");
+	@required
+	SqlConfig[] sqlServers;
 	
-	mixin t_field!(Duration, "sqlTimeout");
+	@required
+	string sqlAuth;
 	
-	mixin t_field!(string, "sqlAuth");
+	@required
+	uint sqlTimeout;
 	
-	mixin t_field!(string, "sqlJsonTable");
+	@required
+	string sqlJsonTable;
 	
-	mixin t_field!(AppOptionalConfig, "optional");
+	@possible
+	string[] bindAddresses = null;
 	
-	this(in Json src)
-	{		
-		foreach(string k, v; src)
+	@possible
+	string hostname = null;
+	
+	@possible
+	int sqlReconnectTime = -1;
+	
+	this(Json json)
+	{
+		try
 		{
-			if (k == "port")
-			{
-				port = v.to!ushort();
-			}
-			else if (k == "maxConn")
-			{
-				maxConn = v.to!uint();
-			}
-			else if (k == "sqlTimeout")
-			{
-				sqlTimeout = dur!"msecs"(v.to!uint());
-			}
-			else if (k == "sqlAuth")
-			{
-				sqlAuth = v.to!string();
-			}
-			else if (k == "sqlJsonTable")
-			{
-				sqlJsonTable = v.to!string();
-			}
-			else if (k == "sqlServers")
-			{
-				SqlConfig[] sqlServers = new SqlConfig[0];
-				foreach (serv; v.get!(Json[]))
-				{
-					sqlServers ~= SqlConfig(serv);
-				}
-				
-				this.sqlServers = sqlServers;
-			}
+			this = deserializeFromJson!AppConfig(json);
 		}
-		
-		optional = AppOptionalConfig(src);
-		
-		if (!isComplete)
+		catch (Exception ex)
 		{
-			throw new InvalidConfig("Config is not complete");
+			throw new InvalidConfig(ex.msg);
 		}
-						
 	}
 	
-	this (in string path)
+	this(string path)
 	{
 		try
 		{
@@ -107,161 +85,18 @@ struct AppConfig
 			throw new Exception("Config reading error");
 		}
 	}
-	
-	version(unittest)
-	{
-		this(ushort port, uint maxConn, SqlConfig[] conf, Duration sqlTimeout, string sqlAuth, string sqlJsonTable,
-			AppOptionalConfig optConf)
-		{
-			this.port = port;
-			this.maxConn = maxConn;
-			this.sqlServers = conf;
-			this.sqlTimeout = sqlTimeout;
-			this.sqlAuth = sqlAuth;
-			this.sqlJsonTable = sqlJsonTable;
-			this.optional = optConf;
-		}
-	}
-	
-	Json parseJson(in string jsonStr)
-	{
-		try
-		{
-			return parseJsonString(jsonStr);
-		}
-		catch (Exception ex)
-		{
-			logError(ex.msg);
-			throw new Exception("json config parse error");
-		}
-	}
-	
-	Duration sqlReconnectTime() @property
-	{
-		if (optional.isExistSqlReconnectTime)
-		{
-			return optional.sqlReconnectTime;
-		}
-		else return sqlTimeout;
-	}
-	
-	
-	private bool isComplete() @property
-	{
-		return f_port && f_maxConn && f_sqlServers && f_sqlTimeout && f_sqlAuth && f_sqlJsonTable;
-	}	
-}
-
-
-struct AppOptionalConfig
-{
-	mixin t_field!(string[], "bindAddresses");
-	
-	mixin t_field!(string, "hostname");
-	
-	mixin t_field!(Duration, "sqlReconnectTime");
-	
-	this(in Json src)
-	{
-		foreach(string k, v; src)
-		{
-			if (k == "sqlReconnectTime")
-			{
-				sqlReconnectTime = dur!"msecs"(v.to!uint());
-			}
-			else if (k == "hostname")
-			{
-				hostname = v.to!string();
-			}
-			else if (k == "bindAddresses")
-			{
-				string[] bindAddresses = new string[0];
-				foreach(addr; v.get!(Json[])())
-				{
-					bindAddresses ~= addr.to!string();
-				}
-				this.bindAddresses = bindAddresses;
-			}
-		}
-	}
-	
-	version(unittest)
-	{
-		this(string[] addrs, string hostname, Duration sqlReconnectTime)
-		{
-			bindAddresses = addrs;
-			this.hostname = hostname;
-			this.sqlReconnectTime = sqlReconnectTime;
-		}
-	}
-	
-	
-	
-	bool isExistBindAddresses() @property
-	const
-	{
-		return f_bindAddresses;
-	}
-	
-	bool isExistHostname() @property
-	const
-	{
-		return f_hostname;
-	}
-	
-	
-	bool isExistSqlReconnectTime() @property
-	const
-	{
-		return f_sqlReconnectTime;
-	}
-	
-	bool isEmpty()
-	const
-	{
-		return !(f_bindAddresses || f_hostname || f_sqlReconnectTime);
-	}
-	
-	
-	
 }
 
 struct SqlConfig
 {
-	mixin t_field!(string, "name");
+	@possible
+	string name = null;
 	
-	mixin t_field!(string, "connString");
+	@required
+	uint maxConn;
 	
-	mixin t_field!(uint, "maxConn");
-	
-	this(in Json src)
-	{
-		foreach(string k, v; src)
-		{
-			if (k == "name")
-			{
-				name = v.to!string();
-			}
-			else if (k == "connString")
-			{
-				connString = v.to!string;
-			}
-			else if (k == "maxConn")
-			{
-				maxConn = v.to!uint;
-			}
-		}
-	}
-	
-	version (unittest)
-	{
-		this(string name, string connString, uint maxConn)
-		{
-			this.name = name;
-			this.connString = connString;
-			this.maxConn = maxConn;
-		}
-	}
+	@required
+	string connString;
 }
 
 class InvalidConfig:Exception
@@ -270,7 +105,7 @@ class InvalidConfig:Exception
 	{
 		super(msg);
 	}
-}
+} 
 
 version(unittest)
 {
@@ -312,30 +147,19 @@ version(unittest)
 
 unittest
 {
-	import std.stdio;
-	import core.time;
-	import vibe.data.json;
+	auto config1 = AppConfig(parseJsonString(configExample));
 	
-	auto conf1 = AppConfig( cast(ushort)8888, 
-		
-		cast(uint)50, 
-		
-		[
-			SqlConfig("sql1", "", cast(uint)1), 
-			SqlConfig("sql2", "", cast(uint)2)
-		], 
-		
-		dur!"msecs"(100),
-		
-		"login and pass", 
-		
-		"json_rpc", 
-		
-		AppOptionalConfig(["::", "0.0.0.0"], "", dur!"msecs"(150))
-	);
+	AppConfig config2;
 	
-	auto json = parseJsonString(configExample);
-	auto conf2 = AppConfig(json);
+	config2.port = cast(ushort) 8888;
+	config2.bindAddresses = ["::", "0.0.0.0"];
+	config2.hostname = "";
+	config2.maxConn = cast(uint) 50;
+	config2.sqlAuth = "login and pass";
+	config2.sqlJsonTable = "json_rpc";
+	config2.sqlReconnectTime = 150;
+	config2.sqlTimeout = 100;
+	config2.sqlServers = [SqlConfig("sql1", cast(uint)1,""), SqlConfig("sql2", cast(uint)2, "",)];
 	
-	assert(conf1 == conf2, "Config unittest failed");
+	assert(config1 == config2, "Config unittest failed");
 }
