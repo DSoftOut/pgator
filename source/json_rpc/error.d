@@ -12,6 +12,8 @@
 */
 module json_rpc.error;
 
+import std.exception;
+
 import vibe.data.bson;
 
 import util;
@@ -37,26 +39,6 @@ enum RPC_ERROR_CODE:int
 }
 
 enum RPC_VERSION = "2.0";
-
-immutable string[RPC_ERROR_CODE] RPC_ERROR_MSG; 
-	
-static this()
-{
-	RPC_ERROR_MSG[RPC_ERROR_CODE.PARSE_ERROR] = "Parse error";
-	
-	RPC_ERROR_MSG[RPC_ERROR_CODE.INVALID_REQUEST] = "Invalid request";
-	
-	RPC_ERROR_MSG[RPC_ERROR_CODE.METHOD_NOT_FOUND] = "Method not found",
-	
-	RPC_ERROR_MSG[RPC_ERROR_CODE.INVALID_PARAMS] = "Invalid params";
-	
-	RPC_ERROR_MSG[RPC_ERROR_CODE.INTERNAL_ERROR] = "Internal error";
-	
-	RPC_ERROR_MSG[RPC_ERROR_CODE.SERVER_ERROR] = "Server error";
-	
-	RPC_ERROR_MSG.rehash();	
-}
-
 
 /**
 * Struct describes JSON-RPC 2.0 error object which used in RpcRequest
@@ -85,15 +67,7 @@ struct RpcError
 	
 	this(in Bson bson)
 	{
-		try
-		{
-			this = deserializeFromJson!RpcError(bson.toJson);
-		}
-		
-		catch(Exception ex)
-		{
-			throw new RpcInternalError(ex.msg);
-		}
+		this = tryEx!(RpcInternalError, deserializeFromJson!RpcError)(bson.toJson);
 	}
 	
 	this(RPC_ERROR_CODE code, string message)
@@ -109,9 +83,9 @@ struct RpcError
 		this(code, message);
 	}
 	
-	this(RpcErrorEx ex)
+	this(RpcException ex)
 	{
-		this(ex.code, ex.message);
+		this(ex.code, ex.msg);
 	}
 	
 	Json toJson()
@@ -142,232 +116,75 @@ struct RpcError
 *  data.toJson();
 * ------
 */
-@disable
-struct RpcErrorData 
+
+class RpcException:Exception
 {
-	mixin t_field!(Json, "json");
+	RPC_ERROR_CODE code;
 	
-	this(in Bson bson)
+	@safe pure nothrow this(string msg = null, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
 	{
-		try
-		{
-			this.json = bson.toJson();
-		}
-		catch (Exception ex)
-		{
-			throw new RpcInternalError();
-		}
+		super(msg, file, line, next); 
 	}
-	
-	Json toJson()
-	{
-		if (f_json)
-		{
-			return json;
-		}
-		return Json.emptyObject;
-	}
+
 }
 
-interface RpcErrorEx
-{
-	RPC_ERROR_CODE code() @property;
-	
-	string message() @property;
-}
-
-class RpcParseError: Exception, RpcErrorEx
+class RpcParseError: RpcException
 {	
-	this(in string msg)
-	{
-		super(msg);
-	}
+	RPC_ERROR_CODE code = RPC_ERROR_CODE.PARSE_ERROR;
 	
-	this()
+	@safe pure nothrow this(string msg = "Parse error", string file = __FILE__, size_t line = __LINE__)
 	{
-		super(RPC_ERROR_MSG[code]);
-	}
-	
-	RPC_ERROR_CODE code() @property
-	{
-		return RPC_ERROR_CODE.PARSE_ERROR;
-	}
-	
-	string message() @property
-	{
-		return this.msg;
+		super(msg, file, line); 
 	}
 }
 
-class RpcInvalidRequest: Exception, RpcErrorEx
+class RpcInvalidRequest: RpcException
 {	
-	this(in string msg)
-	{
-		super(msg);
-	}
+	RPC_ERROR_CODE code = RPC_ERROR_CODE.INVALID_REQUEST;
 	
-	this()
+	@safe pure nothrow this(string msg = "Invalid request", string file = __FILE__, size_t line = __LINE__)
 	{
-		super(RPC_ERROR_MSG[code]);
-	}
-	
-	RPC_ERROR_CODE code() @property
-	{
-		return RPC_ERROR_CODE.INVALID_REQUEST;
-	}
-	
-	string message() @property
-	{
-		return this.msg;
+		super(msg, file, line); 
 	}
 }
 
-class RpcMethodNotFound: Exception, RpcErrorEx
+class RpcMethodNotFound: RpcException
 {
-	this(in string msg)
-	{
-		super(msg);
-	}
+	RPC_ERROR_CODE code = RPC_ERROR_CODE.METHOD_NOT_FOUND;
 	
-	this()
+	@safe pure nothrow this(string msg = "Method not found", string file = __FILE__, size_t line = __LINE__)
 	{
-		super(RPC_ERROR_MSG[code]);
-	}
-	
-	RPC_ERROR_CODE code() @property
-	{
-		return RPC_ERROR_CODE.METHOD_NOT_FOUND;
-	}
-	
-	string message() @property
-	{
-		return this.msg;
+		super(msg, file, line);
 	}
 }
 
-class RpcInvalidParams: Exception, RpcErrorEx
+class RpcInvalidParams: RpcException
 {	
-	this(in string msg)
-	{
-		super(msg);
-	}
+	RPC_ERROR_CODE code = RPC_ERROR_CODE.INVALID_PARAMS;
 	
-	this()
+	@safe pure nothrow this(string msg = "Invalid params", string file = __FILE__, size_t line = __LINE__)
 	{
-		super(RPC_ERROR_MSG[code]);
-	}
-	
-	RPC_ERROR_CODE code() @property
-	{
-		return RPC_ERROR_CODE.INVALID_PARAMS;
-	}
-	
-	string message() @property
-	{
-		return this.msg;
+		super(msg, file, line); 
 	}
 }
 
-class RpcInternalError: Exception, RpcErrorEx
+class RpcInternalError: RpcException
 {
-	this(in string msg)
-	{
-		super(msg);
-	}
+	RPC_ERROR_CODE code = RPC_ERROR_CODE.INTERNAL_ERROR;
 	
-	this()
+	@safe pure nothrow this(string msg = "Internal error", string file = __FILE__, size_t line = __LINE__)
 	{
-		super(RPC_ERROR_MSG[code]);
-	}
-	
-	RPC_ERROR_CODE code() @property
-	{
-		return RPC_ERROR_CODE.INTERNAL_ERROR;
-	}
-	
-	string message() @property
-	{
-		return this.msg;
+		super(msg, file, line);
 	}
 }
 
-class RpcServerError: Exception, RpcErrorEx
+class RpcServerError: RpcException
 {
-	this(in string msg)
-	{
-		super(msg);
-	}
+	RPC_ERROR_CODE code = RPC_ERROR_CODE.SERVER_ERROR;
 	
-	this()
+	@safe pure nothrow this(string msg = "Server error", string file = __FILE__, size_t line = __LINE__)
 	{
-		super(RPC_ERROR_MSG[code]);
-	}
-	
-	RPC_ERROR_CODE code() @property
-	{
-		return RPC_ERROR_CODE.SERVER_ERROR;
-	}
-	
-	string message() @property
-	{
-		return this.msg;
-	}
-}
-
-package mixin template t_id()
-{
-	mixin t_field!(string, "sid");
-	mixin t_field!(ulong, "uid");
-	
-	private void id(T)(T i) @property
-	{
-		static if (is(T : ulong))
-		{
-			uid = i;
-		}
-		else static if (is(T : string))
-		{
-			sid = i;
-		}
-		else static if (is( T == Json))
-		{
-			if (i.type == Json.Type.int_)
-			{
-				uid = i.to!ulong;
-			}
-			else if (i.type == Json.Type.null_)
-			{
-				sid = null;
-			}
-			else if (i.type == Json.Type.string)
-			{
-				sid = i.to!string;
-			}
-		}
-		else
-		{
-			static assert(false, "Unsupported type id:"~T.stringof);
-		}
-	}
-	
-	string id() @property
-	{
-		if (f_uid)
-		{
-			return to!string(uid);
-		}
-		
-		return sid;
-	}
-	
-	Json idJson()
-	{
-		if (f_uid)
-		{
-			return Json(uid);
-		}
-		
-		return Json(sid);
+		super(msg, file, line);
 	}
 }
 

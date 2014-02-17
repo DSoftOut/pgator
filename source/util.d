@@ -24,7 +24,10 @@ mixin template t_field(T, alias fieldName)
 	mixin("private void "~fieldName~"("~T.stringof~" f) @property { m_"~fieldName~"= f; f_"~fieldName~"=true;}");
 }
 
+//For deserializeFromJson
 enum required;
+
+//For deserializeFromJson
 enum possible;
 
 
@@ -156,6 +159,32 @@ class RequiredJsonObject:Exception
 		super(msg);
 	}
 }
+
+template tryEx(Ex, alias func)
+{
+	static assert(isSomeFunction!func, "func must be some function");
+	
+	static assert(is(Ex:Exception), "Ex must be Exception");
+	
+	alias ReturnType!func T;
+	
+	alias ParameterTypeTuple!func P;
+
+	T foo(P)(P params)
+	{	
+		try
+		{
+			return func(params);
+		}
+		catch(Exception ex)
+		{
+			throw new Ex(ex.msg, ex.file, ex.line);
+		}
+	}
+	
+	alias foo!P tryEx;
+}
+
 
 
 /// fromStringz

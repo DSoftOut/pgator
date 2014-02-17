@@ -16,7 +16,6 @@ module json_rpc.request;
 import std.exception;
 
 import vibe.data.json;
-//import vibe.data.serialization;
 
 import util;
 
@@ -33,7 +32,6 @@ import json_rpc.error;
 * ------
 * 
 */
-
 struct RpcRequest
 {	
 	@required
@@ -52,35 +50,12 @@ struct RpcRequest
 	
 	this(Json json)
 	{
-		try
-		{
-			this = deserializeFromJson!RpcRequest(json);
-		}
-		catch (RequiredFieldException ex)
-		{
-			throw new RpcInvalidRequest(ex.msg);
-		}
-		catch (RequiredJsonObject ex)
-		{
-			throw new RpcInvalidRequest(ex.msg);
-		}
-		catch(Exception ex)
-		{
-			throw new RpcInternalError(ex.msg);
-		}
+		this = tryEx!(RpcInvalidRequest, deserializeFromJson!RpcRequest)(json);
 	}
 	
 	this(string jsonStr)
 	{
-		Json json;
-		try
-		{
-			json = parseJsonString(jsonStr);
-		}
-		catch(Exception ex)
-		{
-			throw new RpcParseError();
-		}
+		auto json = tryEx!(RpcParseError, parseJsonString)(jsonStr);
 		
 		this = this(json);
 	}
@@ -96,6 +71,7 @@ struct RpcRequest
 			this.params = params;
 			
 			this.id = id;
+			
 		}
 		
 		this(string jsonrpc, string method, string[] params)
@@ -176,49 +152,30 @@ version(unittest)
 unittest
 {
 	import std.stdio;
+	import std.exception;
+	
 	//Testing normal rpc request
 	auto req1 = RpcRequest("2.0", "substract", ["42", "23"], Json(1));
-	//std.stdio.writeln(req1);
 	assert(!RpcRequest(example1).eq(req1), "RpcRequest test failed");
 	
 	//Testing RpcInvalidRequest("Supported only plain data")
 	auto req2 = RpcRequest(example2);
-	//std.stdio.writeln(req2);
 	assert(req2.params is null, "RpcRequest test failed");
 	
 	
 	//Testing rpc notification with params
 	auto req3 = RpcRequest("2.0", "update", ["1", "2", "3", "4", "5"], Json(null));
-	//std.stdio.writeln(req3);
 	assert(RpcRequest(example3).eq(req3), "RpcRequest test failed");
 	
 	//Testing rpc notification w/o params
 	auto req4 = RpcRequest("2.0", "foobar", null, Json(null));
-	//writeln(req4);
 	assert(RpcRequest(example4).eq(req4), "RpcRequest test failed");
 	
 	//Testing invalid json
-	try
-	{
-		auto req5 = RpcRequest(example5);
-		assert(false, "RpcRequest test failed");
-	}
-	catch(RpcParseError ex)
-	{
-		//nothiing
-	}
+	assertThrown!RpcParseError(RpcRequest(example5), "RpcRequest test failed");
 	
 	//Testing empty json array
-	try
-	{
-		auto req6 = RpcRequest(example6);
-		//std.stdio.writeln(req6);
-		assert(false, "RpcRequest test failed");
-	}
-	catch(RpcInvalidRequest ex)
-	{
-		//nothing
-	}
+	assertThrown!RpcInvalidRequest(RpcRequest(example6), "RpcRequest test failed");
 	
 	
 }
