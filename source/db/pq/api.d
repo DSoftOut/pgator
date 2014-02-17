@@ -13,7 +13,9 @@
 module db.pq.api;
 
 import derelict.pq.pq;
-public import db.pq.types;
+public import db.pq.types.oids;
+import db.pq.types.conv;
+import vibe.data.bson;
 
 /**
 *   All exceptions thrown by postgres api is inherited from this exception.
@@ -132,6 +134,22 @@ interface IPGresult
     *   Prototype: PQftype
     */
     PQType ftype(size_t colNumber) const;
+    
+    final Bson asBson()
+    {
+        Bson[string] fields;
+        foreach(i; 0..nfields)
+        {
+            Bson[] rows;
+            foreach(j; 0..ntuples)
+            {
+                rows ~= pqToBson(ftype(i), asBytes(j, i));
+            }
+            fields[fname(i)] = Bson(rows);
+        }
+        
+        return Bson(fields);
+    }
 }
 
 /**

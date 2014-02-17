@@ -68,7 +68,7 @@ else version(IntegrationTest2)
     import stdlog;
     import db.pq.libpq;
     import db.pq.connection;
-    import db.table;
+    import db.pq.types.conv;
     import db.assyncPool;
     import core.time;
     import core.thread;
@@ -107,12 +107,14 @@ else version(IntegrationTest2)
         pool.addServer(connString, connCount);
         logger.logInfo(text(connCount, " new connections were added to the pool."));
         
-        auto results = pool.execQuery("SELECT now() as current_time, 'abc'::text as field_name, "
-                                      "123 as field_3, 456.78 as field_4, $1::int as field_5", ["42"]);
+//        auto results = pool.execQuery("SELECT now() as current_time, 'abc'::text as field_name, "
+//                                      "123 as field_3, 728.258 as field_4, $1::int as field_5", ["42"]);
+//        
+//        logger.logInfo("Test ended. Results:"); 
+//        foreach(res; results)
+//            logger.logInfo(text(res.asBson));
         
-        logger.logInfo("Test ended. Results:"); 
-        foreach(res; results)
-            logger.logInfo(text(convertResult(res)));
+        testConvertions(logger, pool);
         
         pool.finalize(() {canExit = true;});
         while(!canExit) {}
