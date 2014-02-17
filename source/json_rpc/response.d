@@ -25,7 +25,7 @@ import json_rpc.error;
 * Example
 * ------
 *  auto res1 = RpcResponse(1, error);
-*  auto res2 = RpcResponse(null, result);
+*  auto res2 = RpcResponse(Json(null), result);
 *  aut0 res3 = RpcResponse("mycustomidsystem", result);
 * ------
 */
