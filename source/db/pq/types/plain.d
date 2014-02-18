@@ -68,14 +68,14 @@ long convert(PQType type)(ubyte[] val)
     if(type == PQType.Int8)
 {
     assert(val.length == 8);
-    return (cast(long[])val)[0];
+    return val.read!long;
 }
 
 short convert(PQType type)(ubyte[] val)
     if(type == PQType.Int2)
 {
     assert(val.length == 2);
-    return (cast(short[])val)[0];
+    return val.read!short;
 }
 
 short[] convert(PQType type)(ubyte[] val)
@@ -89,7 +89,7 @@ int convert(PQType type)(ubyte[] val)
     if(type == PQType.Int4)
 {
     assert(val.length == 4);
-    return (cast(int[])val)[0];
+    return val.read!int;
 }
 
 RegProc convert(PQType type)(ubyte[] val)
@@ -289,5 +289,29 @@ version(IntegrationTest2)
         
         foreach(i; 0..100)
             testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'`~genRand()~`'`, "name");
+    }
+    
+    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+        if(type == PQType.Int8)
+    {
+        logger.logInfo("================ Int8 ======================");
+        foreach(i; 0..100)
+            testValue!long(logger, pool, uniform(long.min, long.max), "Int8");
+    }
+    
+    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+        if(type == PQType.Int4)
+    {
+        logger.logInfo("================ Int4 ======================");
+        foreach(i; 0..100)
+            testValue!int(logger, pool, uniform(int.min, int.max), "Int4");
+    }
+    
+    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+        if(type == PQType.Int2)
+    {
+        logger.logInfo("================ Int2 ======================");
+        foreach(i; 0..100)
+            testValue!int(logger, pool, uniform(short.min, short.max), "Int2");
     }
 }
