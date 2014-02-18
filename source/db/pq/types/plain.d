@@ -198,11 +198,16 @@ version(IntegrationTest2)
     import db.pool;
     import std.random;
     import std.range;
+    import std.algorithm;
+    import std.encoding;
     import vibe.data.bson;
     import derelict.pq.pq;
     import log;
     
-    void testValue(T, alias converter = to!string)(shared ILogger logger, IConnectionPool pool, T local, string sqlType)
+    T id(T)(T val) {return val;}
+    
+    void testValue(T, alias converter = to!string, alias resConverter = id)
+        (shared ILogger logger, IConnectionPool pool, T local, string sqlType)
     {
         string query;
         query = "SELECT "~converter(local)~"::"~sqlType~" as test_field";
@@ -223,7 +228,7 @@ version(IntegrationTest2)
             auto remote = node.opt!BsonBinData.rawData;
         else 
             auto remote = node.get!T;
-        assert(remote == local, remote.to!string ~ "!=" ~ local.to!string); 
+        assert(resConverter(remote) == resConverter(local), resConverter(remote).to!string ~ "!=" ~ resConverter(local).to!string); 
     }
         
     void test(PQType type)(shared ILogger logger, IConnectionPool pool)
@@ -249,5 +254,21 @@ version(IntegrationTest2)
         foreach(i; 0..100)
             testValue!(ubyte[], escapeBytea)(logger, pool, genRand(i), "bytea");
 
+    }
+    
+    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+        if(type == PQType.Char)
+    {
+        logger.logInfo("================ Char ======================");
+        alias testValue!(string, to!string, (str) {
+                str = str.strip('\'');
+                return str == `\` ? `\0` : str;}) test;
+        
+        test(logger, pool, `'\0'`, `"char"`);
+        test(logger, pool, `''''`, `"char"`);
+        foreach(char c; char.min .. char.max)
+            if((['\0', '\'']).find(c).empty && isValid(`'`~c~`'`))
+                test(logger, pool, `'`~c~`'`, `"char"`);
+        
     }
 }

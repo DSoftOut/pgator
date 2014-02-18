@@ -184,8 +184,9 @@ version(IntegrationTest2)
     
     void testConvertions(shared ILogger logger, IConnectionPool pool)
     {
-        //test!(PQType.Numeric)(logger, pool);
-        //test!(PQType.Bool)(logger, pool);
+        test!(PQType.Numeric)(logger, pool);
+        test!(PQType.Bool)(logger, pool);
         test!(PQType.ByteArray)(logger, pool);
+        test!(PQType.Char)(logger, pool);
     }
 }
