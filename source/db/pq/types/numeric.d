@@ -11,6 +11,8 @@ import std.bitmanip;
 import std.algorithm;
 import std.array;
 import std.format;
+import std.conv;
+import std.exception;
 
 private // inner representation
 {
@@ -245,7 +247,6 @@ version(IntegrationTest2)
     import db.pool;
     import std.random;
     import std.range;
-    import std.conv;
     import std.math;
     import vibe.data.bson;
     import derelict.pq.pq;
