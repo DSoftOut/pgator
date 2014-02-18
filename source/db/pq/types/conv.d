@@ -188,5 +188,6 @@ version(IntegrationTest2)
         test!(PQType.Bool)(logger, pool);
         test!(PQType.ByteArray)(logger, pool);
         test!(PQType.Char)(logger, pool);
+        test!(PQType.Name)(logger, pool);
     }
 }

@@ -12,6 +12,7 @@ import std.numeric;
 import std.array;
 import std.bitmanip;
 import std.format;
+import std.conv;
 import util;
 
 alias ushort RegProc;
@@ -59,8 +60,8 @@ char convert(PQType type)(ubyte[] val)
 string convert(PQType type)(ubyte[] val)
     if(type == PQType.Name)
 {
-    assert(val.length == 64);
-    return cast(string)val.dup;
+    assert(val.length == 63, text("Expected 63 bytes for name, but there are ", val.length, " bytes!"));
+    return cast(string)val.idup;
 }
 
 long convert(PQType type)(ubyte[] val)
@@ -270,5 +271,23 @@ version(IntegrationTest2)
             if((['\0', '\'']).find(c).empty && isValid(`'`~c~`'`))
                 test(logger, pool, `'`~c~`'`, `"char"`);
         
+    }
+    
+    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+        if(type == PQType.Name)
+    {
+        logger.logInfo("================ Name ======================");
+        
+        string genRand()
+        {
+            auto builder = appender!string;
+            immutable aphs = "1234567890qwertyuiopasdfghjklzxcvbnm";
+            foreach(i; 0..63)
+                builder.put(aphs[uniform(0, aphs.length)]);
+            return builder.data;    
+        }
+        
+        foreach(i; 0..100)
+            testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'`~genRand()~`'`, "name");
     }
 }
