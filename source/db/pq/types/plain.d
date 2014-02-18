@@ -9,6 +9,9 @@ module db.pq.types.plain;
 import db.pq.types.oids;
 import vibe.data.json;
 import std.numeric;
+import std.array;
+import std.bitmanip;
+import std.format;
 import util;
 
 alias ushort RegProc;
@@ -28,10 +31,22 @@ bool convert(PQType type)(ubyte[] val)
     return val[0] != 0;
 }
 
-string convert(PQType type)(ubyte[] val)
+/**
+*   Converts byte array into hex escaped SQL byte array.
+*/
+string escapeBytea(const ubyte[] arr)
+{
+    auto builder = appender!string;
+    foreach(b; arr)
+        formattedWrite(builder, "%02X", b);
+    
+    return `E'\\x`~builder.data~"'"; 
+}
+
+ubyte[] convert(PQType type)(ubyte[] val)
     if(type == PQType.ByteArray)
 {
-    return cast(string)val.dup;
+    return val.dup;
 }
 
 char convert(PQType type)(ubyte[] val)
@@ -176,4 +191,63 @@ long convert(PQType type)(ubyte[] val)
 {
     assert(val.length == 8);
     return (cast(long[])val)[0];
+}
+
+version(IntegrationTest2)
+{
+    import db.pool;
+    import std.random;
+    import std.range;
+    import vibe.data.bson;
+    import derelict.pq.pq;
+    import log;
+    
+    void testValue(T, alias converter = to!string)(shared ILogger logger, IConnectionPool pool, T local, string sqlType)
+    {
+        string query;
+        query = "SELECT "~converter(local)~"::"~sqlType~" as test_field";
+
+        logger.logInfo(query);
+        auto results = pool.execQuery(query, []).array;
+        assert(results.length == 1);
+        
+        auto res = results[0];
+        logger.logInfo(res.resultStatus.text);
+        assert(res.resultStatus == ExecStatusType.PGRES_COMMAND_OK 
+            || res.resultStatus == ExecStatusType.PGRES_TUPLES_OK, res.resultErrorMessage);
+        
+        logger.logInfo(text(results[0].asBson));
+        auto node = results[0].asBson.get!(Bson[string])["test_field"][0];
+        
+        static if(is(T == ubyte[]))
+            auto remote = node.opt!BsonBinData.rawData;
+        else 
+            auto remote = node.get!T;
+        assert(remote == local, remote.to!string ~ "!=" ~ local.to!string); 
+    }
+        
+    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+        if(type == PQType.Bool)
+    {
+        logger.logInfo("================ Bool ======================");
+        testValue!bool(logger, pool, true, "boolean");
+        testValue!bool(logger, pool, false, "boolean");
+    }
+    
+    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+        if(type == PQType.ByteArray)
+    {
+        ubyte[] genRand(size_t n)
+        {
+            auto builder = appender!(ubyte[]);
+            foreach(i; 0..n)
+                builder.put(cast(ubyte)uniform(0u, 255u));
+            return builder.data; 
+        }
+        
+        logger.logInfo("================ ByteArray ======================");
+        foreach(i; 0..100)
+            testValue!(ubyte[], escapeBytea)(logger, pool, genRand(i), "bytea");
+
+    }
 }

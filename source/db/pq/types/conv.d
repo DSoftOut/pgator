@@ -125,7 +125,12 @@ Bson toBson(PQType type)(ubyte[] val)
     
     auto convVal = convert!type(val);
     alias typeof(convVal) T;
-    static if(IsNativeSupport!T)
+    
+    static if(is(T == ubyte[]))
+    {
+        return serializeToBson(new BsonBinData(BsonBinData.Type.generic, convVal.idup));
+    }
+    else static if(IsNativeSupport!T)
     {
         return serializeToBson(convVal); 
     } 
@@ -179,6 +184,8 @@ version(IntegrationTest2)
     
     void testConvertions(shared ILogger logger, IConnectionPool pool)
     {
-        test!(PQType.Numeric)(logger, pool);
+        //test!(PQType.Numeric)(logger, pool);
+        //test!(PQType.Bool)(logger, pool);
+        test!(PQType.ByteArray)(logger, pool);
     }
 }

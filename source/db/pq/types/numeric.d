@@ -302,6 +302,7 @@ version(IntegrationTest2)
             return builder.data.strip('0');    
         }
         
+        logger.logInfo("================ Numeric ======================");
         foreach(i; 0..100)
         {
             testValue((100*uniform(-1.0, 1.0)).to!string);
