@@ -37,8 +37,7 @@ struct RpcResponse
 	
 	mixin t_field!(RpcError, "error");
 	
-	mixin t_field!(Json, "id");
-	
+	Json id = Json(null);
 	
 	this(Json id)
 	{		
@@ -86,7 +85,7 @@ struct RpcResponse
 	
 	bool isValid() @property
 	{
-		return f_id && (f_result || f_error);
+		return f_result || f_error;
 	}
 }
 
