@@ -131,60 +131,54 @@ class RpcException:Exception
 
 class RpcParseError: RpcException
 {	
-	RPC_ERROR_CODE code = RPC_ERROR_CODE.PARSE_ERROR;
-	
 	@safe pure nothrow this(string msg = "Parse error", string file = __FILE__, size_t line = __LINE__)
 	{
+		code = RPC_ERROR_CODE.PARSE_ERROR;
 		super(msg, file, line); 
 	}
 }
 
 class RpcInvalidRequest: RpcException
 {	
-	RPC_ERROR_CODE code = RPC_ERROR_CODE.INVALID_REQUEST;
-	
 	@safe pure nothrow this(string msg = "Invalid request", string file = __FILE__, size_t line = __LINE__)
 	{
+		code = RPC_ERROR_CODE.INVALID_REQUEST;
 		super(msg, file, line); 
 	}
 }
 
 class RpcMethodNotFound: RpcException
 {
-	RPC_ERROR_CODE code = RPC_ERROR_CODE.METHOD_NOT_FOUND;
-	
 	@safe pure nothrow this(string msg = "Method not found", string file = __FILE__, size_t line = __LINE__)
 	{
+		code = RPC_ERROR_CODE.METHOD_NOT_FOUND;
 		super(msg, file, line);
 	}
 }
 
 class RpcInvalidParams: RpcException
 {	
-	RPC_ERROR_CODE code = RPC_ERROR_CODE.INVALID_PARAMS;
-	
 	@safe pure nothrow this(string msg = "Invalid params", string file = __FILE__, size_t line = __LINE__)
 	{
+		code = RPC_ERROR_CODE.INVALID_PARAMS;
 		super(msg, file, line); 
 	}
 }
 
 class RpcInternalError: RpcException
 {
-	RPC_ERROR_CODE code = RPC_ERROR_CODE.INTERNAL_ERROR;
-	
 	@safe pure nothrow this(string msg = "Internal error", string file = __FILE__, size_t line = __LINE__)
 	{
+		code = RPC_ERROR_CODE.INTERNAL_ERROR;
 		super(msg, file, line);
 	}
 }
 
 class RpcServerError: RpcException
 {
-	RPC_ERROR_CODE code = RPC_ERROR_CODE.SERVER_ERROR;
-	
 	@safe pure nothrow this(string msg = "Server error", string file = __FILE__, size_t line = __LINE__)
 	{
+		code = RPC_ERROR_CODE.SERVER_ERROR;
 		super(msg, file, line);
 	}
 }

@@ -65,7 +65,7 @@ T deserializeFromJson(T)(Json src)
 						}
 						else
 						{
-							throw new RequiredFieldException("Field"~mem~" must be object in json"~src.toString); 
+							throw new RequiredFieldException("Field "~mem~" must be object in json"~src.toString); 
 						}
 					}
 				}
@@ -95,7 +95,7 @@ T deserializeFromJson(T)(Json src)
 						}
 						else
 						{
-							throw new RequiredFieldException("Field"~mem~" must be array in json"~src.toString);
+							throw new RequiredFieldException("Field "~mem~" must be array in json"~src.toString);
 						}		
 					}
 					else
