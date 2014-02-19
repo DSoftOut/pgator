@@ -60,6 +60,26 @@ struct RpcRequest
 		this = this(json);
 	}
 	
+//	const hash_t toHash()
+//	{ 
+//		hash_t hash;
+//		
+//		foreach (char c; str)
+//			hash = (hash * 9) + c;
+//			
+//		return hash;
+//	}
+//
+//	const bool opEquals(ref const RpcRequest s)
+//	{
+//		return std.string.cmp(this.str, s.str) == 0;
+//    }
+//
+//    const int opCmp(ref const RpcRequest s)
+//    {
+//    	return std.string.cmp(this.str, s.str);
+//	}
+	
 	version (unittest)
 	{
 		this(string jsonrpc, string method, string[] params, Json id)
@@ -155,12 +175,11 @@ unittest
 	import std.exception;
 	
 	//Testing normal rpc request
-	auto req1 = RpcRequest("2.0", "substract", ["42", "23"], Json(1));
-	assert(!RpcRequest(example1).eq(req1), "RpcRequest test failed");
+	auto req1 = RpcRequest("2.0", "subtract", ["42", "23"], Json(1));
+	assert(RpcRequest(example1).eq(req1), "RpcRequest test failed");
 	
-	//Testing RpcInvalidRequest("Supported only plain data")
-	auto req2 = RpcRequest(example2);
-	assert(req2.params is null, "RpcRequest test failed");
+	//Testing RpcInvalidRequest()
+	assertThrown!RpcInvalidRequest(RpcRequest(example2));
 	
 	
 	//Testing rpc notification with params

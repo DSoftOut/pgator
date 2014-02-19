@@ -53,15 +53,19 @@ T deserializeFromJson(T)(Json src)
 				
 				static if (is(MemType == struct))
 				{
-					if (mixin("src."~mem~".type == Json.Type.object"))
+					static if (is(MemType == Json))
 					{
-						static if ((is(MemType == Json)))
-						{
-							mixin("ret."~mem~"=src."~mem~";");
-						}	
-						else 
+						mixin("ret."~mem~"=src."~mem~";");
+					}
+					else
+					{
+						if (mixin("src."~mem~".type == Json.Type.object"))
 						{	
 							mixin("ret."~mem~"=deserializeFromJson!(typeof(ret."~mem~"))(src."~mem~");");
+						}
+						else
+						{
+							throw new RequiredFieldException("Field"~mem~" must be object in json"~src.toString); 
 						}
 					}
 				}
@@ -88,18 +92,15 @@ T deserializeFromJson(T)(Json src)
 							}
 							
 							mixin("ret."~mem~"= arr;");
+						}
+						else
+						{
+							throw new RequiredFieldException("Field"~mem~" must be array in json"~src.toString);
 						}		
 					}
 					else
 					{
-						static if (is(MemType == Json))
-						{
-							mixin("ret."~mem~"=src."~mem~";");
-						}
-						else
-						{
-							mixin("ret."~mem~"= src."~mem~".to!(typeof(ret."~mem~"))();");
-						}
+						mixin("ret."~mem~"= src."~mem~".to!(typeof(ret."~mem~"))();");
 					}
 				 }  
 			}
