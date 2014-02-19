@@ -13,6 +13,7 @@ import std.array;
 import std.format;
 import std.conv;
 import std.exception;
+import std.bigint;
 
 private // inner representation
 {
@@ -116,12 +117,52 @@ enum NBASE      = 10000;
 */    
 struct Numeric
 {
-    mixin(bitfields!(
-          bool,   "sign",   1, // true - negative
-          ushort, "scale",  15));
-    bool   isNan = false;
-    short  weight;
-    NumericDigit[] digits;
+    BigInt mantis;
+    size_t scale;
+    bool isNan = true; // deafault is nan
+    
+    this(bool sign, NumericDigit[] digits)
+    {
+        auto builder = appender!string();
+        
+        foreach(i,dig; digits)
+        {
+            foreach_reverse(j; 0..DEC_DIGITS)
+            {
+                auto d = dig / (10 ^^ j);
+                builder.put(d.to!string);
+                dig -= d * (10 ^^ j);
+            } 
+        }
+
+        // truncate besides zeros
+        auto str = builder.data.strip('0');
+        
+        if(sign)
+        	mantis = '-' ~ str;
+        else
+        	mantis = str;
+    	
+    	isNan = false;
+    }
+    
+    this(NumericShort num)
+    {
+        bool sign  = (num.n_header & NUMERIC_SHORT_SIGN_MASK) != 0;
+        scale = (num.n_header & NUMERIC_SHORT_DSCALE_MASK) >> NUMERIC_SHORT_DSCALE_SHIFT;
+
+        this(sign, num.n_data);
+    }
+    
+    this(NumericLong num)
+    {
+        bool sign  = NUMERIC_FLAGBITS(num.n_sign_dscale) != 0;
+        // weight = n_header & NUMERIC_DSCALE_MASK; // weight and scale are swapped
+        scale = num.n_weight;                       // don't know why
+        
+        this(sign, num.n_data);
+    }
+    
     
     /**
     *   If the numeric fits double boundaries, stores it 
@@ -148,7 +189,10 @@ struct Numeric
     
     /**
     *   Transforming numeric into double.
-    *   Dangerous, can throw overflow exception.
+    *   Dangerous, returns valid result when
+    *	it can fit in double.
+    *
+    *	See_Also: canBeNative
     */
     T opCast(T)() if(is(T == double))
     {
@@ -156,45 +200,30 @@ struct Numeric
     }
     
     /**
-    *
+    *	Converting the numeric into string.
     */
     string toString()
     {
         if(isNan) return "nan";
         
-        auto builder = appender!string();
-        
-        foreach(i,dig; digits)
-        {
-            foreach_reverse(j; 0..DEC_DIGITS)
-            {
-                auto d = dig / (10 ^^ j);
-                builder.put(d.to!string);
-                dig -= d * (10 ^^ j);
-            } 
-        }
+        string str;
+        mantis.toString((chars) {str = chars.idup;}, "d");
 
-        // truncate besides zeros
-        auto str = builder.data.strip('0');
         // putting decimal point
         if(scale > 0)
         {
-            if(cast(int)str.length - scale < 0)
+            if(str.length <= scale)
             {
                 auto zbuilder = appender!string;
                 zbuilder.put("0.");
-                foreach(i; 0..scale - str.length)
-                    zbuilder.put('0');
+                foreach(i; 0 .. scale - str.length)
+                	zbuilder.put('0');
                 str = zbuilder.data ~ str;    
-            }
-            else if(str.length - scale == 0)
-            {
-                str = "0."~str;
             }
             else str = str[0 .. $-scale] ~ '.' ~ str[$-scale .. $];
         } 
-        // putting sign
-        if(sign) str = '-' ~ str;
+        // returning sign in place
+        if(mantis < 0) str = '-' ~ str;
         return str;
     }
 }
@@ -215,30 +244,17 @@ Numeric convert(PQType type)(ubyte[] val)
         while(val.length > 0)
             raw.choice.n_short.n_data ~= val.read!NumericDigit;
             
-        Numeric ret;
-        ret.sign  = (n_header & NUMERIC_SHORT_SIGN_MASK) != 0;
-        ret.scale = (n_header & NUMERIC_SHORT_DSCALE_MASK) >> NUMERIC_SHORT_DSCALE_SHIFT;
-        ret.weight = (n_header & NUMERIC_SHORT_WEIGHT_SIGN_MASK ? ~NUMERIC_SHORT_WEIGHT_MASK : 0) 
-                        | n_header & NUMERIC_SHORT_WEIGHT_MASK;
-        ret.digits = raw.choice.n_short.n_data;
-        return ret;    
+        return Numeric(raw.choice.n_short);
     } else if(!NUMERIC_IS_NAN(n_header))
     {
         raw.choice.n_long.n_weight = val.read!short;
         while(val.length > 0)
             raw.choice.n_long.n_data ~= val.read!NumericDigit;
             
-        Numeric ret;
-        ret.sign  = NUMERIC_FLAGBITS(n_header) != 0;
-        ret.weight = n_header & NUMERIC_DSCALE_MASK; // weight and scale are swapped
-        ret.scale = raw.choice.n_long.n_weight;      // don't know why
-        ret.digits = raw.choice.n_long.n_data;
-        return ret;
+        return Numeric(raw.choice.n_long);
     } else
     {
-        Numeric ret;
-        ret.isNan = true;
-        return ret;
+        return Numeric();
     }
 }
 
