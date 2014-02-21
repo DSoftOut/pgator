@@ -125,6 +125,7 @@ else
 {
 	import std.stdio;
 	import std.getopt;
+	import std.functional;
 	import daemon;
 	import terminal;
 
@@ -168,6 +169,31 @@ else
 		if(daemon) 
 			return runDaemon(logger, (nargs) => 0, args, (){});
 		else 
-			return runTerminal(logger, (nargs) => 0, args, (){});
+			return runTerminal(logger, &progMain, args, (){});
+	}
+	
+	
+	int progMain(string[] args)
+	{
+		import server;
+		import std.concurrency;
+		import core.time;
+		import core.thread;
+		
+		string logName = args[0]~".log";
+		auto logger = new shared CLogger(logName);
+		
+		shared Application app = new shared Application(logger);
+		
+		auto tid = spawn(&server.run, app);
+		
+		
+		send(tid, MESSAGE.START);
+		
+		Thread.sleep(dur!"minutes"(3));
+		
+		send(tid, MESSAGE.EXIT);
+		
+		return 100;
 	}
 }

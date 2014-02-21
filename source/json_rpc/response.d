@@ -87,6 +87,11 @@ struct RpcResponse
 	{
 		return f_result || f_error;
 	}
+	
+	shared void opAssign(shared RpcResponse res)
+	{
+		this = res;
+	}
 }
 
 
@@ -121,15 +126,19 @@ struct RpcResult
 
 version(unittest)
 {
+	import vibe.data.bson;
+	import vibe.data.json;
+	
 	__gshared RpcResponse normalRes;
-	__gshared RpcResponse notificationRes;
+	__gshared RpcResponse  notificationRes;
 	__gshared RpcResponse mnfRes;
-	__gshared RpcResponse invalidParasmRes;
+	__gshared RpcResponse  invalidParasmRes;
 	
 	void initResponses()
-	{
+	{		
 		normalRes = RpcResponse(Json(1), 
 			RpcResult(Bson([Bson(19)])));
+
 		
 		notificationRes = RpcResponse(Json(null),
 			RpcResult(Bson([Bson(966)])));
@@ -139,6 +148,7 @@ version(unittest)
 		
 		invalidParasmRes = RpcResponse(Json(null),
 			RpcError(new RpcInvalidParams()));
+
 	}
 }
 

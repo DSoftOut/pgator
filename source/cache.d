@@ -17,6 +17,8 @@ import json_rpc.error;
 
 import sql_json;
 
+import util;
+
 private enum VERSION
 {
 	/// Drop all cache by method
@@ -30,7 +32,7 @@ private enum VERSION
 private immutable VER = VERSION.REQUEST;
 
 
-class Cache
+shared class Cache
 {
 	private alias RpcResponse[RpcRequest] stash;
 	 
@@ -38,9 +40,14 @@ class Cache
 	
 	private SqlJsonTable table;
 	
-	this(SqlJsonTable table)
+	this(shared SqlJsonTable table)
 	{
 		this.table = table;
+	}
+	
+	this(SqlJsonTable table)
+	{
+		this.table = toShared(table);
 	}
 	
 	bool reset(ref RpcRequest req)
@@ -79,7 +86,7 @@ class Cache
 		}
 	}
 	
-	void add(RpcRequest req, RpcResponse res)
+	void add(ref RpcRequest req, ref RpcResponse res)
 	{	
 		if ((req.method in cache) is null)
 		{
@@ -87,11 +94,11 @@ class Cache
 			aa[req] = res;
 			
 			synchronized(this)
-				cache[req.method] = aa;
+				cache[req.method] = toShared(aa);
 		}
 		else synchronized (this) 
 		{
-			cache[req.method][req] = res;
+			cache[req.method][req] = toShared(res);
 		}
 		
 	}
@@ -103,32 +110,28 @@ class Cache
 			return false;
 		}
 		
-		res = cache[req.method][req];
+		res = cast(RpcResponse) cache[req.method][req];
+		
+		res.id = req.id;
 		
 		return true; 
 	}
 	
 }
 
-private __gshared Cache p_cache;
-
-Cache cache() @property
-{
-	return p_cache;
-}
-
-
 version(unittest)
 {
+	shared Cache cache;
+	
 	void initCache()
 	{
-		p_cache = new Cache(table);
+		cache = new shared Cache(table);
 	}
 	
 	//get
 	void get()
 	{
-		//import std.stdio;
+		import std.stdio;
 		RpcResponse res;
 		if (cache.get(normalReq, res))
 		{
@@ -154,13 +157,21 @@ version(unittest)
 	// get -> reset -> get
 	void foo()
 	{
+		scope(failure)
+		{
+			assert(false, "foo exception");
+		}
+		
 		get();
 		
 		//std.stdio.writeln("Reseting cache");
 		
 		cache.reset(normalReq);
+		
 		cache.reset(notificationReq);
+		
 		cache.reset(methodNotFoundReq);
+		
 		cache.reset(invalidParamsReq);
 		
 		//std.stdio.writeln("Trying to get");
@@ -174,13 +185,23 @@ version(unittest)
 
 unittest
 {	
+	scope(failure)
+	{
+		assert(false, "Caching system unittest failed");
+	}
+	
 	initTable();
+	
 	initCache();
+	
 	initResponses();
 	
 	cache.add(normalReq, normalRes);
+	
 	cache.add(notificationReq, notificationRes);
+	
 	cache.add(methodNotFoundReq, mnfRes);
+	
 	cache.add(invalidParamsReq, invalidParasmRes);
 	
 	import std.concurrency;
