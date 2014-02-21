@@ -86,8 +86,11 @@ shared class Cache
 		}
 	}
 	
-	void add(ref RpcRequest req, ref RpcResponse res)
+	void add(RpcRequest req, ref RpcResponse res)
 	{	
+		//dirty, for ignoring id in cache
+		req.id = vibe.data.json.Json("forcache");
+		
 		if ((req.method in cache) is null)
 		{
 			stash aa;

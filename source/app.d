@@ -169,19 +169,17 @@ else
 		if(daemon) 
 			return runDaemon(logger, (nargs) => 0, args, (){});
 		else 
-			return runTerminal(logger, &progMain, args, (){});
+			return runTerminal(logger, &curry!(progMain, logger), args, (){});
 	}
 	
 	
-	int progMain(string[] args)
+	int progMain(shared ILogger logger, string[] args)
 	{
 		import server;
 		import std.concurrency;
 		import core.time;
 		import core.thread;
 		
-		string logName = args[0]~".log";
-		auto logger = new shared CLogger(logName);
 		
 		shared Application app = new shared Application(logger);
 		

@@ -77,7 +77,7 @@ private void terminate(int code)
 *
 *   Daemon writes log message into provided $(B logger) and will close it while exiting.
 */
-int runDaemon(shared ILogger logger, int function(string[]) progMain, string[] args, void delegate() listener)
+int runDaemon(shared ILogger logger, int delegate(string[]) progMain, string[] args, void delegate() listener)
 {
     savedLogger = logger;
     
