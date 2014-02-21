@@ -4,7 +4,7 @@
 *
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
-*
+*          NCrashed <ncrashed@gmail.com>
 */
 module database;
 
@@ -15,7 +15,7 @@ import std.string;
 import vibe.data.bson;
 
 import db.pool;
-import db.assyncPool;
+import db.asyncPool;
 import db.connection;
 import db.pq.connection;
 import db.pq.libpq;
@@ -45,7 +45,7 @@ shared class Database
 	
 	~this()
 	{
-		toUnqual(pool).finalize((){});
+		pool.finalize((){});
 	}
 	
 	private void init()
@@ -65,9 +65,9 @@ shared class Database
 		
 		try
 		{
-			auto provider = new PQConnProvider(logger, new PostgreSQL);
+			auto provider = new shared PQConnProvider(logger, new PostgreSQL);
 			
-			pool = toShared(new AssyncPool(logger, provider, reTime, freeTime));
+			pool = new shared AsyncPool(logger, provider, reTime, freeTime);
 		}
 		catch(Throwable ex)
 		{
@@ -79,11 +79,11 @@ shared class Database
 	
 	void setupPool()
 	{
-		toUnqual(pool).finalize((){}); //todo
+		pool.finalize((){}); //todo
 		
 		foreach(server; appConfig.sqlServers)
 		{
-			toUnqual(pool).addServer(server.connString, server.maxConn);
+			pool.addServer(server.connString, server.maxConn);
 			
 			logger.logInfo("Connecting to" ~ server.name);
 		}
@@ -97,7 +97,7 @@ shared class Database
 		
 		try
 		{
-			auto frombd = toUnqual(pool).execQuery(queryStr, [appConfig.sqlJsonTable]);
+			auto frombd = pool.execQuery(queryStr, [appConfig.sqlJsonTable]);
 			//todo...
 		}
 		catch(Exception ex)
@@ -139,9 +139,7 @@ shared class Database
 				throw new RpcServerError("Authorization required");
 			}
 			
-			IConnectionPool upool = cast(IConnectionPool) pool;
-			
-			auto frombd = tryEx!RpcServerError(upool.execQuery(entry.sql_query, req.params));
+			auto frombd = tryEx!RpcServerError(pool.execQuery(entry.sql_query, req.params));
 			
 			Bson[] arr = new Bson[0];
 			foreach(each; frombd)
@@ -167,7 +165,7 @@ shared class Database
 		return res;
 	}
 	
-	private IConnectionPool pool;
+	private shared IConnectionPool pool;
 	
 	private SqlJsonTable table;
 	
@@ -175,5 +173,5 @@ shared class Database
 	
 	private AppConfig appConfig;
 	
-	private ILogger logger;
+	private shared ILogger logger;
 }
