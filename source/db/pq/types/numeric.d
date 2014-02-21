@@ -268,7 +268,7 @@ version(IntegrationTest2)
     import derelict.pq.pq;
     import log;
     
-    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Numeric)
     {
         void testValue(string val)

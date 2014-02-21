@@ -67,13 +67,13 @@ interface IConnectionPool
     *    server every $(B reconnectTime) is connection
     *    is dropped (or is down initially).
     */
-    void addServer(string connString, size_t connNum);
+    void addServer(string connString, size_t connNum) shared;
     
     /**
     *   Synchronous blocking way to execute query.
     *   Throws: ConnTimeoutException, QueryProcessingException
     */
-    InputRange!(shared IPGresult) execQuery(string command, string[] params);
+    InputRange!(shared IPGresult) execQuery(string command, string[] params) shared;
     
     /**
     *   Asynchronous way to execute query. User can check
@@ -86,7 +86,7 @@ interface IConnectionPool
     *   See_Also: isQueryReady, getQuery.
     *   Throws: ConnTimeoutException
     */
-    shared(IQuery) postQuery(string command, string[] params);
+    shared(IQuery) postQuery(string command, string[] params) shared;
     
     /**
     *   Returns true if query processing is finished (doesn't
@@ -98,7 +98,7 @@ interface IConnectionPool
     *
     *   See_Also: postQuery, getQuery.
     */
-    bool isQueryReady(shared IQuery query) nothrow;
+    bool isQueryReady(shared IQuery query) nothrow shared;
     
     /**
     *   Retrieves SQL result from specified query.
@@ -110,14 +110,14 @@ interface IConnectionPool
     *   See_Also: postQuery, isQueryReady
     *   Throws: UnknownQueryException, QueryProcessingException
     */
-    InputRange!(shared IPGresult) getQuery(shared IQuery query);
+    InputRange!(shared IPGresult) getQuery(shared IQuery query) shared;
     
     /**
     *    If connection to a SQL server is down,
     *    the pool tries to reestablish it every
     *    time units returned by the method. 
     */
-    Duration reconnectTime() @property;
+    Duration reconnectTime() @property shared;
     
     /**
     *    If there is no free connection for 
@@ -125,29 +125,29 @@ interface IConnectionPool
     *    initialize SQL query, then the pool
     *    throws $(B ConnTimeoutException) exception.
     */
-    Duration freeConnTimeout() @property;
+    Duration freeConnTimeout() @property shared;
     
     /**
     *    Returns current alive connections number.
     */
-    size_t activeConnections() @property;
+    size_t activeConnections() @property shared;
 
     /**
     *    Returns current frozen connections number.
     */
-    size_t inactiveConnections() @property;
+    size_t inactiveConnections() @property shared;
         
     /**
     *    Awaits all queries to finish and then closes each connection.
     *    Calls $(B callback) when connections are closed.
     */
-    void finalize(shared void delegate() callback);
+    synchronized void finalize(shared void delegate() callback);
     
     /**
     *   Returns first free connection from the pool.
     *   Throws: ConnTimeoutException
     */
-    protected shared(IConnection) fetchFreeConnection();
+    protected shared(IConnection) fetchFreeConnection() shared;
     
     protected interface IQuery {}
 }

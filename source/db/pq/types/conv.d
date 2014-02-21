@@ -16,6 +16,7 @@ import db.pq.types.inet;
 import db.pq.types.numeric;
 import db.pq.types.plain;
 import db.pq.types.time;
+import db.pq.types.array;
 
 bool nonConvertable(PQType type)
 {
@@ -182,7 +183,7 @@ version(IntegrationTest2)
     import db.pool;
     import log;
     
-    void testConvertions(shared ILogger logger, IConnectionPool pool)
+    void testConvertions(shared ILogger logger, shared IConnectionPool pool)
     {
         test!(PQType.Numeric)(logger, pool);
         test!(PQType.Bool)(logger, pool);
@@ -192,5 +193,7 @@ version(IntegrationTest2)
         test!(PQType.Int8)(logger, pool);
         test!(PQType.Int4)(logger, pool);
         test!(PQType.Int2)(logger, pool);
+        test!(PQType.Int2Vector)(logger, pool);
+        test!(PQType.OidVector)(logger, pool);
     }
 }

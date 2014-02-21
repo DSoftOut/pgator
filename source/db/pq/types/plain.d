@@ -78,13 +78,6 @@ short convert(PQType type)(ubyte[] val)
     return val.read!short;
 }
 
-short[] convert(PQType type)(ubyte[] val)
-    if(type == PQType.Int2Vector)
-{
-    assert(val.length % 2 == 0);
-    return (cast(short[])val).dup;
-}
-
 int convert(PQType type)(ubyte[] val)
     if(type == PQType.Int4)
 {
@@ -135,13 +128,6 @@ Cid convert(PQType type)(ubyte[] val)
 {
     assert(val.length == 4);
     return (cast(uint[])val)[0];
-}
-
-Oid[] convert(PQType type)(ubyte[] val)
-    if(type == PQType.OidVec)
-{
-    assert(val.length % 2);
-    return (cast(ushort[])val).dup;
 }
 
 Json convert(PQType type)(ubyte[] val)
@@ -196,51 +182,22 @@ long convert(PQType type)(ubyte[] val)
 
 version(IntegrationTest2)
 {
+    import db.pq.types.test;
     import db.pool;
     import std.random;
-    import std.range;
     import std.algorithm;
     import std.encoding;
-    import vibe.data.bson;
-    import derelict.pq.pq;
     import log;
     
-    T id(T)(T val) {return val;}
-    
-    void testValue(T, alias converter = to!string, alias resConverter = id)
-        (shared ILogger logger, IConnectionPool pool, T local, string sqlType)
-    {
-        string query;
-        query = "SELECT "~converter(local)~"::"~sqlType~" as test_field";
+     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+         if(type == PQType.Bool)
+     {
+         logger.logInfo("================ Bool ======================");
+         testValue!bool(logger, pool, true, "boolean");
+         testValue!bool(logger, pool, false, "boolean");
+     }
 
-        logger.logInfo(query);
-        auto results = pool.execQuery(query, []).array;
-        assert(results.length == 1);
-        
-        auto res = results[0];
-        logger.logInfo(res.resultStatus.text);
-        assert(res.resultStatus == ExecStatusType.PGRES_COMMAND_OK 
-            || res.resultStatus == ExecStatusType.PGRES_TUPLES_OK, res.resultErrorMessage);
-        
-        logger.logInfo(text(results[0].asBson));
-        auto node = results[0].asBson.get!(Bson[string])["test_field"][0];
-        
-        static if(is(T == ubyte[]))
-            auto remote = node.opt!BsonBinData.rawData;
-        else 
-            auto remote = node.get!T;
-        assert(resConverter(remote) == resConverter(local), resConverter(remote).to!string ~ "!=" ~ resConverter(local).to!string); 
-    }
-        
-    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
-        if(type == PQType.Bool)
-    {
-        logger.logInfo("================ Bool ======================");
-        testValue!bool(logger, pool, true, "boolean");
-        testValue!bool(logger, pool, false, "boolean");
-    }
-    
-    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.ByteArray)
     {
         ubyte[] genRand(size_t n)
@@ -257,7 +214,7 @@ version(IntegrationTest2)
 
     }
     
-    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Char)
     {
         logger.logInfo("================ Char ======================");
@@ -273,7 +230,7 @@ version(IntegrationTest2)
         
     }
     
-    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Name)
     {
         logger.logInfo("================ Name ======================");
@@ -291,7 +248,7 @@ version(IntegrationTest2)
             testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'`~genRand()~`'`, "name");
     }
     
-    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Int8)
     {
         logger.logInfo("================ Int8 ======================");
@@ -299,7 +256,7 @@ version(IntegrationTest2)
             testValue!long(logger, pool, uniform(long.min, long.max), "Int8");
     }
     
-    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Int4)
     {
         logger.logInfo("================ Int4 ======================");
@@ -307,7 +264,7 @@ version(IntegrationTest2)
             testValue!int(logger, pool, uniform(int.min, int.max), "Int4");
     }
     
-    void test(PQType type)(shared ILogger logger, IConnectionPool pool)
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Int2)
     {
         logger.logInfo("================ Int2 ======================");

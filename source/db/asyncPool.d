@@ -3,7 +3,7 @@
 *    
 *    Authors: NCrashed <ncrashed@gmail.com>
 */
-module db.assyncPool;
+module db.asyncPool;
 
 import log;
 import db.pool;
@@ -23,9 +23,9 @@ import vibe.core.core;
 /**
 *    Describes asynchronous connection pool.
 */
-class AssyncPool : IConnectionPool
+class AsyncPool : IConnectionPool
 {
-    this(shared ILogger logger, IConnectionProvider provider, Duration pReconnectTime, Duration pFreeConnTimeout)
+    this(shared ILogger logger, shared IConnectionProvider provider, Duration pReconnectTime, Duration pFreeConnTimeout) shared
     {
         this.logger = logger;
         this.provider = provider;
@@ -33,7 +33,7 @@ class AssyncPool : IConnectionPool
         mReconnectTime   = pReconnectTime;
         mFreeConnTimeout = pFreeConnTimeout;      
         
-        ids = ThreadIds(  spawn(&closedChecker, logger, reconnectTime)
+        ids = shared ThreadIds(  spawn(&closedChecker, logger, reconnectTime)
                         , spawn(&freeChecker, logger, reconnectTime)
                         , spawn(&connectingChecker, logger, reconnectTime)
                         , spawn(&queringChecker, logger));
@@ -49,7 +49,7 @@ class AssyncPool : IConnectionPool
     *    server every $(B reconnectTime) is connection
     *    is dropped (or is down initially).
     */
-    void addServer(string connString, size_t connNum)
+    void addServer(string connString, size_t connNum) shared
     {
         TimedConnList failedList;
         ConnectionList connsList;
@@ -105,7 +105,7 @@ class AssyncPool : IConnectionPool
     *   Synchronous blocking way to execute query.
     *   Throws: ConnTimeoutException, QueryProcessingException
     */
-    InputRange!(shared IPGresult) execQuery(string command, string[] params)
+    InputRange!(shared IPGresult) execQuery(string command, string[] params) shared
     {
         auto query = postQuery(command, params);
         while(!isQueryReady(query)) yield;
@@ -123,11 +123,11 @@ class AssyncPool : IConnectionPool
     *   See_Also: isQueryReady, getQuery.
     *   Throws: ConnTimeoutException
     */
-    shared(IQuery) postQuery(string command, string[] params)
+    shared(IQuery) postQuery(string command, string[] params) shared
     {
         auto conn = fetchFreeConnection();
         auto query = new shared Query(command, params);
-        processingQueries.insert(query);
+        processingQueries.insert(query); 
         
         ids.queringCheckerId.send(thisTid, conn, query);
         
@@ -144,7 +144,7 @@ class AssyncPool : IConnectionPool
     *
     *   See_Also: postQuery, getQuery.
     */
-    bool isQueryReady(shared IQuery query) nothrow
+    bool isQueryReady(shared IQuery query) nothrow shared
     {
         scope(failure) return true;
         
@@ -157,7 +157,7 @@ class AssyncPool : IConnectionPool
         else return false;
     }
     
-    private void fetchResponds()
+    private void fetchResponds() shared
     {
         receiveTimeout(dur!"msecs"(1),
             (Tid tid, shared IQuery query, Respond respond)
@@ -178,7 +178,7 @@ class AssyncPool : IConnectionPool
     *   See_Also: postQuery, isQueryReady
     *   Throws: UnknownQueryException, QueryProcessingException
     */
-    InputRange!(shared IPGresult) getQuery(shared IQuery query)
+    InputRange!(shared IPGresult) getQuery(shared IQuery query) shared
     {
         if(processingQueries[].find(query).empty)
             throw new UnknownQueryException();
@@ -203,7 +203,7 @@ class AssyncPool : IConnectionPool
     *    the pool tries to reestablish it every
     *    time units returned by the method. 
     */
-    Duration reconnectTime() @property
+    Duration reconnectTime() @property shared
     {
         return mReconnectTime;
     }
@@ -214,7 +214,7 @@ class AssyncPool : IConnectionPool
     *    initialize SQL query, then the pool
     *    throws $(B ConnTimeoutException) exception.
     */
-    Duration freeConnTimeout() @property
+    Duration freeConnTimeout() @property shared
     {
         return mFreeConnTimeout;
     }
@@ -225,7 +225,7 @@ class AssyncPool : IConnectionPool
     *            returned value can become invalid as soon as it returned due
     *            async nature of the pool.
     */
-    size_t activeConnections() @property
+    size_t activeConnections() @property shared
     {
         size_t freeCount, queringCount;
         ids.freeCheckerId.send(thisTid, "length");
@@ -257,7 +257,7 @@ class AssyncPool : IConnectionPool
     *            returned value can become invalid as soon as it returned due
     *            async nature of the pool.
     */
-    size_t inactiveConnections() @property
+    size_t inactiveConnections() @property shared
     {
         size_t closedCount, connectingCount;
         ids.closedCheckerId.send(thisTid, "length");
@@ -283,7 +283,7 @@ class AssyncPool : IConnectionPool
         return closedCount + connectingCount;
     }
     
-    size_t totalConnections() @property
+    size_t totalConnections() @property shared
     {
         size_t freeCount, queringCount;
         size_t closedCount, connectingCount;
@@ -321,7 +321,7 @@ class AssyncPool : IConnectionPool
     *    Awaits all queries to finish and then closes each connection.
     *    Calls $(B callback) when connections are closed.
     */
-    void finalize(shared void delegate() callback)
+    synchronized void finalize(shared void delegate() callback)
     {
         ids.finalize(callback);
         finalized = true;
@@ -331,7 +331,7 @@ class AssyncPool : IConnectionPool
     *   Returns first free connection from the pool.
     *   Throws: ConnTimeoutException
     */
-    protected shared(IConnection) fetchFreeConnection()
+    protected shared(IConnection) fetchFreeConnection() shared
     {
         ids.freeCheckerId.send(thisTid, "get");
         shared IConnection res;
@@ -347,7 +347,7 @@ class AssyncPool : IConnectionPool
     private
     {
        shared ILogger logger;
-       DList!(shared IQuery) processingQueries;
+       __gshared DList!(shared IQuery) processingQueries;
        Respond[shared IQuery] awaitingResponds;
        IConnectionProvider provider;
        Duration mReconnectTime;
@@ -373,12 +373,20 @@ class AssyncPool : IConnectionPool
            __gshared DList!(shared IPGresult) result;
        }
        
-       struct ThreadIds
+       shared struct ThreadIds
        {
-           Tid closedCheckerId;
-           Tid freeCheckerId;
-           Tid connectingCheckerId;
-           Tid queringCheckerId;
+           __gshared Tid closedCheckerId;
+           __gshared Tid freeCheckerId;
+           __gshared Tid connectingCheckerId;
+           __gshared Tid queringCheckerId;
+           
+           this(Tid closedCheckerId, Tid freeCheckerId, Tid connectingCheckerId, Tid queringCheckerId)
+           {
+               this.closedCheckerId = closedCheckerId;
+               this.freeCheckerId = freeCheckerId;
+               this.connectingCheckerId = connectingCheckerId;
+               this.queringCheckerId = queringCheckerId;
+           }
            
            void sendTids()
            {
@@ -402,7 +410,7 @@ class AssyncPool : IConnectionPool
                auto freeTid = receiveOnly!Tid();
                auto connectingTid = receiveOnly!Tid();
                auto queringTid = receiveOnly!Tid();
-               return ThreadIds(closedTid, freeTid, connectingTid, queringTid);
+               return shared ThreadIds(closedTid, freeTid, connectingTid, queringTid);
            }
            
            void finalize(shared void delegate() callback)
@@ -413,7 +421,7 @@ class AssyncPool : IConnectionPool
                queringCheckerId.send(true, callback);
            }
        }
-       ThreadIds ids;
+       shared ThreadIds ids;
        bool finalized = false;
        
        alias DList!(shared IConnection) ConnectionList;
@@ -897,8 +905,9 @@ unittest
     immutable succConns = 18;
     immutable failConns = 12;
     immutable n = succConns + failConns;
-    auto provider = new class IConnectionProvider {
-        override shared(IConnection) allocate()
+    
+    synchronized class LocalProvider : IConnectionProvider {
+        override synchronized shared(IConnection) allocate()
         {
             if(succs < succConns)
             {
@@ -913,9 +922,11 @@ unittest
         }
         
         private uint succs, fails;
-    };
+    }
+    
+    shared IConnectionProvider provider = new shared LocalProvider();
    
-    auto pool = new AssyncPool(logger, cast(IConnectionProvider)provider, dur!"msecs"(500), dur!"msecs"(500));
+    auto pool = new shared AsyncPool(logger, provider, dur!"msecs"(500), dur!"msecs"(500));
     scope(exit) pool.finalize((){});
     pool.addServer("noserver", n);
     
@@ -978,8 +989,9 @@ unittest
     immutable failConns = 12;
     immutable n = succConns + failConns;
     immutable maxTicks = 50;
-    auto provider = new class IConnectionProvider {
-        override shared(IConnection) allocate()
+    
+    synchronized class LocalProvider : IConnectionProvider {
+        override synchronized shared(IConnection) allocate()
         {
             if(succs < succConns)
             {
@@ -994,9 +1006,11 @@ unittest
         }
         
         private uint succs, fails;
-    };
-   
-    auto pool = new AssyncPool(logger, cast(IConnectionProvider)provider, dur!"seconds"(100), dur!"seconds"(100));
+    }
+    
+    shared IConnectionProvider provider = new shared LocalProvider();
+    
+    auto pool = new shared AsyncPool(logger, provider, dur!"seconds"(100), dur!"seconds"(100));
     scope(exit) pool.finalize((){});
     pool.addServer("noserver", n);
     
@@ -1070,8 +1084,8 @@ unittest
     immutable n = succConns + failConns;
     immutable maxTicks = 100;
     immutable maxFailTicks = 50;
-    auto provider = new class IConnectionProvider {
-        override shared(IConnection) allocate()
+    synchronized class LocalProvider : IConnectionProvider {
+        override synchronized shared(IConnection) allocate()
         {
             if(succs < succConns)
             {
@@ -1084,11 +1098,11 @@ unittest
             }
             assert(0);
         }
-        
         private uint succs, fails;
-    };
-   
-    auto pool = new AssyncPool(logger, cast(IConnectionProvider)provider, dur!"msecs"(100), dur!"msecs"(100));
+    }
+    
+    shared IConnectionProvider provider = new shared LocalProvider();
+    auto pool = new shared AsyncPool(logger, provider, dur!"msecs"(100), dur!"msecs"(100));
     scope(exit) pool.finalize((){});
     pool.addServer("noserver", n);
     

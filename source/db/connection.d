@@ -166,7 +166,7 @@ interface IConnectionProvider
     /**
     *   Allocates new connection shared across threads.
     */
-    shared(IConnection) allocate();
+    synchronized shared(IConnection) allocate();
     
     mixin Mockable!IConnection;
 }

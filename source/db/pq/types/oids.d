@@ -7,20 +7,6 @@
 module db.pq.types.oids;
 
 import derelict.pq.pq;
-//import vibe.data.json;
-//import vibe.data.bson;
-//import std.algorithm;
-//import std.traits;
-//import std.conv;
-//import std.numeric;
-//import std.typecons;
-//import std.datetime;
-//import std.format;
-//import std.range;
-//import std.socket;
-//import std.bitmanip;
-//import std.system;
-//import core.sys.posix.sys.socket;
 
 enum PQType : Oid
 {
@@ -38,7 +24,7 @@ enum PQType : Oid
     Tid = 27,
     Xid = 28,
     Cid = 29,
-    OidVec = 30,
+    OidVector = 30,
     
     TypeCatalog = 71,
     AttributeCatalog = 75,

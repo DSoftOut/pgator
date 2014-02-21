@@ -256,7 +256,7 @@ synchronized class PQConnection : IConnection
     mixin Mockable!IConnection;
 }
 
-class PQConnProvider : IConnectionProvider
+synchronized class PQConnProvider : IConnectionProvider
 {
     this(shared ILogger logger, IPostgreSQL api)
     {
@@ -270,5 +270,5 @@ class PQConnProvider : IConnectionProvider
     }
     
     private shared ILogger logger;
-    private IPostgreSQL api;
+    private __gshared IPostgreSQL api;
 }

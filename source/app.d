@@ -16,7 +16,7 @@ else version(IntegrationTest1)
     import stdlog;
     import db.pq.libpq;
     import db.pq.connection;
-    import db.assyncPool;
+    import db.asyncPool;
     import core.time;
     import core.thread;
     
@@ -44,9 +44,9 @@ else version(IntegrationTest1)
         
         auto api = new PostgreSQL();
         logger.logInfo("PostgreSQL was inited.");
-        auto connProvider = new PQConnProvider(logger, api);
+        auto connProvider = new shared PQConnProvider(logger, api);
         
-        auto pool = new AssyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(1));
+        auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(1));
         scope(exit) pool.finalize(() {});
         logger.logInfo("AssyncPool was created.");
         
@@ -69,7 +69,7 @@ else version(IntegrationTest2)
     import db.pq.libpq;
     import db.pq.connection;
     import db.pq.types.conv;
-    import db.assyncPool;
+    import db.asyncPool;
     import core.time;
     import core.thread;
     
@@ -98,9 +98,9 @@ else version(IntegrationTest2)
         
         auto api = new PostgreSQL();
         logger.logInfo("PostgreSQL was inited.");
-        auto connProvider = new PQConnProvider(logger, api);
+        auto connProvider = new shared PQConnProvider(logger, api);
         
-        auto pool = new AssyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5));
+        auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5));
         scope(failure) pool.finalize(() {});
         logger.logInfo("AssyncPool was created.");
         
