@@ -64,20 +64,49 @@ struct RpcRequest
 //	{ 
 //		hash_t hash;
 //		
-//		foreach (char c; str)
-//			hash = (hash * 9) + c;
+//		hash = jsonrpc.toHash();
+//		
+//		hash += method.toHash();
+//		
+//		if (params)
+//		{
+//			foreach(str; params)
+//			{
+//				hash += std.string.toHash();
+//			}
+//		}
 //			
 //		return hash;
 //	}
 //
-//	const bool opEquals(ref const RpcRequest s)
+//	const bool opEquals(ref const RpcRequest s2)
 //	{
-//		return std.string.cmp(this.str, s.str) == 0;
+//		if (this.id == s2.id)
+//		{	
+//			if (this.method == s2.method)
+//			{
+//				if (this.jsonrpc == s2.jsonrpc)
+//				{
+//						if (this.params.length == s2.params.length)
+//						{
+//							foreach(int i, string vl; s2.params)
+//							{
+//								if (this.params[i] != s2.params[i])
+//									return false;
+//							}
+//							
+//							return true;
+//						}
+//					
+//				}
+//			}
+//		}
+//		return false;
 //    }
-//
+
 //    const int opCmp(ref const RpcRequest s)
 //    {
-//    	return std.string.cmp(this.str, s.str);
+//    	return cast(int) (this.toHash() - s.toHash());
 //	}
 	
 	version (unittest)

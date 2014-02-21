@@ -87,7 +87,7 @@ struct SqlConfig
 	string name = null;
 	
 	@required
-	uint maxConn;
+	size_t maxConn;
 	
 	@required
 	string connString;
@@ -154,7 +154,7 @@ unittest
 	config2.sqlJsonTable = "json_rpc";
 	config2.sqlReconnectTime = 150;
 	config2.sqlTimeout = 100;
-	config2.sqlServers = [SqlConfig("sql1", cast(uint)1,""), SqlConfig("sql2", cast(uint)2, "",)];
+	config2.sqlServers = [SqlConfig("sql1", cast(size_t)1,""), SqlConfig("sql2", cast(size_t)2, "",)];
 	
 	assert(config1 == config2, "Config unittest failed");
 }

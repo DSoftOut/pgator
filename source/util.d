@@ -186,6 +186,41 @@ template tryEx(Ex, alias func)
 	alias foo!P tryEx;
 }
 
+T tryEx(Ex, T)(lazy T par)
+{
+	static assert(is(Ex:Exception), "Ex must be Exception");
+	
+	try
+	{
+		return par;
+	}
+	catch(Exception ex)
+	{
+		throw new Ex(ex.msg, ex.file, ex.line);
+	}
+}
+
+template toShared(T)
+{
+	private alias Unqual!T P;
+	
+	
+	shared(P) toShared(T par)
+	{
+		return cast(shared P) cast(P) par;
+	}
+}
+
+template toUnqual(T)
+{
+	private alias Unqual!T P;
+	
+	P toUnqual(T par)
+	{
+		return cast(P) par;
+	}
+}
+
 
 
 /// fromStringz
