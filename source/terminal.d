@@ -43,7 +43,7 @@ private
 *
 *    Daemon writes log message into provided $(B logger).
 */
-int runTerminal(shared ILogger logger, int function(string[]) progMain, string[] args, void delegate() listener)
+int runTerminal(shared ILogger logger, int delegate(string[]) progMain, string[] args, void delegate() listener)
 {
     savedLogger = logger;
         
