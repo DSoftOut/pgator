@@ -518,7 +518,8 @@ class PostgreSQL : IPostgreSQL
                 }
             } catch(SymbolLoadException e)
             {
-                if(e.symbolName != "PQconninfo")
+                if( e.symbolName != "PQconninfo" ||
+                    e.symbolName != "PQsetSingleRowMode")
                 {
                     throw e;
                 }
