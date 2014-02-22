@@ -92,6 +92,19 @@ struct RpcResponse
 	{
 		this = res;
 	}
+	
+	shared(RpcResponse) toShared()
+	{
+		RpcResponse res1;
+		
+		res1.id = this.id;
+		
+		if (f_result) res1.result = this.result;
+		
+		if (f_error) res1.error = this.error;
+		
+		return cast(shared RpcResponse) res1;
+	}
 }
 
 
@@ -139,7 +152,6 @@ version(unittest)
 		normalRes = RpcResponse(Json(1), 
 			RpcResult(Bson([Bson(19)])));
 
-		
 		notificationRes = RpcResponse(Json(null),
 			RpcResult(Bson([Bson(966)])));
 		
@@ -148,7 +160,7 @@ version(unittest)
 		
 		invalidParasmRes = RpcResponse(Json(null),
 			RpcError(new RpcInvalidParams()));
-
+	
 	}
 }
 

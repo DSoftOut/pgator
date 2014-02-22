@@ -107,7 +107,7 @@ shared class Database
 		}
 	}
 	
-	RpcResponse query(ref RpcRequest req)
+	RpcResponse query(RpcRequest req)
 	{	
 		RpcResponse res;
 		
@@ -156,9 +156,16 @@ shared class Database
 			
 			res = RpcResponse(req.id, result);
 			
+			//problem
+			shared RpcResponse cacheRes = res.toShared();
+			
 			if (entry.need_cache)
 			{
-				cache.add(req, res);
+				cache.add(req, cacheRes);
+			}
+			else if (table.needDrop(req.method))
+			{
+				cache.reset(req);
 			}
 		}
 		

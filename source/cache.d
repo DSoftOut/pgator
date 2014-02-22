@@ -8,8 +8,13 @@
 */
 module cache;
 
+import core.atomic;
+import core.sync.rwmutex;
 
-import std.digest.md;
+import std.concurrency;
+import std.exception;
+
+import vibe.utils.hashmap;
 
 import json_rpc.response;
 import json_rpc.request;
@@ -31,26 +36,22 @@ private enum VERSION
 /// CHOOSE ME
 private immutable VER = VERSION.REQUEST;
 
+private alias RpcResponse[RpcRequest] stash;
+
+private alias stash[string] CacheType;
+
+private __gshared ReadWriteMutex mutex;
 
 shared class Cache
-{
-	private alias RpcResponse[RpcRequest] stash;
-	 
-	private stash[string] cache;
-	
-	private SqlJsonTable table;
-	
+{	
 	this(shared SqlJsonTable table)
 	{
 		this.table = table;
+		
+		mutex = new ReadWriteMutex(ReadWriteMutex.Policy.PREFER_READERS);
 	}
 	
-	this(SqlJsonTable table)
-	{
-		this.table = toShared(table);
-	}
-	
-	bool reset(ref RpcRequest req)
+	bool reset(RpcRequest req)
 	{
 		if (!table.needDrop(req.method))
 		{
@@ -59,17 +60,14 @@ shared class Cache
 		
 		static if (VER == VERSION.FULL)
 		{
-			synchronized (this) 
+			synchronized (mutex.writer)
 			{
 				return cache.remove(req.method);
 			}
 		}
-		else
+		else synchronized (mutex.writer)
 		{
-			synchronized (this)
-			{
-				return cache[req.method].remove(req);
-			}
+			return cache[req.method].remove(req);
 		}
 	}
 	
@@ -80,47 +78,57 @@ shared class Cache
 			return false;
 		}
 		
-		synchronized (this) 
-		{
+		synchronized (mutex.writer)
+		{	
 			return cache.remove(method);
 		}
 	}
 	
-	void add(RpcRequest req, ref RpcResponse res)
+	void add(RpcRequest req, shared RpcResponse res)
 	{	
-		//dirty, for ignoring id in cache
-		req.id = vibe.data.json.Json("forcache");
-		
-		if ((req.method in cache) is null)
+		synchronized (mutex.writer)
 		{
-			stash aa;
-			aa[req] = res;
-			
-			synchronized(this)
-				cache[req.method] = toShared(aa);
+			if ((req.method in cache) is null)
+			{
+				shared stash aa;
+				
+				aa[req] = res;
+					
+				cache[req.method] = aa;
+			}
+			else
+			{
+				cache[req.method][req] = res;
+			}
 		}
-		else synchronized (this) 
-		{
-			cache[req.method][req] = toShared(res);
-		}
-		
 	}
 	
-	bool get(ref RpcRequest req, out RpcResponse res)
+	bool get(RpcRequest req, out RpcResponse res)
 	{
 		scope(failure)
 		{
 			return false;
 		}
 		
-		res = cast(RpcResponse) cache[req.method][req];
-		
-		res.id = req.id;
-		
-		return true; 
+		synchronized(mutex.reader)
+		{	
+			res = cast(RpcResponse) cache[req.method][req];
+			
+			res.id = req.id;
+			
+			return true; 
+		}
 	}
+	 
+	private CacheType cache;
+	
+	private SqlJsonTable table;
+	
+	private Tid tid;
 	
 }
+
+
 
 version(unittest)
 {
@@ -136,6 +144,8 @@ version(unittest)
 	{
 		import std.stdio;
 		RpcResponse res;
+		
+		//writeln("into get");
 		if (cache.get(normalReq, res))
 		{
 			//writeln(res.toJson);
@@ -199,13 +209,13 @@ unittest
 	
 	initResponses();
 	
-	cache.add(normalReq, normalRes);
+	cache.add(normalReq, normalRes.toShared);
 	
-	cache.add(notificationReq, notificationRes);
+	cache.add(notificationReq, notificationRes.toShared);
 	
-	cache.add(methodNotFoundReq, mnfRes);
+	cache.add(methodNotFoundReq, mnfRes.toShared);
 	
-	cache.add(invalidParamsReq, invalidParasmRes);
+	cache.add(invalidParamsReq, invalidParasmRes.toShared);
 	
 	import std.concurrency;
 	
