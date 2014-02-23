@@ -104,8 +104,6 @@ shared class Application
 	
 	private void runLoop()
 	{
-		try
-		{
 		tid = toShared(thisTid);
 		
 		wasRun = true;
@@ -137,10 +135,6 @@ shared class Application
 					send(ownerTid, true);
 					return;
 			}
-		}
-		} catch(Throwable ex)
-		{
-			std.stdio.writeln(ex);
 		}
 	}
 	
@@ -174,29 +168,13 @@ shared class Application
 	
 	package void runVibeLoop()
 	{
-		import core.time;
-		try
-		{
 		setup();
 		
 		listenHTTP(cast(HTTPServerSettings)settings, cast(URLRouter) router);
 		
 		logger.logInfo("Starting vibe loop");
 		
-		auto time1 = TickDuration.currSystemTick;
-		
 		runEventLoop();
-		
-		auto time2 = TickDuration.currSystemTick;
-		
-		std.stdio.writeln((time2-time1).seconds);
-		
-		std.stdio.writeln("vibe loop stopped");
-		
-		} catch (Throwable ex)
-		{
-			std.stdio.writeln(ex);
-		}
 	}
 	
 	package void startVibe()
@@ -210,11 +188,7 @@ shared class Application
 	{
 		bool exit;
 		
-		logger.logInfo("Finalizing pool");
-		
 		database.finalizePool((){ logger.logInfo("Finalized pool"); exit = true;});
-		
-		logger.logInfo("Probably Finalized pool");
 		
 		while(!exit){}
 		

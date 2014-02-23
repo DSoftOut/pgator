@@ -74,7 +74,7 @@ shared class Database
 			logger.logError(format("%s:%s(%d)", ex.msg, ex.file, ex.line));
 			
 			throw ex;
-		} 
+		}
 	}
 	
 	void setupPool()
@@ -87,6 +87,13 @@ shared class Database
 		}
 		
 		loadJsonSqlTable();
+		
+		createCache();
+	}
+	
+	private void createCache()
+	{
+		cache = new shared Cache(table); 
 	}
 	
 	void finalizePool(void delegate() del)
@@ -148,6 +155,8 @@ shared class Database
 			return res;
 		}
 		
+		logger.logInfo("Finding method");
+		
 		Entry entry;
 			
 		if (!table.methodFound(req.method, entry))
@@ -179,6 +188,7 @@ shared class Database
 				queryStr ~= entry.sql_query~ " COMMIT;";
 			}
 			
+			logger.logInfo("Querying pool");
 			
 			auto frombd = tryEx!RpcServerError(pool.execQuery(queryStr, req.params));
 			
