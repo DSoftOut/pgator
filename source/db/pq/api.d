@@ -150,6 +150,26 @@ interface IPGresult
         
         return Bson(fields);
     }
+    
+    final Bson asNatBson()
+    {
+    	Bson[] arr = new Bson[0];
+    	
+    	foreach(i; 0..ntuples)
+    	{
+    		Bson[string] entry;
+    		
+    		foreach(j; 0..nfields)
+    		{
+    			entry[fname(j)] = pqToBson(ftype(j), asBytes(i, j));	
+    		}
+    		
+    		arr ~= Bson(entry);
+    	}
+    	
+    	return Bson(arr);
+    	
+    }
 }
 
 /**

@@ -77,7 +77,17 @@ shared class SqlJsonTable
 			return false;
 		}
 		
-		return map[method].need_cache;
+		return map[method].need_cache && map[method].read_only;
+	}
+	
+	bool read_only(string method)
+	{
+		scope(failure)
+		{
+			return false;
+		}
+		
+		return map[method].read_only;
 	}
 	
 	string[] reset_caches(string method)
@@ -100,21 +110,33 @@ shared class SqlJsonTable
 		return cast(string[])(map[method].reset_by);
 	}
 	
-	bool needDrop(string method)
+	string[] needDrop(string method)
 	{
+		string[] arr = new string[0];
+		
 		if (need_cache(method))
 		{
-			string[] reset_by = reset_by(method);
-			foreach(str1; reset_caches(method))
+			if (!read_only(method))
 			{
-				foreach(str2; reset_by)
+				foreach(str1; reset_caches(method))
 				{
-					if (str1 == str2) return true;
+					foreach(key; map.byKey())
+					{
+						foreach(str2; map[key].reset_by)
+						{
+							if (str1 == str2) 
+							{
+								arr ~= map[key].method;
+								
+								break;
+							}
+						} 
+					}
 				}
 			}
 		}
 		
-		return false;
+		return arr;
 	}
 	
 	bool methodFound(string method, out Entry entry)

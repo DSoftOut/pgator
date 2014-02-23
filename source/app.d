@@ -144,6 +144,7 @@ else
 	import std.functional;
 	import daemon;
 	import terminal;
+	import server;
 
 	immutable help = `
 	Server that transforms JSON-RPC calls in SQL queries for PostgreSQL.
@@ -182,32 +183,27 @@ else
 		}
 		
 		auto logger = new shared CLogger(logName);
-		if(daemon) 
-			return runDaemon(logger, (nargs) => 0, args, (){});
-		else 
-			return runTerminal(logger, &curry!(progMain, logger), args, (){});
-	}
-	
-	
-	int progMain(shared ILogger logger, string[] args)
-	{
-		import server;
-		import std.concurrency;
-		import core.time;
-		import core.thread;
-		
 		
 		shared Application app = new shared Application(logger);
 		
-		auto tid = spawn(&server.run, app);
+		if(daemon) 
+			return runDaemon(logger, (nargs) => 0, args, (){});
+		else 
+			return runTerminal(logger, &curry!(progMain, app), args, (){ app.restart(); });
+	}
+	
+	
+	int progMain(shared Application app, string[] args)
+	{
+		import core.time;
+		import core.thread;
 		
-		
-		send(tid, MESSAGE.START);
+		app.run();
 		
 		Thread.sleep(dur!"minutes"(3));
 		
-		send(tid, MESSAGE.EXIT);
+		app.finalize();
 		
-		return 100;
+		return 0;
 	}
 }
