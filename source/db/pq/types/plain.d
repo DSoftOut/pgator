@@ -8,21 +8,25 @@ module db.pq.types.plain;
 
 import db.pq.types.oids;
 import vibe.data.json;
-import std.numeric;
 import std.array;
 import std.bitmanip;
 import std.format;
 import std.conv;
 import util;
 
-alias ushort RegProc;
-alias ushort Oid;
+alias uint RegProc;
+alias uint Oid;
 alias uint Xid;
 alias uint Cid;
 
 struct PQTid
 {
     uint blockId, blockNumber;
+    
+    string toString() const
+    {
+        return text("'(",blockId, ",", blockNumber, ")'");
+    }
 }
 
 bool convert(PQType type)(ubyte[] val)
@@ -54,7 +58,7 @@ char convert(PQType type)(ubyte[] val)
     if(type == PQType.Char)
 {
     assert(val.length == 1);
-    return cast(char)val[0];
+    return val.read!char;
 }
 
 string convert(PQType type)(ubyte[] val)
@@ -89,21 +93,20 @@ RegProc convert(PQType type)(ubyte[] val)
     if(type == PQType.RegProc)
 {
     assert(val.length == 4);
-    return (cast(ushort[])val)[0];
+    return val.read!RegProc;
 }
 
 string convert(PQType type)(ubyte[] val)
-    if(type == PQType.Text)
+    if(type == PQType.Text || type == PQType.FixedString || type == PQType.VariableString)
 {
-    assert(val.length > 0);
-    return fromStringz(cast(char*)val.ptr);
+    return cast(string)val.idup;
 }
 
 Oid convert(PQType type)(ubyte[] val)
     if(type == PQType.Oid)
 {
-    assert(val.length == 2);
-    return (cast(ushort[])val)[0];
+    assert(val.length == Oid.sizeof);
+    return val.read!Oid;
 }
 
 PQTid convert(PQType type)(ubyte[] val)
@@ -111,8 +114,8 @@ PQTid convert(PQType type)(ubyte[] val)
 {
     assert(val.length == 8);
     PQTid res;
-    res.blockId = (cast(uint[])val)[0];
-    res.blockNumber = (cast(uint[])val)[1];
+    res.blockId = val.read!uint;
+    res.blockNumber = val.read!uint;
     return res;
 }
 
@@ -120,51 +123,47 @@ Xid convert(PQType type)(ubyte[] val)
     if(type == PQType.Xid)
 {
     assert(val.length == 4);
-    return (cast(uint[])val)[0];
+    return val.read!uint;
 }
 
 Cid convert(PQType type)(ubyte[] val)
     if(type == PQType.Cid)
 {
     assert(val.length == 4);
-    return (cast(uint[])val)[0];
+    return val.read!uint;
 }
 
 Json convert(PQType type)(ubyte[] val)
     if(type == PQType.Json)
 {
-    string payload = fromStringz(cast(char*)val.ptr);
-    return parseJsonString(payload);
+    return parseJsonString(cast(string)val.idup);
 }
 
 string convert(PQType type)(ubyte[] val)
     if(type == PQType.Xml)
 {
-    assert(val.length > 0);
-    return fromStringz(cast(char*)val.ptr);
+    return cast(string)val.idup;
 }
 
 string convert(PQType type)(ubyte[] val)
     if(type == PQType.NodeTree)
 {
     assert(val.length > 0);
-    return fromStringz(cast(char*)val.ptr);
+    return cast(string)val.idup;
 }
 
 float convert(PQType type)(ubyte[] val)
     if(type == PQType.Float4)
 {
-    assert(val.length == 1);
-    static assert((CustomFloat!8).sizeof == 1);
-    CustomFloat!8 v = (cast(CustomFloat!8[])val)[0];
-    return cast(float)v;
+    assert(val.length == 4);
+    return val.read!float;
 }
 
 float convert(PQType type)(ubyte[] val)
     if(type == PQType.Float8)
 {
-    assert(val.length == 1);
-    return (cast(float[])val)[0];
+    assert(val.length == 8);
+    return val.read!double;
 }
 
 string convert(PQType type)(ubyte[] val)
@@ -177,7 +176,7 @@ long convert(PQType type)(ubyte[] val)
     if(type == PQType.Money)
 {
     assert(val.length == 8);
-    return (cast(long[])val)[0];
+    return val.read!long;
 }
 
 version(IntegrationTest2)
@@ -187,6 +186,7 @@ version(IntegrationTest2)
     import std.random;
     import std.algorithm;
     import std.encoding;
+    import std.math;
     import log;
     
      void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
@@ -230,28 +230,83 @@ version(IntegrationTest2)
         
     }
     
+    string genRandString(size_t n)
+    {
+        auto builder = appender!string;
+        immutable aphs = "1234567890qwertyuiopasdfghjklzxcvbnm";
+        foreach(i; 0..n)
+            builder.put(aphs[uniform(0, aphs.length)]);
+        return builder.data;    
+    }
+        
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Name)
     {
         logger.logInfo("================ Name ======================");
         
-        string genRand()
-        {
-            auto builder = appender!string;
-            immutable aphs = "1234567890qwertyuiopasdfghjklzxcvbnm";
-            foreach(i; 0..63)
-                builder.put(aphs[uniform(0, aphs.length)]);
-            return builder.data;    
-        }
-        
         foreach(i; 0..100)
-            testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'`~genRand()~`'`, "name");
+            testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'`~genRandString(63)~`'`, "name");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Text)
+    {
+        logger.logInfo("================ Text ======================");
+        
+        testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `''`, "text");      
+        foreach(i; 0..100)
+            testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'`~genRandString(50)~`'`, "text");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.VariableString)
+    {
+        logger.logInfo("================ varchar() ======================");
+        
+        testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `''`, "varchar");      
+        foreach(i; 0..100)
+            testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'`~genRandString(50)~`'`, "varchar(50)");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.FixedString)
+    {
+        logger.logInfo("================ char() ======================");
+          
+        foreach(i; 0..100)
+            testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'`~genRandString(50)~`'`, "char(50)");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.CString)
+    {
+        logger.logInfo("================ cstring ======================");
+        
+        testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `''`, "cstring");   
+        foreach(i; 0..100)
+            testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'`~genRandString(50)~`'`, "cstring");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Unknown)
+    {
+        logger.logInfo("================ Unknown ======================");
+        
+        testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'Unknown'`, "unknown");   
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Int8)
     {
         logger.logInfo("================ Int8 ======================");
+        foreach(i; 0..100)
+            testValue!long(logger, pool, uniform(long.min, long.max), "Int8");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Money)
+    {
+        logger.logInfo("================ Money ======================");
         foreach(i; 0..100)
             testValue!long(logger, pool, uniform(long.min, long.max), "Int8");
     }
@@ -270,5 +325,126 @@ version(IntegrationTest2)
         logger.logInfo("================ Int2 ======================");
         foreach(i; 0..100)
             testValue!int(logger, pool, uniform(short.min, short.max), "Int2");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Oid)
+    {
+        logger.logInfo("================ Oid ======================");
+        logger.logInfo("Enable this test after vibe.d issue #538 be fixed");
+//        foreach(i; 0..100)
+//            testValue!Oid(logger, pool, uniform(Oid.min, Oid.max), "Oid");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.RegProc)
+    {
+        logger.logInfo("================ RegProc ======================");
+        foreach(i; 0..100)
+            testValue!RegProc(logger, pool, uniform(RegProc.min, RegProc.max), "regproc");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Tid)
+    {
+        logger.logInfo("================ Tid ======================");
+        logger.logInfo("Some strange bug in tid conversion!");
+//        foreach(i; 0..100)
+//        {
+//            auto testTid = PQTid(uniform(uint.min, uint.max), uniform(uint.min, uint.max));
+//            testValue!PQTid(logger, pool, testTid, "tid");
+//        }
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Xid)
+    {
+        logger.logInfo("================ Xid ======================");
+        logger.logInfo("Enable this test after vibe.d issue #538 be fixed");
+//        foreach(i; 0..100)
+//        {
+//            testValue!(Xid, (v) => "'"~v.to!string~"'")(logger, pool, uniform(Xid.min, Xid.max), "xid");
+//        }
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Cid)
+    {
+        logger.logInfo("================ Cid ======================");
+        logger.logInfo("Enable this test after vibe.d issue #538 be fixed");
+//        foreach(i; 0..100)
+//        {
+//            testValue!(Cid, (v) => "'"~v.to!string~"'")(logger, pool, uniform(Cid.min, Cid.max), "cid");
+//        }
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Json)
+    {
+        logger.logInfo("================ Json ======================");
+
+        auto json = Json.emptyObject;
+        json.str = genRandString(10);
+        json.arr = serializeToJson([4,8,15,16,23,42]);
+        json.boolean = uniform(0,1) != 0;
+//        json.floating = cast(double)42.0;
+        json.integer  = cast(long)42;
+        json.nullable = null;
+        json.mapping = ["1":Json(4), "2":Json(8), "3":Json(15)];
+        
+        testValue!(Json, (v) => "'"~v.to!string~"'")(logger, pool, json, "json");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Xml)
+    {
+        logger.logInfo("================ Xml ======================");
+        
+        testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'‹?xml version= "1.0"›'`, "xml");   
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.NodeTree)
+    {
+        logger.logInfo("================ NodeTree ======================");
+        logger.logInfo("Not testable");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Float4)
+    {
+        logger.logInfo("================ Float4 ======================");
+        string convFloat(float t)
+        {
+           if(t == float.infinity) return "'Infinity'";
+           else if(t == -float.infinity) return "'-Infinity'";
+           else if(isnan(t)) return "'NaN'";
+           else return t.to!string;
+        }
+        testValue!(float, convFloat)(logger, pool, float.infinity, "Float4");
+        testValue!(float, convFloat)(logger, pool, -float.infinity, "Float4");
+        testValue!(float, convFloat)(logger, pool, -float.nan, "Float4");
+        
+        foreach(i; 0..100)
+            testValue!(float, convFloat)(logger, pool, uniform(-100.0, 100.0), "Float4");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Float8)
+    {
+        logger.logInfo("================ Float8 ======================");
+        string convFloat(double t)
+        {
+           if(t == double.infinity) return "'Infinity'";
+           else if(t == -double.infinity) return "'-Infinity'";
+           else if(isnan(t)) return "'NaN'";
+           else return t.to!string;
+        }
+        testValue!(double, convFloat)(logger, pool, double.infinity, "Float8");
+        testValue!(double, convFloat)(logger, pool, -double.infinity, "Float8");
+        testValue!(double, convFloat)(logger, pool, -double.nan, "Float8");
+        
+        foreach(i; 0..100)
+            testValue!(double, convFloat)(logger, pool, uniform(-100.0, 100.0), "Float8");
     }
 }

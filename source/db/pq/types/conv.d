@@ -22,24 +22,26 @@ bool nonConvertable(PQType type)
 {
     switch(type)
     {
+        case PQType.RegProc: return true;
         case PQType.TypeCatalog: return true;
         case PQType.AttributeCatalog: return true;
         case PQType.ProcCatalog: return true;
         case PQType.ClassCatalog: return true; 
         case PQType.StorageManager: return true;
+        case PQType.Tid: return true;
         case PQType.Line: return true;
         
         // awaiting implementation
-        case PQType.Int2Array: return true;
-        case PQType.Int4Array: return true;
-        case PQType.TextArray: return true;
-        case PQType.OidArray: return true;
-        case PQType.Float4Array: return true;
+        //case PQType.Int2Array: return true;
+        //case PQType.Int4Array: return true;
+        //case PQType.TextArray: return true;
+        //case PQType.OidArray: return true;
+        //case PQType.Float4Array: return true;
         case PQType.AccessControlList: return true;
-        case PQType.CStringArray: return true;
+        //case PQType.CStringArray: return true;
         
-        case PQType.FixedString: return true;
-        case PQType.VariableString: return true;
+        //case PQType.FixedString: return true;
+        //case PQType.VariableString: return true;
         
         case PQType.Date: return true;
         case PQType.Time: return true;
@@ -185,15 +187,13 @@ version(IntegrationTest2)
     
     void testConvertions(shared ILogger logger, shared IConnectionPool pool)
     {
-        test!(PQType.Numeric)(logger, pool);
-        test!(PQType.Bool)(logger, pool);
-        test!(PQType.ByteArray)(logger, pool);
-        test!(PQType.Char)(logger, pool);
-        test!(PQType.Name)(logger, pool);
-        test!(PQType.Int8)(logger, pool);
-        test!(PQType.Int4)(logger, pool);
-        test!(PQType.Int2)(logger, pool);
-        test!(PQType.Int2Vector)(logger, pool);
-        test!(PQType.OidVector)(logger, pool);
+        foreach(t; __traits(allMembers, PQType))
+        {
+            enum type = mixin("PQType."~t);
+            static if(!nonConvertable(type)) 
+            {
+                test!type(logger, pool);
+            }
+        }
     }
 }

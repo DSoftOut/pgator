@@ -12,12 +12,22 @@ import std.random;
 import std.range;
 import std.algorithm;
 import std.encoding;
+import std.traits;
+import std.math;
 import vibe.data.bson;
 import derelict.pq.pq;
 import db.pool;
 import log;
 
 T id(T)(T val) {return val;}
+
+bool floatEquality(T)(T a, T b) 
+    if(isFloatingPoint!T)
+{
+    if(a.isnan) return b.isnan;
+    if(b.isnan) return a.isnan;
+    return approxEqual(a,b);
+}
 
 void testValue(T, alias converter = to!string, alias resConverter = id)
     (shared ILogger logger, shared IConnectionPool pool, T local, string sqlType)
@@ -41,5 +51,16 @@ void testValue(T, alias converter = to!string, alias resConverter = id)
         auto remote = node.opt!BsonBinData.rawData;
     else 
         auto remote = node.deserializeBson!T;
-    assert(resConverter(remote) == resConverter(local), resConverter(remote).to!string ~ "!=" ~ resConverter(local).to!string); 
+        
+    static if(isFloatingPoint!T)
+    {
+        assert(resConverter(remote).floatEquality(resConverter(local)), resConverter(remote).to!string ~ "!=" ~ resConverter(local).to!string);
+    }
+    else static if(isArray!T && isFloatingPoint!(ElementType!T))
+    {
+        assert(equal!floatEquality(resConverter(remote), resConverter(local)), resConverter(remote).to!string ~ "!=" ~ resConverter(local).to!string); 
+    } else
+    {
+        assert(resConverter(remote) == resConverter(local), resConverter(remote).to!string ~ "!=" ~ resConverter(local).to!string);
+    } 
 }

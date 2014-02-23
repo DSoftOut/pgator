@@ -9,6 +9,7 @@ module db.pq.types.inet;
 import db.pq.types.oids;
 import std.algorithm;
 import std.array;
+import std.bitmanip;
 import std.socket;
 import std.conv;
 import std.format;
@@ -133,13 +134,41 @@ PQInetAddress convert(PQType type)(ubyte[] val)
     if((type == PQType.HostAddress || type == PQType.NetworkAddress))
 {
     assert(val.length >= 4);
-    ubyte family = val[0];
-    ubyte bits = val[1];
-    ubyte nb = val[3];
+    ubyte family = val.read!ubyte;
+    ubyte bits = val.read!ubyte;
+    ubyte nb = val.read!ubyte;
     assert(nb <= 16);
-    val = val[4..$];
     assert(val.length == nb);
     ubyte[16] addrBytes;
     addrBytes[0..cast(size_t)nb] = val[0..cast(size_t)nb];  
     return PQInetAddress(addrBytes, bits, cast(PQInetAddress.Family)family);
+}
+
+version(IntegrationTest2)
+{
+    import db.pq.types.test;
+    import db.pool;
+    import std.random;
+    import std.algorithm;
+    import std.encoding;
+    import std.math;
+    import log;
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.MacAddress)
+    {
+        logger.logInfo("================ MacAddress ======================");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.HostAddress)
+    {
+        logger.logInfo("================ HostAddress ======================");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.NetworkAddress)
+    {
+        logger.logInfo("================ NetworkAddress ======================");
+    }
 }

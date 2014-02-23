@@ -7,80 +7,176 @@
 module db.pq.types.geometric;
 
 import db.pq.types.oids;
-import std.numeric;
+import std.array;
+import std.bitmanip;
 import std.conv;
+import std.math;
 
 struct Point
 {
-    float x, y;
+    double x, y;
+    
+    string toString() const
+    {
+        return text("(",x,",",y,")");
+    }
+    
+    bool opEquals(const Point b) const
+    {
+        return x.approxEqual(b.x) && y.approxEqual(b.y); 
+    }
 }
 
 struct LineSegment
 {
-    float x1, y1, x2, y2;
+    double x1, y1, x2, y2;
+    
+    string toString() const
+    {
+        return text("((",x1,",",y1,"),","(",x2,",",y2,"))");
+    }
+    
+    bool opEquals(const LineSegment b) const
+    {
+        return x1.approxEqual(b.x1) && y1.approxEqual(b.y1) &&
+               x2.approxEqual(b.x2) && y2.approxEqual(b.y2); 
+    }
 }
 
 struct Path
 {
     bool closed;
     Point[] points;
+    
+    string toString() const
+    {
+        auto builder = appender!string;
+        
+        builder.put(closed ? '(' : '[');
+        foreach(i,p; points)
+        {
+            builder.put(p.to!string);
+            if(i != points.length -1) 
+                builder.put(',');
+        }
+        builder.put(closed ? ')' : ']');
+        return builder.data;
+    }
 }
 
 struct Box
 {
-    float highx, highy, lowx, lowy;
+    double highx, highy, lowx, lowy;
+    
+    this(double ax, double ay, double bx, double by)
+    {
+        if(ax > bx)
+        {
+            highx = ax;
+            lowx  = bx;
+        }
+        else
+        {
+            lowx  = ax;
+            highx = bx;
+        }
+         
+        if(ay > by)
+        {
+            highy = ay;
+            lowy  = by;
+        } else
+        {
+            lowy  = ay;
+            highy = by;
+        }
+    }
+    
+    string toString() const
+    {
+        return text("((",highx,",",highy,"),","(",lowx,",",lowy,"))");
+    }
+    
+    bool opEquals(const Box b) const
+    {
+        return highx.approxEqual(b.highx) && highy.approxEqual(b.highy) &&
+               lowx.approxEqual(b.lowx) && lowy.approxEqual(b.lowy); 
+    }
 }
 
 struct Polygon
 {
     Point[] points;
+    
+    string toString() const
+    {
+        auto builder = appender!string;
+        
+        builder.put('(');
+        foreach(i,p; points)
+        {
+            builder.put(p.to!string);
+            if(i != points.length -1) 
+                builder.put(',');
+        }
+        builder.put(')');
+        return builder.data;
+    }
 }
 
 struct Circle
 {
     Point center;
-    float radius;
+    double radius;
+    
+    string toString() const
+    {
+        auto builder = appender!string;
+        
+        builder.put('<');
+        builder.put(center.to!string);
+        builder.put(',');
+        builder.put(radius.to!string);
+        builder.put('>');
+        return builder.data;
+    }
+    
+    bool opEquals(const Circle b) const
+    {
+        return center == b.center && radius.approxEqual(b.radius); 
+    }   
 }
 
 Point convert(PQType type)(ubyte[] val)
     if(type == PQType.Point)
 {
-    assert(val.length == 2);
-    static assert((CustomFloat!8).sizeof == 1);
-    CustomFloat!8 a = (cast(CustomFloat!8[])val)[0];
-    CustomFloat!8 b = (cast(CustomFloat!8[])val)[1];
-    return Point(cast(float)a, cast(float)b);
+    assert(val.length == 16);
+    return Point(val.read!double, val.read!double);
 }
 
 LineSegment convert(PQType type)(ubyte[] val)
     if(type == PQType.LineSegment)
 {
-    assert(val.length == 4);
-    static assert((CustomFloat!8).sizeof == 1);
-    CustomFloat!8 x1 = (cast(CustomFloat!8[])val)[0];
-    CustomFloat!8 y1 = (cast(CustomFloat!8[])val)[1];
-    CustomFloat!8 x2 = (cast(CustomFloat!8[])val)[2];
-    CustomFloat!8 y2 = (cast(CustomFloat!8[])val)[3];
-    return LineSegment(cast(float)x1, cast(float)y1, cast(float)x2, cast(float)y2);
+    assert(val.length == double.sizeof*4);
+    double x1 = val.read!double;
+    double y1 = val.read!double;
+    double x2 = val.read!double;
+    double y2 = val.read!double;
+    return LineSegment(x1, y1, x2, y2);
 }
 
 Path convert(PQType type)(ubyte[] val)
     if(type == PQType.Path)
 {
-    static assert((CustomFloat!8).sizeof == 1);
-    
     Path path;
-    path.closed = to!bool(val[0]); val = val[1..$];
-    uint l = (cast(uint[])val[0..4])[0]; val = val[4..$];
+    path.closed = val.read!bool;
+    size_t l = cast(size_t)val.read!uint;
     path.points = new Point[l];
     
-    assert(val.length == 2*l);
+    assert(val.length == 2*double.sizeof*l);
     foreach(ref p; path.points)
     {
-        CustomFloat!8 a = (cast(CustomFloat!8[])val)[0];
-        CustomFloat!8 b = (cast(CustomFloat!8[])val)[1];
-        p = Point(cast(float)a, cast(float)b);
-        if(val.length > 2) val = val[2..$];
+        p = Point(val.read!double, val.read!double);
     }
     return path;
 }
@@ -88,31 +184,25 @@ Path convert(PQType type)(ubyte[] val)
 Box convert(PQType type)(ubyte[] val)
     if(type == PQType.Box)
 {
-    assert(val.length == 4);
-    static assert((CustomFloat!8).sizeof == 1);
-    CustomFloat!8 highx = (cast(CustomFloat!8[])val)[0];
-    CustomFloat!8 highy = (cast(CustomFloat!8[])val)[1];
-    CustomFloat!8 lowx = (cast(CustomFloat!8[])val)[2];
-    CustomFloat!8 lowy = (cast(CustomFloat!8[])val)[3];
-    return Box(cast(float)highx, cast(float)highy, cast(float)lowx, cast(float)lowy);
+    assert(val.length == 4*double.sizeof);
+    double highx = val.read!double;
+    double highy = val.read!double;
+    double lowx = val.read!double;
+    double lowy = val.read!double;
+    return Box(highx, highy, lowx, lowy);
 }
 
 Polygon convert(PQType type)(ubyte[] val)
     if(type == PQType.Polygon)
 {
-    static assert((CustomFloat!8).sizeof == 1);
-    
     Polygon poly;
-    uint l = (cast(uint[])val[0..4])[0]; val = val[4..$];
+    size_t l = val.read!uint;
     poly.points = new Point[l];
     
-    assert(val.length == 2*l);
+    assert(val.length == 2*double.sizeof*l);
     foreach(ref p; poly.points)
     {
-        CustomFloat!8 a = (cast(CustomFloat!8[])val)[0];
-        CustomFloat!8 b = (cast(CustomFloat!8[])val)[1];
-        p = Point(cast(float)a, cast(float)b);
-        if(val.length > 2) val = val[2..$];
+        p = Point(val.read!double, val.read!double);
     }
     return poly;
 }
@@ -120,11 +210,119 @@ Polygon convert(PQType type)(ubyte[] val)
 Circle convert(PQType type)(ubyte[] val)
     if(type == PQType.Circle)
 {
-    assert(val.length == 3);
-    static assert((CustomFloat!8).sizeof == 1);
-    CustomFloat!8 centerx = (cast(CustomFloat!8[])val)[0];
-    CustomFloat!8 centery = (cast(CustomFloat!8[])val)[1];
-    CustomFloat!8 radius = (cast(CustomFloat!8[])val)[2];
+    assert(val.length == 3*double.sizeof);
+    double centerx = val.read!double;
+    double centery = val.read!double;
+    double radius = val.read!double;
 
-    return Circle(Point(cast(float)centerx, cast(float)centery), cast(float)radius);
+    return Circle(Point(centerx, centery), radius);
+}
+
+version(IntegrationTest2)
+{
+    import db.pq.types.test;
+    import db.pool;
+    import std.random;
+    import std.algorithm;
+    import log;
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Point)
+    {
+        logger.logInfo("================ Point ======================");
+          
+        foreach(i; 0..100)
+        {
+            auto test = Point(uniform(-100.0, 100.0), uniform(-100.0, 100.0));
+            testValue!(Point, (v) => "'"~v.to!string~"'")(logger, pool, test, "point");
+        }
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.LineSegment)
+    {
+        logger.logInfo("================ LineSegment ======================");
+          
+        foreach(i; 0..100)
+        {
+            auto test = LineSegment(uniform(-100.0, 100.0), uniform(-100.0, 100.0),
+                                    uniform(-100.0, 100.0), uniform(-100.0, 100.0));
+            testValue!(LineSegment, (v) => "'"~v.to!string~"'")(logger, pool, test, "lseg");
+        }
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Path)
+    {
+        logger.logInfo("================ Path ======================");
+          
+        Path getRandPath()
+        {
+            Path path;
+            path.closed = uniform!"[]"(0,1) != 0;
+            
+            auto builder = appender!(Point[]);
+            foreach(i; 0..uniform(1,15))
+            {
+                builder.put(Point(uniform(-100.0, 100.0), uniform(-100.0, 100.0)));
+            }
+            path.points = builder.data;
+            
+            return path;
+        }  
+        foreach(i; 0..100)
+        {
+            testValue!(Path, (v) => "'"~v.to!string~"'")(logger, pool, getRandPath, "path");
+        }
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Box)
+    {
+        logger.logInfo("================ Box ======================");
+          
+        foreach(i; 0..100)
+        {
+            auto test = Box(uniform(-100.0, 100.0), uniform(-100.0, 100.0),
+                            uniform(-100.0, 100.0), uniform(-100.0, 100.0));
+            testValue!(Box, (v) => "'"~v.to!string~"'")(logger, pool, test, "box");
+        }
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Polygon)
+    {
+        logger.logInfo("================ Polygon ======================");
+          
+        Polygon getRandPoly()
+        {
+            Polygon poly;
+            
+            auto builder = appender!(Point[]);
+            foreach(i; 0..uniform(1,15))
+            {
+                builder.put(Point(uniform(-100.0, 100.0), uniform(-100.0, 100.0)));
+            }
+            poly.points = builder.data;
+            
+            return poly;
+        }  
+        foreach(i; 0..100)
+        {
+            testValue!(Polygon, (v) => "'"~v.to!string~"'")(logger, pool, getRandPoly, "polygon");
+        }
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Circle)
+    {
+        logger.logInfo("================ Circle ======================");
+          
+        foreach(i; 0..100)
+        {
+            auto test = Circle(Point(uniform(-100.0, 100.0), uniform(-100.0, 100.0)),
+                            uniform(0, 100.0));
+            testValue!(Circle, (v) => "'"~v.to!string~"'")(logger, pool, test, "circle");
+        }
+    }
 }

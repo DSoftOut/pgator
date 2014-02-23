@@ -24,7 +24,6 @@ private struct Vector(T)
 
 private Vector!T readVec(T)(ubyte[] arr)
 {
-    
     assert(arr.length >= 2*int.sizeof + Oid.sizeof, text(
             "Expected min array size ", 2*int.sizeof + Oid.sizeof, ", but got ", arr.length));
     Vector!T vec;
@@ -36,12 +35,20 @@ private Vector!T readVec(T)(ubyte[] arr)
     vec.dim1       = arr.read!int;
     vec.lbound1    = arr.read!int;
     
-    assert(arr.length % T.sizeof == 0);
+    static if(!is(T == string)) assert(arr.length % T.sizeof == 0);
     auto builder = appender!(T[]);
     while(arr.length > 0)
     {
-        arr.read!int; // some kind of length
-        builder.put(arr.read!T);
+        static if(is(T == string))
+        {
+            auto length = cast(size_t)arr.read!int;
+            builder.put(cast(string)arr[0..length].idup);
+            arr = arr[length .. $];
+        } else
+        {
+            arr.read!int; // some kind of length
+            builder.put(arr.read!T);
+        }
     }
     vec.values = builder.data;
     import std.stdio; writeln(vec.values);
@@ -49,15 +56,33 @@ private Vector!T readVec(T)(ubyte[] arr)
 }
 
 short[] convert(PQType type)(ubyte[] val)
-    if(type == PQType.Int2Vector)
+    if(type == PQType.Int2Vector || type == PQType.Int2Array)
 {
     return val.readVec!short.values;
 }
 
+int[] convert(PQType type)(ubyte[] val)
+    if(type == PQType.Int4Array)
+{
+    return val.readVec!int.values;
+}
+
 Oid[] convert(PQType type)(ubyte[] val)
-    if(type == PQType.OidVector)
+    if(type == PQType.OidVector || type == PQType.OidArray)
 {
     return val.readVec!Oid.values;
+}
+
+string[] convert(PQType type)(ubyte[] val)
+    if(type == PQType.TextArray || type == PQType.CStringArray)
+{
+    return val.readVec!string.values;
+}
+
+float[] convert(PQType type)(ubyte[] val)
+    if(type == PQType.Float4Array)
+{
+    return val.readVec!float.values;
 }
 
 version(IntegrationTest2)
@@ -66,6 +91,7 @@ version(IntegrationTest2)
     import db.pool;
     import std.array;
     import std.random;
+    import std.math;
     import log;
     
     string convertArray(T)(T[] ts)
@@ -73,43 +99,107 @@ version(IntegrationTest2)
         auto builder = appender!string;
         foreach(i,t; ts)
         {
-            builder.put(t.to!string);
+            static if(is(T == string)) builder.put("'");
+            static if(is(T == float))
+            {
+               if(t == T.infinity) builder.put("'Infinity'");
+               else if(t == -T.infinity) builder.put("'-Infinity'");
+               else if(isnan(t)) builder.put("'NaN'");
+               else builder.put(t.to!string);
+            } else
+            {
+                builder.put(t.to!string);
+            }
+            static if(is(T == string)) builder.put("'");
             if(i != ts.length-1)
                 builder.put(", ");
         }
         return "ARRAY["~builder.data~"]";
     } 
     
+    T[] randArray(T)(size_t n)
+    {
+        auto builder = appender!(T[]);
+        foreach(i; 0..n)
+        {
+            static if(is(T == string))
+            {
+                immutable alph = "1234567890asdfghjkklzxcvbnm,.?!@#$%^&*()+-|";
+                auto zbuilder = appender!string;
+                foreach(j; 0..uniform(0,100))
+                    zbuilder.put(alph[uniform(0,alph.length)]);
+                builder.put(zbuilder.data);
+            } else static if(is(T == float))
+            {
+                builder.put(uniform(-1000.0, 1000.0));
+            }
+            else
+            {
+                builder.put(uniform(T.min, T.max));
+            }
+        }
+        return builder.data;    
+    }
+    
+    void testArray(T)(shared ILogger logger, shared IConnectionPool pool, string tname)
+    {
+        logger.logInfo("================ "~tname~" ======================");
+        foreach(i; 0..100)
+            testValue!(T[], convertArray)(logger, pool, randArray!T(i), tname);
+    }
+        
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Int2Vector)
-    {
-        short[] genRand(size_t n)
-        {
-            auto builder = appender!(short[]);
-            foreach(i; 0..n)
-                builder.put(uniform(short.min, short.max));
-            return builder.data;    
-        }
-        
-        logger.logInfo("================ Int2Vector ======================");
-        foreach(i; 0..100)
-            testValue!(short[], convertArray)(logger, pool, genRand(i), "int2vector");
+    { 
+        testArray!short(logger, pool, "int2vector");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.OidVector)
-    {
-        Oid[] genRand(size_t n)
-        {
-            auto builder = appender!(Oid[]);
-            foreach(i; 0..n)
-                builder.put(uniform(Oid.min, Oid.max));
-            return builder.data;    
-        }
-        
+    {       
         logger.logInfo("================ OidVector ======================");
         logger.logInfo("Enable this test after vibe.d issue #538 be fixed");
-//        foreach(i; 0..100)
-//            testValue!(Oid[], convertArray)(logger, pool, genRand(i), "oidvector");
+        //testArray!Oid(logger, pool, "oidvector");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.OidArray)
+    {       
+        logger.logInfo("================ OidArray ======================");
+        logger.logInfo("Enable this test after vibe.d issue #538 be fixed");
+        //testArray!Oid(logger, pool, "oid[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Int2Array)
+    {
+        testArray!short(logger, pool, "int2[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Int4Array)
+    {
+        testArray!int(logger, pool, "int4[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.TextArray)
+    {
+        testArray!string(logger, pool, "text[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.CStringArray)
+    {
+        testArray!string(logger, pool, "cstring[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Float4Array)
+    {
+        testArray!float(logger, pool, "float4[]"); 
+        testValue!(float[], convertArray)(logger, pool, [float.infinity], "float4[]");
+        testValue!(float[], convertArray)(logger, pool, [-float.infinity], "float4[]");
+        testValue!(float[], convertArray)(logger, pool, [float.nan], "float4[]");
     }
 }
