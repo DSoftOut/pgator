@@ -14,8 +14,6 @@ import std.exception;
 import std.functional;
 import std.concurrency;
 
-import core.thread;
-
 import vibe.data.bson;
 import vibe.http.server;
 import vibe.http.router;
@@ -33,7 +31,7 @@ import util;
 import log;
 import sql_json;
 
-enum MESSAGE
+private enum MESSAGE
 {
 	START,
 	
@@ -44,14 +42,14 @@ enum MESSAGE
 	EXIT
 }
 
-//dirty
-void run(shared Application app)
+
+private void runLoop(shared Application app)
 {
-	return app.run();
+	return app.runLoop();
 }
 
-//dirty
-void startVibe(shared Application app)
+
+private void startVibe(shared Application app)
 {
 	return app.runVibeLoop();
 }
@@ -62,22 +60,55 @@ shared class Application
 	this(shared ILogger logger)
 	{
 		this.logger = logger;
-		
-		init();
 	}
 	
 	~this()
 	{
-		if (hadRun) send(toUnqual(tid), MESSAGE.EXIT);
+		if (wasRun) send(toUnqual(tid), MESSAGE.EXIT);
 	}
 	
-	/// start vibe working loop
+	
+	void finalize()
+	{
+		if (!wasRun) return;
+		
+		send(toUnqual(tid), MESSAGE.EXIT);
+		
+		receiveOnly!bool;
+	}
+	
 	void run()
 	{
+		auto runTid = spawn(&server.runLoop, this);
 		
+		send(runTid, MESSAGE.START);
+	}
+	
+	void start()
+	{
+		if (!wasRun) throw new Exception("Server wasn't run");
+		
+		send(toUnqual(tid), MESSAGE.START);
+	}
+	
+	void stop()
+	{
+		send(toUnqual(tid), MESSAGE.STOP);
+	}
+	
+	void restart()
+	{
+		send(toUnqual(tid), MESSAGE.RESTART);
+	}
+	
+	
+	private void runLoop()
+	{
+		try
+		{
 		tid = toShared(thisTid);
 		
-		hadRun = true;
+		wasRun = true;
 		
 		MESSAGE msg;
 		
@@ -103,8 +134,13 @@ shared class Application
 					
 				case MESSAGE.EXIT:
 					stopVibe();
+					send(ownerTid, true);
 					return;
 			}
+		}
+		} catch(Throwable ex)
+		{
+			std.stdio.writeln(ex);
 		}
 	}
 	
@@ -123,6 +159,8 @@ shared class Application
 	
 	private void setup()
 	{
+		init();
+		
 		loadConfig();
 		
 		database = new shared Database(logger, appConfig); //because config may change
@@ -134,24 +172,52 @@ shared class Application
 		setupRouter();
 	}
 	
-	void runVibeLoop()
+	package void runVibeLoop()
 	{
+		import core.time;
+		try
+		{
 		setup();
 		
 		listenHTTP(cast(HTTPServerSettings)settings, cast(URLRouter) router);
 		
 		logger.logInfo("Starting vibe loop");
 		
+		auto time1 = TickDuration.currSystemTick;
+		
 		runEventLoop();
+		
+		auto time2 = TickDuration.currSystemTick;
+		
+		std.stdio.writeln((time2-time1).seconds);
+		
+		std.stdio.writeln("vibe loop stopped");
+		
+		} catch (Throwable ex)
+		{
+			std.stdio.writeln(ex);
+		}
 	}
 	
-	void startVibe()
+	package void startVibe()
 	{
-		spawn(&server.startVibe, this);
+		auto mtid = spawn(&server.startVibe, this);
+		
+		register("startVibe", mtid);
 	}
 	
 	private void stopVibe()
 	{
+		bool exit;
+		
+		logger.logInfo("Finalizing pool");
+		
+		database.finalizePool((){ logger.logInfo("Finalized pool"); exit = true;});
+		
+		logger.logInfo("Probably Finalized pool");
+		
+		while(!exit){}
+		
 		logger.logInfo("Stopping vibe loop");
 		
 		getEventDriver().exitEventLoop();
@@ -229,7 +295,7 @@ shared class Application
 		
 		try
 		{
-			rpcReq = RpcRequest(req.json);
+			rpcReq = RpcRequest(tryEx!RpcParseError(req.json));
 			
 			string user = null;
 			string password = null;
@@ -246,6 +312,8 @@ shared class Application
 				
 				rpcReq.auth[appConfig.sqlAuth[1]] = password;
 			}
+			
+			logger.logInfo("Querying...");
 			
 			auto rpcRes = database.query(rpcReq);
 			
@@ -275,6 +343,6 @@ shared class Application
 	
 	private Database database; //create with setup()
 	
-	static private bool hadRun;
+	private bool wasRun;
 }
 

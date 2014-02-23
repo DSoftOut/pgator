@@ -45,7 +45,7 @@ shared class Database
 	
 	~this()
 	{
-		pool.finalize((){});
+		pool.finalize((){ logger.logInfo("Pool finalized"); });
 	}
 	
 	private void init()
@@ -78,27 +78,52 @@ shared class Database
 	}
 	
 	void setupPool()
-	{
-		pool.finalize((){}); //todo
-		
+	{		
 		foreach(server; appConfig.sqlServers)
 		{
 			pool.addServer(server.connString, server.maxConn);
 			
-			logger.logInfo("Connecting to" ~ server.name);
+			logger.logInfo("Connecting to " ~ server.name);
 		}
 		
 		loadJsonSqlTable();
 	}
 	
+	void finalizePool(void delegate() del)
+	{
+		pool.finalize(del);
+	}
+	
 	private void loadJsonSqlTable()
 	{
-		enum queryStr = "";
+		string queryStr = "SELECT * FROM "~appConfig.sqlJsonTable;
+		
+		shared SqlJsonTable sqlTable = new shared SqlJsonTable();
 		
 		try
 		{
-			auto frombd = pool.execQuery(queryStr, [appConfig.sqlJsonTable]);
-			//todo...
+			auto frombd = pool.execQuery(queryStr, []);
+			
+			foreach(entry; frombd)
+			{			
+				if (entry.resultStatus != ExecStatusType.PGRES_TUPLES_OK)
+				{
+					throw new Exception(entry.resultErrorMessage);
+				}
+				
+				auto arr = entry.asNatBson().to!(Bson[]);
+				
+				foreach(v; arr)
+				{
+					Entry ent = deserializeFromJson!Entry(v.toJson);
+					
+					std.stdio.writeln(ent);
+					
+					sqlTable.add(ent);
+				}
+			}
+			
+			table = sqlTable;
 		}
 		catch(Exception ex)
 		{
@@ -111,12 +136,14 @@ shared class Database
 	{	
 		RpcResponse res;
 		
+		logger.logInfo("Search in cache");
+		
 		if (cache.get(req, res))
 		{
-			if (table.needDrop(req.method))
-			{
-				cache.reset(req);
-			}
+//			if (table.needDrop(req.method))
+//			{
+//				cache.reset(req);
+//			}
 			
 			return res;
 		}
@@ -134,14 +161,29 @@ shared class Database
 				throw new RpcInvalidParams();
 			}
 			
+			string queryStr; 
+			
 			if (entry.set_username && req.auth is null)
 			{
 				throw new RpcServerError("Authorization required");
 			}
+			else
+			{
+				queryStr = "BEGIN; ";
+				
+				foreach(key; req.auth.byKey())
+				{
+					queryStr ~= format("SET LOCAL %s = '%s'; ", key, req.auth[key]);
+				}
+				
+				queryStr ~= entry.sql_query~ " COMMIT;";
+			}
 			
-			auto frombd = tryEx!RpcServerError(pool.execQuery(entry.sql_query, req.params));
+			
+			auto frombd = tryEx!RpcServerError(pool.execQuery(queryStr, req.params));
 			
 			Bson[] arr = new Bson[0];
+			
 			foreach(each; frombd)
 			{
 				if (each.resultStatus != ExecStatusType.PGRES_TUPLES_OK)
@@ -163,16 +205,17 @@ shared class Database
 			{
 				cache.add(req, cacheRes);
 			}
-			else if (table.needDrop(req.method))
+			
+			foreach(meth; table.needDrop(req.method))
 			{
-				cache.reset(req);
+				cache.reset(meth);
 			}
 		}
 		
 		return res;
 	}
 	
-	private shared IConnectionPool pool;
+	private IConnectionPool pool;
 	
 	private SqlJsonTable table;
 	
@@ -180,5 +223,5 @@ shared class Database
 	
 	private AppConfig appConfig;
 	
-	private shared ILogger logger;
+	private ILogger logger;
 }

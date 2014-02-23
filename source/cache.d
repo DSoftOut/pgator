@@ -24,18 +24,6 @@ import sql_json;
 
 import util;
 
-private enum VERSION
-{
-	/// Drop all cache by method
-	FULL, 
-	
-	/// Drop only cache by uniq request
-	REQUEST
-}
-
-/// CHOOSE ME
-private immutable VER = VERSION.REQUEST;
-
 private alias RpcResponse[RpcRequest] stash;
 
 private alias stash[string] CacheType;
@@ -58,14 +46,7 @@ shared class Cache
 			return false;
 		}
 		
-		static if (VER == VERSION.FULL)
-		{
-			synchronized (mutex.writer)
-			{
-				return cache.remove(req.method);
-			}
-		}
-		else synchronized (mutex.writer)
+		synchronized (mutex.writer)
 		{
 			return cache[req.method].remove(req);
 		}
