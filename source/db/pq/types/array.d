@@ -24,6 +24,8 @@ private struct Vector(T)
 
 private Vector!T readVec(T)(ubyte[] arr)
 {
+    if(arr.length == 0) return Vector!T();
+    
     assert(arr.length >= 2*int.sizeof + Oid.sizeof, text(
             "Expected min array size ", 2*int.sizeof + Oid.sizeof, ", but got ", arr.length));
     Vector!T vec;
