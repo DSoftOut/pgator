@@ -3,7 +3,7 @@ language: d
 #compiler:
 #  - dmd
 
-services: PostgreSQL
+services: PostgreSQL 9.3.3
 
 before_script:
   - psql -c 'create database "rpc-proxy-test";' -U postgres
@@ -25,7 +25,7 @@ install:
 
 script:
   - dub build --config=test1 
-  - ./bin/rpc-sql-proxy
+  - ./bin/rpc-sql-proxy --conn="dbname=rpc-proxy-test user=postgres"
   - dub build --config=test2 
   - ./bin/rpc-sql-proxy --conn="dbname=rpc-proxy-test user=postgres"
   # dub --config=unittest --build=unittest
