@@ -139,23 +139,20 @@ shared class Database
 		}
 	}
 	
-	RpcResponse query(RpcRequest req)
+	RpcResponse query(ref RpcRequest req)
 	{	
 		RpcResponse res;
 		
-		logger.logInfo("Search in cache");
+		logger.logInfo("Searching in cache");
 		
 		if (cache.get(req, res))
 		{
-//			if (table.needDrop(req.method))
-//			{
-//				cache.reset(req);
-//			}
+			logger.logInfo("Found in cache");
+			
+			res.id = req.id;
 			
 			return res;
 		}
-		
-		logger.logInfo("Finding method");
 		
 		Entry entry;
 			
@@ -194,30 +191,41 @@ shared class Database
 			
 			Bson[] arr = new Bson[0];
 			
+			RpcServerError error = null;
+			
 			foreach(each; frombd)
 			{
 				if (each.resultStatus != ExecStatusType.PGRES_TUPLES_OK)
 				{
-					throw new RpcServerError(each.resultErrorMessage);
+					error =  new RpcServerError(each.resultErrorMessage);
 				}
 				
 				arr ~= each.asBson();
 			}
 			
-			RpcResult result = RpcResult(Bson(arr));
+			if (error is null)
+			{
+				RpcResult result = RpcResult(Bson(arr));
 			
-			res = RpcResponse(req.id, result);
+				res = RpcResponse(req.id, result);
+			}
+			else
+			{
+				res = RpcResponse(req.id, RpcError(error));
+			}
 			
 			//problem
 			shared RpcResponse cacheRes = res.toShared();
 			
-			if (entry.need_cache)
+			if (table.need_cache(req.method))
 			{
+				logger.logInfo("Adding to cache");
 				cache.add(req, cacheRes);
 			}
 			
 			foreach(meth; table.needDrop(req.method))
 			{
+				logger.logInfo("Reseting method:"~req.method);
 				cache.reset(meth);
 			}
 		}
