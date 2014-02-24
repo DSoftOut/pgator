@@ -6,7 +6,7 @@ language: d
 services: PostgreSQL 9.3.3
 
 before_script:
-  - sudo service postgresql 9.1 stop
+  - sudo service postgresql stop
   - sudo service postgresql 9.3.3 start
   - psql -c 'create database "rpc-proxy-test";' -U postgres
 
