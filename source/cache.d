@@ -13,8 +13,9 @@ import core.sync.rwmutex;
 
 import std.concurrency;
 import std.exception;
+import std.digest.md;
 
-import vibe.utils.hashmap;
+import vibe.data.json;
 
 import json_rpc.response;
 import json_rpc.request;
@@ -24,11 +25,38 @@ import sql_json;
 
 import util;
 
-private alias RpcResponse[RpcRequest] stash;
+private alias RpcResponse[string] stash;
 
 private alias stash[string] CacheType;
 
 private __gshared ReadWriteMutex mutex;
+
+private string getHash(in RpcRequest req)
+{
+	MD5 md5;
+
+	md5.start();
+
+	ubyte[] bin = cast(ubyte[]) req.method;
+
+	md5.put(bin);
+
+	foreach(str; req.params)
+	{
+		bin = cast(ubyte[]) str;
+		md5.put(bin);
+	}
+	
+	foreach(str; req.auth.byValue())
+	{
+		bin = cast(ubyte[]) str;
+		md5.put(bin);
+	}
+
+	auto hash = md5.finish();
+
+	return toHexString(hash).idup;
+}
 
 shared class Cache
 {	
@@ -40,7 +68,7 @@ shared class Cache
 	}
 	
 	bool reset(RpcRequest req)
-	{
+	{		
 		if (!table.needDrop(req.method))
 		{
 			return false;
@@ -48,7 +76,7 @@ shared class Cache
 		
 		synchronized (mutex.writer)
 		{
-			return cache[req.method].remove(req);
+			return cache[req.method].remove(req.getHash);
 		}
 	}
 	
@@ -65,7 +93,7 @@ shared class Cache
 		}
 	}
 	
-	void add(RpcRequest req, shared RpcResponse res)
+	void add(in RpcRequest req, shared RpcResponse res)
 	{	
 		synchronized (mutex.writer)
 		{
@@ -73,18 +101,18 @@ shared class Cache
 			{
 				shared stash aa;
 				
-				aa[req] = res;
+				aa[req.getHash] = res;
 					
 				cache[req.method] = aa;
 			}
 			else
 			{
-				cache[req.method][req] = res;
+				cache[req.method][req.getHash] = res;
 			}
 		}
 	}
 	
-	bool get(RpcRequest req, out RpcResponse res)
+	bool get(in RpcRequest req, out RpcResponse res)
 	{
 		scope(failure)
 		{
@@ -93,11 +121,9 @@ shared class Cache
 		
 		synchronized(mutex.reader)
 		{	
-			res = cast(RpcResponse) cache[req.method][req];
+			res = cast(RpcResponse) cache[req.method][req.getHash];
 			
-			res.id = req.id;
-			
-			return true; 
+			return true;
 		}
 	}
 	 

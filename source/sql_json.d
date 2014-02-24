@@ -42,7 +42,7 @@ struct Entry
 	@possible
 	string commentary;
 	
-	bool isValidParams(string[] params)
+	const bool isValidParams(in string[] params)
 	{
 		return params.length == arg_num;
 	}
