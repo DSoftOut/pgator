@@ -814,31 +814,6 @@ version(unittest)
 
         QueringStatus pollQueringStatus()
         {
-//           final switch(currQueringStatus)
-//            {
-//                case QueringStatus.Pending:
-//                {
-//                    if(choose(0.3))
-//                    {
-//                        currQueringStatus = QueringStatus.Finished;
-//                    } else if (choose(0.1))
-//                    {
-//                        currQueringStatus = QueringStatus.Error;
-//                    }
-//                    break;
-//                }
-//                case QueringStatus.Error:
-//                {
-//                    break;
-//                }
-//                case QueringStatus.Finished:
-//                {
-//                    if(choose(0.01))
-//                    {
-//                        currQueringStatus = QueringStatus.Error;
-//                    }
-//                }
-//            }
             return currQueringStatus;
         } 
 
@@ -867,6 +842,10 @@ version(unittest)
             return "";
         }
 
+        DateFormat dateFormat() @property shared
+        {
+            return DateFormat("ISO", "DMY");
+        }
         
         protected ConnectionStatus currConnStatus;
         protected QueringStatus currQueringStatus;
