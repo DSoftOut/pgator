@@ -256,7 +256,7 @@ synchronized class PQConnection : IConnection
         if(result.length == 0) throw new QueryException("DateFormat query expected result!");
         
         auto res = result[0].asBson["DateStyle"];
-        return DateFormat(res[0], res[1]);
+        return DateFormat(res[0].get!string, res[1].get!string);
     }
     
     private
