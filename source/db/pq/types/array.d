@@ -160,16 +160,14 @@ version(IntegrationTest2)
         if(type == PQType.OidVector)
     {       
         logger.logInfo("================ OidVector ======================");
-        logger.logInfo("Enable this test after vibe.d issue #538 be fixed");
-        //testArray!Oid(logger, pool, "oidvector");
+        testArray!Oid(logger, pool, "oidvector");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.OidArray)
     {       
         logger.logInfo("================ OidArray ======================");
-        logger.logInfo("Enable this test after vibe.d issue #538 be fixed");
-        //testArray!Oid(logger, pool, "oid[]");
+        testArray!Oid(logger, pool, "oid[]");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)

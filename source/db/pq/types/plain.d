@@ -331,9 +331,8 @@ version(IntegrationTest2)
         if(type == PQType.Oid)
     {
         logger.logInfo("================ Oid ======================");
-        logger.logInfo("Enable this test after vibe.d issue #538 be fixed");
-//        foreach(i; 0..100)
-//            testValue!Oid(logger, pool, uniform(Oid.min, Oid.max), "Oid");
+        foreach(i; 0..100)
+            testValue!Oid(logger, pool, uniform(Oid.min, Oid.max), "Oid");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
@@ -348,34 +347,31 @@ version(IntegrationTest2)
         if(type == PQType.Tid)
     {
         logger.logInfo("================ Tid ======================");
-        logger.logInfo("Some strange bug in tid conversion!");
-//        foreach(i; 0..100)
-//        {
-//            auto testTid = PQTid(uniform(uint.min, uint.max), uniform(uint.min, uint.max));
-//            testValue!PQTid(logger, pool, testTid, "tid");
-//        }
+        foreach(i; 0..100)
+        {
+            auto testTid = PQTid(uniform(uint.min, uint.max), uniform(uint.min, uint.max));
+            testValue!PQTid(logger, pool, testTid, "tid");
+        }
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Xid)
     {
         logger.logInfo("================ Xid ======================");
-        logger.logInfo("Enable this test after vibe.d issue #538 be fixed");
-//        foreach(i; 0..100)
-//        {
-//            testValue!(Xid, (v) => "'"~v.to!string~"'")(logger, pool, uniform(Xid.min, Xid.max), "xid");
-//        }
+        foreach(i; 0..100)
+        {
+            testValue!(Xid, (v) => "'"~v.to!string~"'")(logger, pool, uniform(Xid.min, Xid.max), "xid");
+        }
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Cid)
     {
         logger.logInfo("================ Cid ======================");
-        logger.logInfo("Enable this test after vibe.d issue #538 be fixed");
-//        foreach(i; 0..100)
-//        {
-//            testValue!(Cid, (v) => "'"~v.to!string~"'")(logger, pool, uniform(Cid.min, Cid.max), "cid");
-//        }
+        foreach(i; 0..100)
+        {
+            testValue!(Cid, (v) => "'"~v.to!string~"'")(logger, pool, uniform(Cid.min, Cid.max), "cid");
+        }
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
