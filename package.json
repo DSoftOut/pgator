@@ -7,7 +7,7 @@
 		,"Shamyan Roman (Zaramzan)"
 		],
 	"targetPath": "bin",
-	"versions": ["VibeCustomMain", "Have_vibe_d"],
+	"versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
 	"dependencies": {
 		"vibe-d" : "~master",
 		"derelict-pq": "~master",

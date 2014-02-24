@@ -44,11 +44,11 @@ bool nonConvertable(PQType type)
         //case PQType.VariableString: return true;
         
         //case PQType.Date: return true;
-        case PQType.Time: return true;
+        //case PQType.Time: return true;
         //case PQType.TimeStamp: return true;
         //case PQType.TimeStampWithZone: return true;
-        case PQType.TimeInterval: return true;
-        case PQType.TimeWithZone: return true;
+        //case PQType.TimeInterval: return true;
+        //case PQType.TimeWithZone: return true;
         
         case PQType.FixedBitString: return true;
         case PQType.VariableBitString: return true;
