@@ -13,6 +13,7 @@ import db.pq.api;
 import log;
 import std.conv;
 import std.container;
+import std.range;
 
 /**
 *   PostgreSQL specific connection type. Although it can use
@@ -140,7 +141,7 @@ synchronized class PQConnection : IConnection
     *   Initializes querying process in non-blocking manner.
     *   Throws: QueryException
     */
-    void postQuery(string com, string[] params)
+    void postQuery(string com, string[] params = [])
     in
     {
         assert(conn !is null, "Connection start wasn't established!");
@@ -242,6 +243,20 @@ synchronized class PQConnection : IConnection
         scope(failure) return "";
         
         return conn.host;
+    }
+    
+    /**
+    *   Returns current date output format and ambitious values converting behavior.
+    *   Throws: QueryException
+    */
+    DateFormat dateFormat() @property
+    {
+        auto result = execQuery("SHOW DateStyle;").array;
+        
+        if(result.length == 0) throw new QueryException("DateFormat query expected result!");
+        
+        auto res = result[0].asBson["DateStyle"];
+        return DateFormat(res[0], res[1]);
     }
     
     private

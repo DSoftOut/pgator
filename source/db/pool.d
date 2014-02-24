@@ -144,6 +144,14 @@ interface IConnectionPool
     synchronized void finalize(shared void delegate() callback);
     
     /**
+    *   Returns date format used in ONE OF sql servers.
+    *   Warning: This method can be trust only the pool conns are connected
+    *            to the same sql server.
+    *   TODO: Make a way to get such configs for particular connection.
+    */
+    DateFormat dateFormat() @property shared;
+    
+    /**
     *   Returns first free connection from the pool.
     *   Throws: ConnTimeoutException
     */

@@ -74,6 +74,69 @@ enum QueringStatus
 }
 
 /**
+*   Representing server configuration for
+*   displaying dates and converting ambitious values.
+*/
+struct DateFormat
+{
+    /**
+    *   Representing output format.
+    */
+    enum StringFormat
+    {
+        ISO,
+        Postgres,
+        SQL,
+        German,
+        Unknown
+    }
+    
+    static StringFormat stringFormatIn(string val)
+    {
+        foreach(s; __traits(allMembers, StringFormat))
+        {
+            if(val == s) return mixin("StringFormat."~s);
+        }
+        return StringFormat.Unknown;
+    }
+    
+    /**
+    *   Representing behavior for ambitious values.
+    */
+    enum OrderFormat
+    {
+        /// Day Month Year
+        DMY, 
+        /// Month Day Year
+        MDY,
+        /// Year Month Day
+        YMD,
+        /// Unsupported by the bindings
+        Unknown
+    }
+    
+    static OrderFormat orderFormatIn(string val)
+    {
+        foreach(s; __traits(allMembers, OrderFormat))
+        {
+            if(val == s) return mixin("OrderFormat."~s);
+        }
+        return OrderFormat.Unknown;
+    }
+    
+    /// Current output format
+    StringFormat stringFormat;
+    /// Current order format
+    OrderFormat  orderFormat;
+    
+    this(string stringFmt, string orderFmt)
+    {
+        stringFormat = stringFormatIn(stringFmt);
+        orderFormat = orderFormatIn(orderFmt);
+    }
+}
+
+/**
 *    Handles a single connection to a SQL server.
 */
 interface IConnection
@@ -116,7 +179,7 @@ interface IConnection
     *   Initializes querying process in non-blocking manner.
     *   Throws: QueryException
     */
-    void postQuery(string com, string[] params);
+    void postQuery(string com, string[] params = []);
     
     /**
     *   Returns quering status of connection.
@@ -152,6 +215,30 @@ interface IConnection
     *   If connection isn't ever established (or tried) the method returns empty string.
     */
     string server() nothrow const @property;
+    
+    /**
+    *   Returns current date output format and ambitious values converting behavior.
+    *   Throws: QueryException
+    */
+    DateFormat dateFormat() @property;
+    
+    /**
+    *   Blocking wrapper to one-command query execution.
+    */
+    final DList!(shared IPGresult) execQuery(string com, string[] params = [])
+    {
+        postQuery(com, params);
+        
+        QueringStatus status;
+        do
+        {
+            status = pollQueringStatus;
+            if(status == QueringStatus.Error) pollQueryException;
+        } 
+        while(status != QueringStatus.Finished);
+        
+        return getQueryResult;
+    }
     
     mixin Mockable!IConnection;
 }
