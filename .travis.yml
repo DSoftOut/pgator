@@ -3,6 +3,11 @@ language: d
 #compiler:
 #  - dmd
 
+services: PostgreSQL
+
+before_script:
+  - psql -c 'create database rpc-proxy-test;' -U postgres
+
 install:
   # dmd
   # dub
@@ -19,5 +24,9 @@ install:
   - sudo tar -C /usr/local/bin -zxf ${DUB}.tar.gz
 
 script:
+  - dub build --config=test1 
+  - ./bin/rpc-sql-proxy
+  - dub build --config=test2 
+  - ./bin/rpc-sql-proxy --conn="dbname=rpc-proxy-test user=postgres"
   # dub --config=unittest --build=unittest
   - dub --build=unittest
