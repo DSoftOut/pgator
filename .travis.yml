@@ -6,7 +6,7 @@ language: d
 services: PostgreSQL
 
 before_script:
-  - psql -c 'create database rpc-proxy-test;' -U postgres
+  - psql -c 'create database "rpc-proxy-test";' -U postgres
 
 install:
   # dmd
