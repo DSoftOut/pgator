@@ -43,7 +43,7 @@ bool nonConvertable(PQType type)
         //case PQType.FixedString: return true;
         //case PQType.VariableString: return true;
         
-        case PQType.Date: return true;
+        //case PQType.Date: return true;
         case PQType.Time: return true;
         //case PQType.TimeStamp: return true;
         //case PQType.TimeStampWithZone: return true;
@@ -173,7 +173,7 @@ Bson pqToBson(PQType type, ubyte[] val)
                 assert(false,errMsg);
             } else
             {
-                return toBson!t(val);
+                return toBson!t(val); 
             }
         }
     }

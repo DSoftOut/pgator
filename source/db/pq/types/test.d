@@ -29,11 +29,9 @@ bool floatEquality(T)(T a, T b)
     return approxEqual(a,b);
 }
 
-void testValue(T, alias converter = to!string, alias resConverter = id)
-    (shared ILogger logger, shared IConnectionPool pool, T local, string sqlType)
+Bson queryValue(shared ILogger logger, shared IConnectionPool pool, string val)
 {
-    string query;
-    query = "SELECT "~converter(local)~"::"~sqlType~" as test_field";
+    auto query = "SELECT "~val~" as test_field";
 
     logger.logInfo(query);
     auto results = pool.execQuery(query, []).array;
@@ -45,7 +43,13 @@ void testValue(T, alias converter = to!string, alias resConverter = id)
         || res.resultStatus == ExecStatusType.PGRES_TUPLES_OK, res.resultErrorMessage);
     
     logger.logInfo(text(results[0].asBson));
-    auto node = results[0].asBson.get!(Bson[string])["test_field"][0];
+    return results[0].asBson.get!(Bson[string])["test_field"][0];
+}
+
+void testValue(T, alias converter = to!string, alias resConverter = id)
+    (shared ILogger logger, shared IConnectionPool pool, T local, string sqlType)
+{
+    auto node = queryValue(logger, pool, converter(local)~"::"~sqlType);
     
     static if(is(T == ubyte[]))
         auto remote = node.opt!BsonBinData.rawData;

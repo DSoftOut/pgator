@@ -11,9 +11,11 @@ import derelict.pq.pq;
 import db.connection;
 import db.pq.api;
 import log;
+import std.algorithm;
 import std.conv;
 import std.container;
 import std.range;
+import vibe.data.bson;
 
 /**
 *   PostgreSQL specific connection type. Although it can use
@@ -255,8 +257,11 @@ synchronized class PQConnection : IConnection
         
         if(result.length == 0) throw new QueryException("DateFormat query expected result!");
         
-        auto res = result[0].asBson["DateStyle"];
-        return DateFormat(res[0].get!string, res[1].get!string);
+        auto res = result[0].asBson["DateStyle"].deserializeBson!(string[]);
+        assert(res.length == 1);
+        auto vals = res[0].split(", ");
+        assert(vals.length == 2);
+        return DateFormat(vals[0], vals[1]);
     }
     
     private
