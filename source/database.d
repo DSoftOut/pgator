@@ -222,15 +222,18 @@ shared class Database
 				logger.logInfo("Adding to cache");
 				cache.add(req, cacheRes);
 			}
-			
-			foreach(meth; table.needDrop(req.method))
-			{
-				logger.logInfo("Reseting method:"~req.method);
-				cache.reset(meth);
-			}
 		}
 		
 		return res;
+	}
+	
+	void dropcaches(string method)
+	{
+		foreach(meth; table.needDrop(method))
+		{
+			logger.logInfo("Reseting method:"~method);
+			cache.reset(meth);
+		}
 	}
 	
 	private IConnectionPool pool;

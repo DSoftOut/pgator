@@ -296,6 +296,18 @@ shared class Application
 			auto rpcRes = database.query(rpcReq);
 			
 			res.writeBody(rpcRes.toJson.toPrettyString, CONTENT_TYPE);
+			
+			void resetCacheIfNeeded()
+			{
+				yield();
+				database.dropcaches(rpcReq.method);
+				logger.logInfo("After task finished");
+				
+			}
+			
+			runTask(&resetCacheIfNeeded);
+			
+			logger.logInfo("Task loaded");
 		
 		}
 		catch (RpcException ex)
@@ -319,7 +331,8 @@ shared class Application
 		}
 		else
 		{
-			
+			res.writeBody(
+				format("%d - %s\n%s", info.code, info.message, info.debugMessage), "text/plain");
 		}
 	}
 	
