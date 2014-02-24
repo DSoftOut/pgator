@@ -203,6 +203,10 @@ shared class Application
 		auto appConfig = toUnqual(appConfig);
 		
 		settings.port = appConfig.port;
+		
+		settings.errorPageHandler = cast(HTTPServerErrorPageHandler) &errorHandler;
+		
+		settings.options = HTTPServerOption.parseJsonBody;
 			
 		if (appConfig.hostname) 
 			settings.hostName = appConfig.hostname;
@@ -303,6 +307,20 @@ shared class Application
 			res.writeBody(rpcRes.toJson.toPrettyString, CONTENT_TYPE);
 		}
 		
+	}
+	
+	private void errorHandler(HTTPServerRequest req, HTTPServerResponse res, HTTPServerErrorInfo info)
+	{
+		if (info.code == HTTPStatus.badRequest)
+		{
+			RpcResponse rpcRes = RpcResponse(Json(null), RpcError(new RpcParseError(info.message)));
+			
+			res.writeBody(rpcRes.toJson.toPrettyString, "application/json");
+		}
+		else
+		{
+			
+		}
 	}
 	
 	private HTTPServerSettings settings;
