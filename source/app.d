@@ -54,25 +54,11 @@ else version(IntegrationTest1)
         pool.addServer(connString, connCount);
         logger.logInfo(text(connCount, " new connections were added to the pool."));
         
-//        Thread.sleep(dur!"seconds"(5));
+        Thread.sleep(dur!"seconds"(5));
         
-//        logger.logInfo("Test ended. Results:"); 
-//        logger.logInfo(text("active connections:   ", pool.activeConnections));
-//        logger.logInfo(text("inactive connections: ", pool.inactiveConnections));
-        
-        logger.logInfo("Testing rpc-json table:");
-        auto query = "SELECT * FROM public.json_rpc";
-    
-        logger.logInfo(query);
-        auto results = pool.execQuery(query, []).array;
-        logger.logInfo(text("responses: ", results.length));
-        
-        auto res = results[0];
-        logger.logInfo(res.resultStatus.text);
-        assert(res.resultStatus == ExecStatusType.PGRES_COMMAND_OK 
-            || res.resultStatus == ExecStatusType.PGRES_TUPLES_OK, res.resultErrorMessage);
-        
-        logger.logInfo(text(res.asBson));
+        logger.logInfo("Test ended. Results:"); 
+        logger.logInfo(text("active connections:   ", pool.activeConnections));
+        logger.logInfo(text("inactive connections: ", pool.inactiveConnections));
 
         return 0;
     }
