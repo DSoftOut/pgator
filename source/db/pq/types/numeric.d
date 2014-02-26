@@ -267,11 +267,16 @@ version(IntegrationTest2)
     import vibe.data.bson;
     import derelict.pq.pq;
     import log;
+    import bufflog;
     
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.Numeric)
     {
-        void testValue(string val)
+		auto delayed = new shared BufferedLogger(strictLogger);
+		scope(exit) delayed.finalize();
+		scope(failure) delayed.minOutputLevel = LoggingLevel.Notice;
+		
+        void testValue(shared ILogger logger, string val)
         {
             string query;
             if(val == "NaN") 
@@ -318,19 +323,19 @@ version(IntegrationTest2)
             return builder.data.strip('0');    
         }
         
-        logger.logInfo("================ Numeric ======================");
+        strictLogger.logInfo("Testing Numeric...");
         foreach(i; 0..100)
         {
-            testValue((100*uniform(-1.0, 1.0)).to!string);
+            testValue(delayed, (100*uniform(-1.0, 1.0)).to!string);
         }
         // big numbers
         foreach(i; 0..100)
         {
-            testValue(bigNumber(100) ~ "." ~ bigNumber(100));
+            testValue(delayed, bigNumber(100) ~ "." ~ bigNumber(100));
         }
         // special cases
-        testValue("0.0146328");
-        testValue("42");
-        testValue("NaN");
+        testValue(delayed, "0.0146328");
+        testValue(delayed, "42");
+        testValue(delayed, "NaN");
     }
 }

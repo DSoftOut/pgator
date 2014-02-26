@@ -18,6 +18,7 @@ import vibe.data.bson;
 import derelict.pq.pq;
 import db.pool;
 import log;
+import bufflog;
 
 T id(T)(T val) {return val;}
 
@@ -32,7 +33,6 @@ bool floatEquality(T)(T a, T b)
 Bson queryValue(shared ILogger logger, shared IConnectionPool pool, string val)
 {
     auto query = "SELECT "~val~" as test_field";
-
     logger.logInfo(query);
     auto results = pool.execQuery(query, []).array;
     assert(results.length == 1);
@@ -49,7 +49,11 @@ Bson queryValue(shared ILogger logger, shared IConnectionPool pool, string val)
 void testValue(T, alias converter = to!string, alias resConverter = id)
     (shared ILogger logger, shared IConnectionPool pool, T local, string sqlType)
 {
-    auto node = queryValue(logger, pool, converter(local)~"::"~sqlType);
+	auto delayed = new shared BufferedLogger(logger);
+	scope(exit) delayed.finalize();
+	scope(failure) delayed.minOutputLevel = LoggingLevel.Notice;
+	
+    auto node = queryValue(delayed, pool, converter(local)~"::"~sqlType);
     
     static if(is(T == ubyte[]))
         auto remote = node.opt!BsonBinData.rawData;

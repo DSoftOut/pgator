@@ -157,18 +157,18 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.MacAddress)
     {
-        logger.logInfo("================ MacAddress ======================");
+        logger.logInfo("Testing MacAddress...");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.HostAddress)
     {
-        logger.logInfo("================ HostAddress ======================");
+        logger.logInfo("Testing HostAddress...");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.NetworkAddress)
     {
-        logger.logInfo("================ NetworkAddress ======================");
+        logger.logInfo("Testing NetworkAddress...");
     }
 }

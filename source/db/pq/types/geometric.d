@@ -229,7 +229,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Point)
     {
-        logger.logInfo("================ Point ======================");
+        logger.logInfo("Testing Point...");
           
         foreach(i; 0..100)
         {
@@ -241,7 +241,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.LineSegment)
     {
-        logger.logInfo("================ LineSegment ======================");
+        logger.logInfo("Testing LineSegment...");
           
         foreach(i; 0..100)
         {
@@ -254,7 +254,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Path)
     {
-        logger.logInfo("================ Path ======================");
+        logger.logInfo("Testing Path...");
           
         Path getRandPath()
         {
@@ -279,7 +279,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Box)
     {
-        logger.logInfo("================ Box ======================");
+        logger.logInfo("Testing Box...");
           
         foreach(i; 0..100)
         {
@@ -292,7 +292,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Polygon)
     {
-        logger.logInfo("================ Polygon ======================");
+        logger.logInfo("Testing Polygon...");
           
         Polygon getRandPoly()
         {
@@ -316,7 +316,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Circle)
     {
-        logger.logInfo("================ Circle ======================");
+        logger.logInfo("Testing Circle...");
           
         foreach(i; 0..100)
         {

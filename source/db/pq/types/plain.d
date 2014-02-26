@@ -192,7 +192,7 @@ version(IntegrationTest2)
      void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
          if(type == PQType.Bool)
      {
-         logger.logInfo("================ Bool ======================");
+         logger.logInfo("Testing Bool...");
          testValue!bool(logger, pool, true, "boolean");
          testValue!bool(logger, pool, false, "boolean");
      }
@@ -208,7 +208,7 @@ version(IntegrationTest2)
             return builder.data; 
         }
         
-        logger.logInfo("================ ByteArray ======================");
+        logger.logInfo("Testing ByteArray...");
         foreach(i; 0..100)
             testValue!(ubyte[], escapeBytea)(logger, pool, genRand(i), "bytea");
 
@@ -217,7 +217,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Char)
     {
-        logger.logInfo("================ Char ======================");
+        logger.logInfo("Testing Char...");
         alias testValue!(string, to!string, (str) {
                 str = str.strip('\'');
                 return str == `\` ? `\0` : str;}) test;
@@ -242,7 +242,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Name)
     {
-        logger.logInfo("================ Name ======================");
+        logger.logInfo("Testing Name...");
         
         foreach(i; 0..100)
             testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'`~genRandString(63)~`'`, "name");
@@ -251,7 +251,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Text)
     {
-        logger.logInfo("================ Text ======================");
+        logger.logInfo("Testing Text...");
         
         testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `''`, "text");      
         foreach(i; 0..100)
@@ -261,7 +261,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.VariableString)
     {
-        logger.logInfo("================ varchar() ======================");
+        logger.logInfo("Testing varchar[n]...");
         
         testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `''`, "varchar");      
         foreach(i; 0..100)
@@ -271,7 +271,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.FixedString)
     {
-        logger.logInfo("================ char() ======================");
+        logger.logInfo("Testing char[n]...");
           
         foreach(i; 0..100)
             testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'`~genRandString(50)~`'`, "char(50)");
@@ -280,7 +280,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.CString)
     {
-        logger.logInfo("================ cstring ======================");
+        logger.logInfo("Testing cstring...");
         
         testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `''`, "cstring");   
         foreach(i; 0..100)
@@ -290,7 +290,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Unknown)
     {
-        logger.logInfo("================ Unknown ======================");
+        logger.logInfo("Testing Unknown...");
         
         testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'Unknown'`, "unknown");   
     }
@@ -298,7 +298,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Int8)
     {
-        logger.logInfo("================ Int8 ======================");
+        logger.logInfo("Testing Int8...");
         foreach(i; 0..100)
             testValue!long(logger, pool, uniform(long.min, long.max), "Int8");
     }
@@ -306,7 +306,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Money)
     {
-        logger.logInfo("================ Money ======================");
+        logger.logInfo("Testing Money...");
         foreach(i; 0..100)
             testValue!long(logger, pool, uniform(long.min, long.max), "Int8");
     }
@@ -314,7 +314,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Int4)
     {
-        logger.logInfo("================ Int4 ======================");
+        logger.logInfo("Testing Int4...");
         foreach(i; 0..100)
             testValue!int(logger, pool, uniform(int.min, int.max), "Int4");
     }
@@ -322,7 +322,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Int2)
     {
-        logger.logInfo("================ Int2 ======================");
+        logger.logInfo("Testing Int2...");
         foreach(i; 0..100)
             testValue!int(logger, pool, uniform(short.min, short.max), "Int2");
     }
@@ -330,7 +330,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Oid)
     {
-        logger.logInfo("================ Oid ======================");
+        logger.logInfo("Testing Oid...");
         foreach(i; 0..100)
             testValue!Oid(logger, pool, uniform(Oid.min, Oid.max), "Oid");
     }
@@ -338,7 +338,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.RegProc)
     {
-        logger.logInfo("================ RegProc ======================");
+        logger.logInfo("Testing RegProc...");
         foreach(i; 0..100)
             testValue!RegProc(logger, pool, uniform(RegProc.min, RegProc.max), "regproc");
     }
@@ -346,7 +346,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Tid)
     {
-        logger.logInfo("================ Tid ======================");
+        logger.logInfo("Testing Tid...");
         foreach(i; 0..100)
         {
             auto testTid = PQTid(uniform(uint.min, uint.max), uniform(uint.min, uint.max));
@@ -357,7 +357,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Xid)
     {
-        logger.logInfo("================ Xid ======================");
+        logger.logInfo("Testing Xid...");
         foreach(i; 0..100)
         {
             testValue!(Xid, (v) => "'"~v.to!string~"'")(logger, pool, uniform(Xid.min, Xid.max), "xid");
@@ -367,23 +367,23 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Cid)
     {
-        logger.logInfo("================ Cid ======================");
+        logger.logInfo("Testing Cid...");
         foreach(i; 0..100)
-        {
-            testValue!(Cid, (v) => "'"~v.to!string~"'")(logger, pool, uniform(Cid.min, Cid.max), "cid");
+        {   // postgres trims large cid values
+            testValue!(Cid, (v) => "'"~v.to!string~"'")(logger, pool, uniform(Cid.min/4, Cid.max/4), "cid");
         }
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Json)
     {
-        logger.logInfo("================ Json ======================");
+        logger.logInfo("Testing Json...");
 
         auto json = Json.emptyObject;
         json.str = genRandString(10);
         json.arr = serializeToJson([4,8,15,16,23,42]);
         json.boolean = uniform(0,1) != 0;
-//        json.floating = cast(double)42.0;
+        //json.floating = cast(double)42.0; hard to compare properly
         json.integer  = cast(long)42;
         json.nullable = null;
         json.mapping = ["1":Json(4), "2":Json(8), "3":Json(15)];
@@ -394,7 +394,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Xml)
     {
-        logger.logInfo("================ Xml ======================");
+        logger.logInfo("Testing Xml...");
         
         testValue!(string, to!string, (str) => str.strip('\''))(logger, pool, `'‹?xml version= "1.0"›'`, "xml");   
     }
@@ -402,14 +402,14 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.NodeTree)
     {
-        logger.logInfo("================ NodeTree ======================");
+        logger.logInfo("Testing NodeTree...");
         logger.logInfo("Not testable");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Float4)
     {
-        logger.logInfo("================ Float4 ======================");
+        logger.logInfo("Testing Float4...");
         string convFloat(float t)
         {
            if(t == float.infinity) return "'Infinity'";
@@ -428,7 +428,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Float8)
     {
-        logger.logInfo("================ Float8 ======================");
+        logger.logInfo("Testing Float8...");
         string convFloat(double t)
         {
            if(t == double.infinity) return "'Infinity'";

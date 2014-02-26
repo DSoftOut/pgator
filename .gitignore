@@ -10,3 +10,4 @@ docs.json
 .dub/*
 ddtEclipse/
 logs/*
+/bin

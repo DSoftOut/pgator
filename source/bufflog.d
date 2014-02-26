@@ -33,8 +33,8 @@
 *   Example:
 *   ----------
 *   auto delayed = new shared BufferedLogger(logger); // wrapping a logger
+*	scope(exit) delayed.finalize(); // write down information in wrapped logger
 *   scope(failure) delayed.minOutputLevel = LoggingLevel.Notice; // if failed, spam in console
-*   scope(exit) delayed.finalize(); // write down information in wrapped logger
 *   delayed.logNotice("Hello!");
 *
 *   // do something that can fail
@@ -61,12 +61,12 @@ synchronized class BufferedLogger : CLogger
     
     override void rawInput(string message) @trusted
     {
-        buffer.put(message);
+        buffer ~= message;
     }
     
     override void finalize() @trusted
     {
-        foreach(msg; buffer.data)
+        foreach(msg; buffer)
         {
             scope(failure) {}
             
@@ -78,5 +78,5 @@ synchronized class BufferedLogger : CLogger
     }
     
     shared ILogger delayLogger;
-    __gshared auto buffer = appender!(string[]);
+    string[] buffer;
 }

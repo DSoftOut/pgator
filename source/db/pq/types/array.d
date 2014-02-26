@@ -53,7 +53,6 @@ private Vector!T readVec(T)(ubyte[] arr)
         }
     }
     vec.values = builder.data;
-    import std.stdio; writeln(vec.values);
     return vec;    
 }
 
@@ -145,7 +144,7 @@ version(IntegrationTest2)
     
     void testArray(T)(shared ILogger logger, shared IConnectionPool pool, string tname)
     {
-        logger.logInfo("================ "~tname~" ======================");
+        logger.logInfo("Testing "~tname~"...");
         foreach(i; 0..100)
             testValue!(T[], convertArray)(logger, pool, randArray!T(i), tname);
     }
@@ -159,14 +158,12 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.OidVector)
     {       
-        logger.logInfo("================ OidVector ======================");
         testArray!Oid(logger, pool, "oidvector");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.OidArray)
     {       
-        logger.logInfo("================ OidArray ======================");
         testArray!Oid(logger, pool, "oid[]");
     }
     

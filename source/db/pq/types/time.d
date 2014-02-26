@@ -216,12 +216,16 @@ version(IntegrationTest2)
     import std.math;
     import vibe.data.bson;
     import log;
+    import bufflog;
     
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.Date)
     {
-        logger.logInfo("================ Date ======================");
+        strictLogger.logInfo("Testing Date...");
         auto dformat = pool.dateFormat;
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
         
         assert(queryValue(logger, pool, "'1999-01-08'::date").deserializeBson!Date.toISOExtString == "1999-01-08");
         assert(queryValue(logger, pool, "'January 8, 1999'::date").deserializeBson!Date.toISOExtString == "1999-01-08");
@@ -260,30 +264,34 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.AbsTime)
     {
-        logger.logInfo("================ AbsTime ======================");
+        logger.logInfo("Testing AbsTime...");
         
     }
      
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.RelTime)
     {
-        logger.logInfo("================ RelTime ======================");
+        logger.logInfo("Testing RelTime...");
     }
     
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.Time)
     {
-        logger.logInfo("================ Time ======================");
+        strictLogger.logInfo("Testing Time...");
         scope(failure) 
         {
             version(Have_Int64_TimeStamp) string s = "with Have_Int64_TimeStamp";
             else string s = "without Have_Int64_TimeStamp";
             
-            logger.logInfo("============================================");
-            logger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
-            logger.logInfo("============================================");
+            strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
+            strictLogger.logInfo("============================================");
         }
 
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
+        
         assert((cast(TimeOfDay)queryValue(logger, pool, "'04:05:06.789'::time").deserializeBson!PGTime).toISOExtString == "04:05:06");
         assert((cast(TimeOfDay)queryValue(logger, pool, "'04:05:06'::time").deserializeBson!PGTime).toISOExtString == "04:05:06");
         assert((cast(TimeOfDay)queryValue(logger, pool, "'04:05'::time").deserializeBson!PGTime).toISOExtString == "04:05:00");
@@ -292,19 +300,23 @@ version(IntegrationTest2)
         assert((cast(TimeOfDay)queryValue(logger, pool, "'04:05 PM'::time").deserializeBson!PGTime).toISOExtString == "16:05:00");
     }
     
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.TimeWithZone)
     {
-        logger.logInfo("================ TimeWithZone ======================");
+        strictLogger.logInfo("Testing TimeWithZone...");
         scope(failure) 
         {
             version(Have_Int64_TimeStamp) string s = "with Have_Int64_TimeStamp";
             else string s = "without Have_Int64_TimeStamp";
             
-            logger.logInfo("============================================");
-            logger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
-            logger.logInfo("============================================");
+            strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
+            strictLogger.logInfo("============================================");
         }
+        
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
         
         auto res = queryValue(logger, pool, "'04:05:06.789-8'::time with time zone").deserializeBson!PGTimeWithZone;
         assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
@@ -323,24 +335,24 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Interval)
     {
-        logger.logInfo("================ Interval ======================");
+        logger.logInfo("Testing Interval...");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.TimeInterval)
     {
-        logger.logInfo("================ TimeInterval ======================");
+        logger.logInfo("Testing TimeInterval...");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.TimeStamp)
     {
-        logger.logInfo("================ TimeStamp ======================");
+        logger.logInfo("Testing TimeStamp...");
     }
      
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.TimeStampWithZone)
     {
-        logger.logInfo("================ TimeStampWithZone ======================");
+        logger.logInfo("Testing TimeStampWithZone...");
     }
 }
