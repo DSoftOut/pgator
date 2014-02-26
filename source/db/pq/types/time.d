@@ -146,10 +146,39 @@ PGTime convert(PQType type)(ubyte[] val)
     return PGTime(time2tm(val.read!TimeADT));
 }
 
-SysTime convert(PQType type)(ubyte[] val)
+/**
+*   Represents PostgreSQL Time with TimeZone.
+*   Time zone is stored as UTC offset in seconds without DST.
+*/
+struct PGTimeWithZone
+{
+    int hour, minute, second, timeZoneOffset;
+    
+    this(TimeOfDay tm, const SimpleTimeZone tz) pure
+    {
+        hour = tm.hour;
+        minute = tm.minute;
+        second = tm.second;
+        
+        timeZoneOffset = cast(int)tz.utcOffset.dur!"minutes".total!"seconds";
+    }
+    
+    T opCast(T)() const if(is(T == TimeOfDay))
+    {
+        return TimeOfDay(hour, minute, second);
+    }
+    
+    T opCast(T)() const if(is(T == immutable SimpleTimeZone))
+    {
+        return new immutable SimpleTimeZone(dur!"seconds"(timeZoneOffset));
+    }
+}
+
+PGTimeWithZone convert(PQType type)(ubyte[] val)
     if(type == PQType.TimeWithZone)
 {
-    assert(false);
+    assert(val.length == 12);
+    return PGTimeWithZone(time2tm(val.read!TimeADT), new immutable SimpleTimeZone(-val.read!int.dur!"seconds"));
 }
 
 SysTime convert(PQType type)(ubyte[] val)
@@ -255,6 +284,7 @@ version(IntegrationTest2)
             logger.logInfo("============================================");
         }
 
+        assert((cast(TimeOfDay)queryValue(logger, pool, "'04:05:06.789'::time").deserializeBson!PGTime).toISOExtString == "04:05:06");
         assert((cast(TimeOfDay)queryValue(logger, pool, "'04:05:06'::time").deserializeBson!PGTime).toISOExtString == "04:05:06");
         assert((cast(TimeOfDay)queryValue(logger, pool, "'04:05'::time").deserializeBson!PGTime).toISOExtString == "04:05:00");
         assert((cast(TimeOfDay)queryValue(logger, pool, "'040506'::time").deserializeBson!PGTime).toISOExtString == "04:05:06");
@@ -266,6 +296,28 @@ version(IntegrationTest2)
         if(type == PQType.TimeWithZone)
     {
         logger.logInfo("================ TimeWithZone ======================");
+        scope(failure) 
+        {
+            version(Have_Int64_TimeStamp) string s = "with Have_Int64_TimeStamp";
+            else string s = "without Have_Int64_TimeStamp";
+            
+            logger.logInfo("============================================");
+            logger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
+            logger.logInfo("============================================");
+        }
+        
+        auto res = queryValue(logger, pool, "'04:05:06.789-8'::time with time zone").deserializeBson!PGTimeWithZone;
+        assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
+        res = queryValue(logger, pool, "'04:05:06-08:00'::time with time zone").deserializeBson!PGTimeWithZone;
+        assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
+        res = queryValue(logger, pool, "'04:05-08:00'::time with time zone").deserializeBson!PGTimeWithZone;
+        assert((cast(TimeOfDay)res).toISOExtString == "04:05:00" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
+        res = queryValue(logger, pool, "'040506-08'::time with time zone").deserializeBson!PGTimeWithZone;
+        assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
+        res = queryValue(logger, pool, "'04:05:06 PST'::time with time zone").deserializeBson!PGTimeWithZone;
+        assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
+        res = queryValue(logger, pool, "'2003-04-12 04:05:06 America/New_York'::time with time zone").deserializeBson!PGTimeWithZone;
+        assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -4);
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
