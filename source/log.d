@@ -93,11 +93,8 @@ interface ILogger
         /**
         *   Prints message into log. Displaying in the console
         *   controlled by minOutputLevel property.
-        *
-        *   Notes: const modificator needed to log into const
-        *   methods, though method changes output streams state.
         */
-        void log(lazy string message, LoggingLevel level) const;
+        void log(lazy string message, LoggingLevel level);
 
         /**
         *   Returns: minimum log level,  will be printed in the console.
@@ -114,7 +111,19 @@ interface ILogger
         */
         void finalize();
     }
-
+    synchronized
+    {
+        /**
+        *   Unsafe write down the message without any meta information.
+        */
+        void rawInput(string message);
+        
+        /**
+        *   Format message with default logging style (etc. time and level string).
+        */
+        string formatString(lazy string message, LoggingLevel level);
+    }
+    
     /**
     *   Wrapper for handy debug messages.
     *   Warning: main purpose for debug messages, thus it is not lazy.
@@ -132,17 +141,17 @@ interface ILogger
     // wrappers for easy logging
     final nothrow synchronized  @trusted
     {
-        void logInfo(lazy string message) const
+        void logInfo(lazy string message)
         {
             log(message, LoggingLevel.Notice);
         }
 
-        void logWarning(lazy string message) const
+        void logWarning(lazy string message)
         {
             log(message, LoggingLevel.Warning);
         }
 
-        void logError(lazy string message) const
+        void logError(lazy string message)
         {
             log(message, LoggingLevel.Fatal);
         }

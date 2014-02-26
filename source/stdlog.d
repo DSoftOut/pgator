@@ -68,7 +68,7 @@ synchronized class CLogger : ILogger
         *   Prints message into log. Displaying in the console
         *   controlled by minOutputLevel property.
         */
-        void log(lazy string message, LoggingLevel level) const @trusted
+        void log(lazy string message, LoggingLevel level) @trusted
         {
             scope(failure) {}
 
@@ -77,8 +77,7 @@ synchronized class CLogger : ILogger
 
             try
             {
-                auto timeString = Clock.currTime.toISOExtString();
-                mLogFile.writeLine(text("[", timeString, "]:", logsStyles[level], message));
+                rawInput(formatString(message, level));
             }
             catch(Exception e)
             {
@@ -86,7 +85,7 @@ synchronized class CLogger : ILogger
                     writeln(logsStyles[LoggingLevel.Warning], "Failed to write into log ", mLocation);
             }
         }
-
+        
         /**
         *   Returns: minimum log level,  will be printed in the console.
         */
@@ -107,8 +106,7 @@ synchronized class CLogger : ILogger
     this(string name, string dir = DEFAULT_DIR) @trusted
     {
         mName = name;
-        mLocation = buildNormalizedPath(dir, name~DEFAULT_EXT);
-        mMinOutputLevel = LoggingLevel.Notice;
+        mLocation = buildNormalizedPath(dir, name~DEFAULT_EXT);        
 
         try
         {
@@ -118,6 +116,24 @@ synchronized class CLogger : ILogger
         {
             throw new Exception(text("Failed to create log with name ", mName, " and location ", mLocation, ". Details: ", e.msg));
         }
+    }
+    
+    protected this()
+    {
+        mName = "";
+        mLocation = "";
+        mMinOutputLevel = LoggingLevel.Notice;
+    }
+    
+    string formatString(lazy string message, LoggingLevel level) @trusted
+    {
+        auto timeString = Clock.currTime.toISOExtString();
+        return text("[", timeString, "]:", logsStyles[level], message);
+    }
+    
+    void rawInput(string message)  @trusted
+    {
+        mLogFile.writeLine(message);
     }
     
     /**
