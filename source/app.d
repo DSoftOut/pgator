@@ -59,7 +59,10 @@ else version(IntegrationTest1)
         logger.logInfo("Test ended. Results:"); 
         logger.logInfo(text("active connections:   ", pool.activeConnections));
         logger.logInfo(text("inactive connections: ", pool.inactiveConnections));
-
+        
+        pool.finalize(() {});
+        logger.finalize();
+        std.c.stdlib.exit(0);
         return 0;
     }
 }
@@ -114,7 +117,9 @@ else version(IntegrationTest2)
         pool.finalize(() {canExit = true;});
         while(!canExit) {}
         
-        
+        pool.finalize(() {});
+        logger.finalize();
+        std.c.stdlib.exit(0);
         return 0;
     }
 }
