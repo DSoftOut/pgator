@@ -8,11 +8,11 @@
 */
 module server;
 
+import core.atomic;
+
 import std.base64;
 import std.string;
 import std.exception;
-import std.functional;
-import std.concurrency;
 
 import vibe.data.bson;
 import vibe.http.server;
@@ -25,188 +25,110 @@ import json_rpc.error;
 import json_rpc.response;
 
 import database;
-import cache;
 import config;
 import util;
 import log;
-import sql_json;
 
-private enum MESSAGE
+class Application
 {
-	START,
+	shared public:
 	
-	STOP,
-	
-	RESTART,
-	
-	EXIT
-}
-
-
-private void runLoop(shared Application app)
-{
-	return app.runLoop();
-}
-
-
-private void startVibe(shared Application app)
-{
-	return app.runVibeLoop();
-}
-
-
-shared class Application
-{		
-	this(shared ILogger logger)
+	this(shared ILogger logger, string configPath = CONFIG_PATH)
 	{
 		this.logger = logger;
+		
+		this.configPath = configPath;
+		
+		init();
 	}
 	
 	~this()
 	{
-		if (wasRun) send(toUnqual(tid), MESSAGE.EXIT);
+		finalize();
 	}
 	
+	/// runs the server
+	void run()
+	{			
+		if (running) return;
+		
+		startServer();
+	}
+	
+	/// restart the server
+	void restart()
+	{
+		stopServer();
+		
+		run();
+	}
 	
 	void finalize()
 	{
-		if (!wasRun) return;
+		logger.logInfo("Called finalize");
 		
-		send(toUnqual(tid), MESSAGE.EXIT);
-		
-		receiveOnly!bool;
-	}
-	
-	void run()
-	{
-		auto runTid = spawn(&server.runLoop, this);
-		
-		send(runTid, MESSAGE.START);
-	}
-	
-	void start()
-	{
-		if (!wasRun) throw new Exception("Server wasn't run");
-		
-		send(toUnqual(tid), MESSAGE.START);
-	}
-	
-	void stop()
-	{
-		send(toUnqual(tid), MESSAGE.STOP);
-	}
-	
-	void restart()
-	{
-		send(toUnqual(tid), MESSAGE.RESTART);
-	}
-	
-	
-	private void runLoop()
-	{
-		tid = toShared(thisTid);
-		
-		wasRun = true;
-		
-		MESSAGE msg;
-		
-		bool exit;
-		while(!exit)
+		scope(failure)
 		{
-			msg = receiveOnly!MESSAGE;
+			logger.logError("Can not finalize server");
+			
+			return;
+		}
 		
-			final switch (msg)
-			{
-				case MESSAGE.RESTART:
-					stopVibe();
-					startVibe();
-					continue;
-					
-				case MESSAGE.STOP:
-					stopVibe();
-					continue;
-					
-				case MESSAGE.START:
-					startVibe();
-					continue;
-					
-				case MESSAGE.EXIT:
-					stopVibe();
-					send(ownerTid, true);
-					return;
-			}
+		if (database)
+		{
+			bool exit;
+			
+			database.finalizePool((){logger.logInfo("Pool finalized"); exit = true;});
+			
+			while(!exit){}
+		}
+		
+		if (running)
+		{
+			stopServer();
 		}
 	}
 	
-	/// setups settings and router
-	private void init()
+	shared private:
+	
+	/// initialize resources
+	// called once
+	void init()
 	{
-		settings = toShared(new HTTPServerSettings());
+		settings = new HTTPServerSettings;
 		
-		router = toShared(new URLRouter());
+		router = new URLRouter;
 	}
 	
-	private void loadConfig()
+	bool loadAppConfig()
 	{
-		appConfig = toShared(AppConfig(CONFIG_PATH));
+		try
+		{
+			appConfig = toShared(AppConfig(configPath));
+			
+			return true;
+		}
+		catch (InvalidConfig e)
+		{
+			logger.logError("Bad config. "~e.msg);
+		}
+		catch (ErrnoException e)
+		{
+			logger.logError("Config not found. "~e.msg);
+		}
+		
+		return false;
 	}
 	
-	private void setup()
+	void setupSettings()
 	{
-		init();
-		
-		loadConfig();
-		
-		database = new shared Database(logger, appConfig); //because config may change
-		
-		database.setupPool();
-		
-		setupSettings();
-		
-		setupRouter();
-	}
-	
-	package void runVibeLoop()
-	{
-		setup();
-		
-		listenHTTP(cast(HTTPServerSettings)settings, cast(URLRouter) router);
-		
-		logger.logInfo("Starting vibe loop");
-		
-		runEventLoop();
-	}
-	
-	package void startVibe()
-	{
-		auto mtid = spawn(&server.startVibe, this);
-		
-		register("startVibe", mtid);
-	}
-	
-	private void stopVibe()
-	{
-		bool exit;
-		
-		database.finalizePool((){ logger.logInfo("Finalized pool"); exit = true;});
-		
-		while(!exit){}
-		
-		logger.logInfo("Stopping vibe loop");
-		
-		getEventDriver().exitEventLoop();
-	}
-	
-	private void setupSettings()
-	{
-		auto settings = toUnqual(settings);
-		auto appConfig = toUnqual(appConfig);
-		
 		settings.port = appConfig.port;
 		
 		settings.errorPageHandler = cast(HTTPServerErrorPageHandler) &errorHandler;
 		
 		settings.options = HTTPServerOption.parseJsonBody;
+		
+		auto appConfig = toUnqual(this.appConfig);
 			
 		if (appConfig.hostname) 
 			settings.hostName = appConfig.hostname;
@@ -215,24 +137,79 @@ shared class Application
 			settings.bindAddresses = appConfig.bindAddresses;
 	}
 	
-	private void setupRouter()
-	{	
-		auto router = toUnqual(router);
-		
-		auto del = cast(void delegate(HTTPServerRequest, HTTPServerResponse))(&handler);
+	void setupRouter()
+	{
+		auto del = cast(HTTPServerRequestDelegate) &handler;
 		
 		router.any("*", del);
-		
 	}
 	
-	//Заглушка
-	private bool ifMaxConn() @property
+	bool setupDatabase()
 	{
+		try
+		{
+			database = new shared Database(logger, appConfig);
+			
+			database.setupPool();
+			
+			return true;
+		}
+		catch (Throwable e)
+		{
+			logger.logError("Database error:"~e.msg);
+		}
+		
 		return false;
 	}
 	
+	void configure()
+	{
+		enforce(loadAppConfig);
+		
+		enforce(setupDatabase);
+		
+		setupSettings();
+		
+		setupRouter();
+	}
 	
-	private bool hasAuth(HTTPServerRequest req, out string user, out string password)
+	void startServer()
+	{
+		scope(failure)
+		{
+			logger.logError("Server error");
+			
+			finalize();
+			
+			return;
+		}
+		
+		configure();
+		
+		listenHTTP(settings, router);
+		
+		logger.logInfo("Starting event loop");
+		
+		running = true;
+		
+		runEventLoop();
+	}
+	
+	void stopServer()
+	{
+		logger.logInfo("Stopping event loop");
+		
+		getEventDriver().exitEventLoop();
+		
+		running = false;
+	}
+	
+	bool ifMaxConn()
+	{
+		return conns > appConfig.maxConn;
+	}
+	
+	bool hasAuth(HTTPServerRequest req, out string user, out string password)
 	{	
 		auto pauth = "Authorization" in req.headers;
 		
@@ -251,10 +228,17 @@ shared class Application
 		
 		return false;
 	}
-
+	
 	/// handles HTTP requests
-	private void handler(HTTPServerRequest req, HTTPServerResponse res)
+	void handler(HTTPServerRequest req, HTTPServerResponse res)
 	{
+		atomicOp!"+="(conns, 1);
+		
+		scope(exit)
+		{
+			atomicOp!"-="(conns, 1);
+		}
+		
 		enum CONTENT_TYPE = "application/json";
 		
 		if (ifMaxConn)
@@ -291,8 +275,6 @@ shared class Application
 				rpcReq.auth[appConfig.sqlAuth[1]] = password;
 			}
 			
-			logger.logInfo("Querying...");
-			
 			auto rpcRes = database.query(rpcReq);
 			
 			res.writeBody(rpcRes.toJson.toPrettyString, CONTENT_TYPE);
@@ -300,14 +282,11 @@ shared class Application
 			void resetCacheIfNeeded()
 			{
 				yield();
-				database.dropcaches(rpcReq.method);
-				logger.logInfo("After task finished");
 				
+				database.dropcaches(rpcReq.method);	
 			}
 			
 			runTask(&resetCacheIfNeeded);
-			
-			logger.logInfo("Task loaded");
 		
 		}
 		catch (RpcException ex)
@@ -321,7 +300,7 @@ shared class Application
 		
 	}
 	
-	private void errorHandler(HTTPServerRequest req, HTTPServerResponse res, HTTPServerErrorInfo info)
+	void errorHandler(HTTPServerRequest req, HTTPServerResponse res, HTTPServerErrorInfo info)
 	{
 		if (info.code == HTTPStatus.badRequest)
 		{
@@ -336,18 +315,21 @@ shared class Application
 		}
 	}
 	
-	private HTTPServerSettings settings;
-
-	private URLRouter router;
+	ILogger logger;
 	
-	private AppConfig appConfig; //create with setup()
+	string configPath;
 	
-	private ILogger logger;
+	AppConfig appConfig;
 	
-	private Tid tid;
+	Database database;
 	
-	private Database database; //create with setup()
+	int conns;
 	
-	private bool wasRun;
+	bool running;
+	
+	__gshared private:
+	
+	HTTPServerSettings settings;
+	
+	URLRouter router;
 }
-

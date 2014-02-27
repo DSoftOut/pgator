@@ -58,26 +58,18 @@ struct AppConfig
 	
 	this(string path)
 	{
-		try
+		auto file = File(path, "r");
+		
+		string str;
+		
+		foreach(line; file.byLine)
 		{
-			auto file = File(path, "r");
-			
-			string str;
-			
-			foreach(line; file.byLine)
-			{
-				str ~= line;
-			}
-			
-			auto json = parseJson(str);
-			
-			this(json); 
+			str ~= line;
 		}
-		catch (ErrnoException ex)
-		{
-			logError(ex.msg);
-			throw new Exception("Config reading error");
-		}
+		
+		auto json = parseJson(str);
+		
+		this(json); 
 	}
 }
 

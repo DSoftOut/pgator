@@ -148,13 +148,15 @@ else
 		bool daemon = false;
 		bool help = false;
 		string logName = args[0]~".log";
+		string configPath = null;
 		
 		try
 		{
 			getopt(args, std.getopt.config.passThrough,
 						 "daemon", &daemon,
 					 	 "log", &logName,
-					 	 "help", &help);
+					 	 "help", &help,
+					 	 "config", &configPath);
 		} catch(Exception e)
 		{
 			writeln(e.msg); 
@@ -170,7 +172,16 @@ else
 		
 		auto logger = new shared CLogger(logName);
 		
-		shared Application app = new shared Application(logger);
+		shared Application app;
+		
+		if (configPath)
+		{
+			app = new shared Application(logger, configPath);
+		}
+		else
+		{
+			app = new shared Application(logger);
+		}
 		
 		if(daemon) 
 			return runDaemon(logger, (nargs) => 0, args, (){});
@@ -185,10 +196,6 @@ else
 		import core.thread;
 		
 		app.run();
-		
-		Thread.sleep(dur!"minutes"(3));
-		
-		app.finalize();
 		
 		return 0;
 	}

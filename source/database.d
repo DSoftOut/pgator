@@ -43,11 +43,6 @@ shared class Database
 		init();
 	}
 	
-	~this()
-	{
-		pool.finalize((){ logger.logInfo("Pool finalized"); });
-	}
-	
 	private void init()
 	{
 		Duration reTime = dur!"msecs"(appConfig.sqlTimeout);
@@ -62,19 +57,10 @@ shared class Database
 		{
 			freeTime = reTime;
 		}
+
+		auto provider = new shared PQConnProvider(logger, new PostgreSQL);
 		
-		try
-		{
-			auto provider = new shared PQConnProvider(logger, new PostgreSQL);
-			
-			pool = new shared AsyncPool(logger, provider, reTime, freeTime);
-		}
-		catch(Throwable ex)
-		{
-			logger.logError(format("%s:%s(%d)", ex.msg, ex.file, ex.line));
-			
-			throw ex;
-		}
+		pool = new shared AsyncPool(logger, provider, reTime, freeTime);
 	}
 	
 	void setupPool()
@@ -124,8 +110,6 @@ shared class Database
 				{
 					Entry ent = deserializeFromJson!Entry(v.toJson);
 					
-					std.stdio.writeln(ent);
-					
 					sqlTable.add(ent);
 				}
 			}
@@ -142,8 +126,6 @@ shared class Database
 	RpcResponse query(ref RpcRequest req)
 	{	
 		RpcResponse res;
-		
-		logger.logInfo("Searching in cache");
 		
 		if (cache.get(req, res))
 		{
@@ -213,8 +195,7 @@ shared class Database
 			{
 				res = RpcResponse(req.id, RpcError(error));
 			}
-			
-			//problem
+
 			shared RpcResponse cacheRes = res.toShared();
 			
 			if (table.need_cache(req.method))
