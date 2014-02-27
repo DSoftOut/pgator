@@ -43,14 +43,14 @@ private
     
             void termsig(int sig) 
             {
-                savedLogger.logError("Signal %d caught..." ~ to!string(sig));
+                savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
                 savedTermListener();
                 terminate(EXIT_SUCCESS);
             }
             
             void customHandler(int sig)
             {
-                savedLogger.logInfo("Signal %d caught..." ~ to!string(sig));
+                savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
                 savedListener();
             }
         }
@@ -127,20 +127,8 @@ int runDaemon(shared ILogger logger, int delegate(string[]) progMain, string[] a
         signal(SIGTERM, &termsig);
         signal(SIGQUIT, &termsig);
         signal(SIGINT, &termsig);
-        signal(SIGALRM, &termsig);
-        signal(SIGBUS, &termsig);
-        signal(SIGFPE, &termsig);
-        signal(SIGILL, &termsig);
-        signal(SIGFPE, &termsig);
-        signal(SIGPIPE, &termsig);
         signal(SIGQUIT, &termsig);
         signal(SIGSEGV, &termsig);
-        signal(SIGUSR1, &termsig);
-        signal(SIGUSR2, &termsig);
-        signal(SIGPOLL, &termsig);
-        signal(SIGSYS, &termsig);
-        signal(SIGXCPU, &termsig);
-        signal(SIGXFSZ, &termsig);
         
         savedListener = listener;
         signal(SIGHUP, &customHandler);

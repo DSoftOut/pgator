@@ -9,6 +9,7 @@
 module database;
 
 import core.time;
+import core.thread;
 
 import std.string;
 
@@ -116,10 +117,10 @@ shared class Database
 			
 			table = sqlTable;
 		}
-		catch(Exception ex)
+		catch(ConnTimeoutException ex)
 		{
-			logger.logError(format("%s:%s(%d)", ex.msg, ex.file, ex.line));
-			throw ex;
+		    logger.logError("There is no free connections in the pool, retry over 1 sec...");
+		    Thread.sleep(dur!"seconds"(1));
 		}
 	}
 	

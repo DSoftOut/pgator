@@ -30,13 +30,13 @@ private
             
             void termHandler(int sig)
             {
-                savedLogger.logInfo("Signal %d caught..." ~ to!string(sig));
+                savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
                 savedTermListener();
             }
             
             void sighandler(int sig)
             {
-                savedLogger.logInfo("Signal %d caught..." ~ to!string(sig));
+                savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
                 savedListener();
             }
         }
@@ -64,20 +64,8 @@ int runTerminal(shared ILogger logger, int delegate(string[]) progMain, string[]
         signal(SIGTERM, &termHandler);
         signal(SIGQUIT, &termHandler);
         signal(SIGINT, &termHandler);
-        signal(SIGALRM, &termHandler);
-        signal(SIGBUS, &termHandler);
-        signal(SIGFPE, &termHandler);
-        signal(SIGILL, &termHandler);
-        signal(SIGFPE, &termHandler);
-        signal(SIGPIPE, &termHandler);
         signal(SIGQUIT, &termHandler);
         signal(SIGSEGV, &termHandler);
-        signal(SIGUSR1, &termHandler);
-        signal(SIGUSR2, &termHandler);
-        signal(SIGPOLL, &termHandler);
-        signal(SIGSYS, &termHandler);
-        signal(SIGXCPU, &termHandler);
-        signal(SIGXFSZ, &termHandler);
         
         savedListener = listener;
         signal(SIGHUP, &sighandler);

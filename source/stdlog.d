@@ -44,7 +44,7 @@ import std.traits;
 synchronized class CLogger : ILogger
 {
     enum DEFAULT_DIR = "./logs";
-    enum DEFAULT_EXT = ".log";
+    enum DEFAULT_EXT = "";
 
     nothrow
     {   
