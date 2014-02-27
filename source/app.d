@@ -109,17 +109,12 @@ else version(IntegrationTest2)
         pool.addServer(connString, connCount);
         logger.logInfo(text(connCount, " new connections were added to the pool."));
         
-//        auto results = pool.execQuery("SELECT now() as current_time, 'abc'::text as field_name, "
-//                                      "123 as field_3, 728.258 as field_4, $1::int as field_5", ["42"]);
-//        
-//        logger.logInfo("Test ended. Results:"); 
-//        foreach(res; results)
-//            logger.logInfo(text(res.asBson));
-        
         testConvertions(logger, pool);
         
         pool.finalize(() {canExit = true;});
         while(!canExit) {}
+        
+        
         return 0;
     }
 }
@@ -184,9 +179,9 @@ else
 		}
 		
 		if(daemon) 
-			return runDaemon(logger, (nargs) => 0, args, (){});
+			return runDaemon(logger, &curry!(progMain, app), args, (){ app.restart(); }, (){ app.finalize(); });
 		else 
-			return runTerminal(logger, &curry!(progMain, app), args, (){ app.restart(); });
+			return runTerminal(logger, &curry!(progMain, app), args, (){ app.restart(); }, (){ app.finalize(); });
 	}
 	
 	

@@ -17,7 +17,7 @@ import log;
 
 private 
 {
-    void delegate() savedListener;
+    void delegate() savedListener, savedTermListener;
     shared ILogger savedLogger;
     
     extern(C)
@@ -41,9 +41,10 @@ private
             alias void function(int) sighandler_t;
             sighandler_t signal(int signum, sighandler_t handler);
     
-            void termHandler(int sig) 
+            void termsig(int sig) 
             {
                 savedLogger.logError("Signal %d caught..." ~ to!string(sig));
+                savedTermListener();
                 terminate(EXIT_SUCCESS);
             }
             
@@ -73,11 +74,13 @@ private void terminate(int code)
 
 /**
 *   Forks daemon process with $(B progMain) main function and passes $(B args) to it. If daemon 
-*   catches SIGHUP signal, $(B listener) delegate is called.
+*   catches SIGHUP signal, $(B listener) delegate is called. If daemon catches SIGQUIT, SIGABRT,
+*   or any other terminating sygnal, the termListener is called.
 *
 *   Daemon writes log message into provided $(B logger) and will close it while exiting.
 */
-int runDaemon(shared ILogger logger, int delegate(string[]) progMain, string[] args, void delegate() listener)
+int runDaemon(shared ILogger logger, int delegate(string[]) progMain, string[] args, void delegate() listener,
+        void delegate() termListener)
 {
     savedLogger = logger;
     
@@ -119,10 +122,25 @@ int runDaemon(shared ILogger logger, int delegate(string[]) progMain, string[] a
         close(1);
         close(2);
 
-        signal(SIGABRT, &termHandler);
-        signal(SIGTERM, &termHandler);
-        signal(SIGQUIT, &termHandler);
-        signal(SIGINT, &termHandler);
+        savedTermListener = termListener;
+        signal(SIGABRT, &termsig);
+        signal(SIGTERM, &termsig);
+        signal(SIGQUIT, &termsig);
+        signal(SIGINT, &termsig);
+        signal(SIGALRM, &termsig);
+        signal(SIGBUS, &termsig);
+        signal(SIGFPE, &termsig);
+        signal(SIGILL, &termsig);
+        signal(SIGFPE, &termsig);
+        signal(SIGPIPE, &termsig);
+        signal(SIGQUIT, &termsig);
+        signal(SIGSEGV, &termsig);
+        signal(SIGUSR1, &termsig);
+        signal(SIGUSR2, &termsig);
+        signal(SIGPOLL, &termsig);
+        signal(SIGSYS, &termsig);
+        signal(SIGXCPU, &termsig);
+        signal(SIGXFSZ, &termsig);
         
         savedListener = listener;
         signal(SIGHUP, &customHandler);

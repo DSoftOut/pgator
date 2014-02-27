@@ -17,7 +17,7 @@ import log;
 
 private 
 {
-    void delegate() savedListener;
+    void delegate() savedListener, savedTermListener;
     shared ILogger savedLogger;
     
     extern (C) 
@@ -27,6 +27,12 @@ private
             // Signal trapping in Linux
             alias void function(int) sighandler_t;
             sighandler_t signal(int signum, sighandler_t handler);
+            
+            void termHandler(int sig)
+            {
+                savedLogger.logInfo("Signal %d caught..." ~ to!string(sig));
+                savedTermListener();
+            }
             
             void sighandler(int sig)
             {
@@ -41,14 +47,38 @@ private
 *    Run application as casual process (attached to tty) with $(B progMain) main function and passes $(B args) into it. 
 *    If daemon catches SIGHUP signal, $(B listener) delegate is called (available on linux only).
 *
+*    If application receives some kind of terminating signal, the $(B termListener) is called. $(B termListener) should
+*    end $(B progMain) to be able to clearly shutdown the application.
+*
 *    Daemon writes log message into provided $(B logger).
 */
-int runTerminal(shared ILogger logger, int delegate(string[]) progMain, string[] args, void delegate() listener)
+int runTerminal(shared ILogger logger, int delegate(string[]) progMain, string[] args, void delegate() listener,
+    void delegate() termListener)
 {
     savedLogger = logger;
         
     version (linux) 
     {
+        savedTermListener = termListener;
+        signal(SIGABRT, &termHandler);
+        signal(SIGTERM, &termHandler);
+        signal(SIGQUIT, &termHandler);
+        signal(SIGINT, &termHandler);
+        signal(SIGALRM, &termHandler);
+        signal(SIGBUS, &termHandler);
+        signal(SIGFPE, &termHandler);
+        signal(SIGILL, &termHandler);
+        signal(SIGFPE, &termHandler);
+        signal(SIGPIPE, &termHandler);
+        signal(SIGQUIT, &termHandler);
+        signal(SIGSEGV, &termHandler);
+        signal(SIGUSR1, &termHandler);
+        signal(SIGUSR2, &termHandler);
+        signal(SIGPOLL, &termHandler);
+        signal(SIGSYS, &termHandler);
+        signal(SIGXCPU, &termHandler);
+        signal(SIGXFSZ, &termHandler);
+        
         savedListener = listener;
         signal(SIGHUP, &sighandler);
     } else
