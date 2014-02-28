@@ -151,6 +151,12 @@ interface IPGresult
         return Bson(fields);
     }
     
+    /**
+    * Create Bson from result in native order. <br>
+    * Each row in result will be represented as structure with column fields
+    *
+    * Authors: Zaramzan <shamyan.roman@gmail.com>
+    */
     final Bson asNatBson()
     {
     	Bson[] arr = new Bson[0];

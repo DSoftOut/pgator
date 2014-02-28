@@ -63,6 +63,9 @@ class Application
 		run();
 	}
 	
+	/**
+	* Stops the server from any thread
+	*/
 	void finalize()
 	{
 		logger.logInfo("Called finalize");
@@ -300,6 +303,7 @@ class Application
 		
 	}
 	
+	/// vibe error handler
 	void errorHandler(HTTPServerRequest req, HTTPServerResponse res, HTTPServerErrorInfo info)
 	{
 		if (info.code == HTTPStatus.badRequest)

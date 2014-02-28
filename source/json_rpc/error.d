@@ -38,6 +38,7 @@ enum RPC_ERROR_CODE:int
 	SERVER_ERROR_EXT = -32099
 }
 
+/// Supported JSON-RPC protocol version
 enum RPC_VERSION = "2.0";
 
 /**
@@ -106,18 +107,8 @@ struct RpcError
 	}
 }
 
-/**
-* Struct describes JSON-RPC 2.0 error.data
-*
-* Example
-* ------
-*  auto data = RpcErrorData(bson); //supported only ctor from bson yet
-*  
-*  //to Json
-*  data.toJson();
-* ------
-*/
 
+/// Super class for all JSON-RPC exceptions
 class RpcException:Exception
 {
 	RPC_ERROR_CODE code;

@@ -4,7 +4,6 @@
 *
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
-*          NCrashed <ncrashed@gmail.com>
 */
 module database;
 
@@ -32,6 +31,12 @@ import sql_json;
 import util;
 
 
+/**
+* Represent database layer
+*
+* Authors:
+*	Zaramzan <shamyan.roman@gmail.com>	
+*/
 shared class Database
 {
 	
@@ -44,26 +49,8 @@ shared class Database
 		init();
 	}
 	
-	private void init()
-	{
-		Duration reTime = dur!"msecs"(appConfig.sqlTimeout);
-		
-		Duration freeTime;
-		
-		if (appConfig.sqlReconnectTime > 0)
-		{
-			freeTime = dur!"msecs"(appConfig.sqlReconnectTime);
-		}
-		else
-		{
-			freeTime = reTime;
-		}
-
-		auto provider = new shared PQConnProvider(logger, new PostgreSQL);
-		
-		pool = new shared AsyncPool(logger, provider, reTime, freeTime);
-	}
-	
+	/// configures async pool
+	// called on every start / restart
 	void setupPool()
 	{		
 		foreach(server; appConfig.sqlServers)
@@ -78,52 +65,11 @@ shared class Database
 		createCache();
 	}
 	
-	private void createCache()
-	{
-		cache = new shared Cache(table); 
-	}
-	
-	void finalizePool(void delegate() del)
-	{
-		pool.finalize(del);
-	}
-	
-	private void loadJsonSqlTable()
-	{
-		string queryStr = "SELECT * FROM "~appConfig.sqlJsonTable;
-		
-		shared SqlJsonTable sqlTable = new shared SqlJsonTable();
-		
-		try
-		{
-			auto frombd = pool.execQuery(queryStr, []);
-			
-			foreach(entry; frombd)
-			{			
-				if (entry.resultStatus != ExecStatusType.PGRES_TUPLES_OK)
-				{
-					throw new Exception(entry.resultErrorMessage);
-				}
-				
-				auto arr = entry.asNatBson().to!(Bson[]);
-				
-				foreach(v; arr)
-				{
-					Entry ent = deserializeFromJson!Entry(v.toJson);
-					
-					sqlTable.add(ent);
-				}
-			}
-			
-			table = sqlTable;
-		}
-		catch(ConnTimeoutException ex)
-		{
-		    logger.logError("There is no free connections in the pool, retry over 1 sec...");
-		    Thread.sleep(dur!"seconds"(1));
-		}
-	}
-	
+	/**
+	* Queries parsed request from async pool <br>
+	*
+	* Also caches request if needed
+	*/
 	RpcResponse query(ref RpcRequest req)
 	{	
 		RpcResponse res;
@@ -209,6 +155,9 @@ shared class Database
 		return res;
 	}
 	
+	/**
+	* Drop caches if needed
+	*/
 	void dropcaches(string method)
 	{
 		foreach(meth; table.needDrop(method))
@@ -218,13 +167,98 @@ shared class Database
 		}
 	}
 	
-	private IConnectionPool pool;
+	private:
 	
-	private SqlJsonTable table;
+	/**
+	* Initializes database resources
+	*
+	*/
+	//called once
+	void init()
+	{
+		Duration reTime = dur!"msecs"(appConfig.sqlTimeout);
+		
+		Duration freeTime;
+		
+		if (appConfig.sqlReconnectTime > 0)
+		{
+			freeTime = dur!"msecs"(appConfig.sqlReconnectTime);
+		}
+		else
+		{
+			freeTime = reTime;
+		}
+
+		auto provider = new shared PQConnProvider(logger, new PostgreSQL);
+		
+		pool = new shared AsyncPool(logger, provider, reTime, freeTime);
+	}
 	
-	private Cache cache;
+	/// allocate shared cache
+	void createCache()
+	{
+		cache = new shared Cache(table); 
+	}
 	
-	private AppConfig appConfig;
+	/// finalize async db.pool
+	void finalizePool(void delegate() del)
+	{
+		pool.finalize(del);
+	}
 	
-	private ILogger logger;
+	/**
+	* Loads main table from database
+	*
+	* Throws:
+	* 	on $(B ConnTimeoutException) tries to reconnect
+	*
+	* Authors: 
+	*	Zaramzan <shamyan.roman@gmail.com>
+	* 	Ncrashed <ncrashed@gmail.com>
+	*/
+	void loadJsonSqlTable()
+	{
+		string queryStr = "SELECT * FROM "~appConfig.sqlJsonTable;
+		
+		shared SqlJsonTable sqlTable = new shared SqlJsonTable();
+		
+		try
+		{
+			auto frombd = pool.execQuery(queryStr, []);
+			
+			foreach(entry; frombd)
+			{			
+				if (entry.resultStatus != ExecStatusType.PGRES_TUPLES_OK)
+				{
+					throw new Exception(entry.resultErrorMessage);
+				}
+				
+				auto arr = entry.asNatBson().to!(Bson[]);
+				
+				foreach(v; arr)
+				{
+					Entry ent = deserializeFromJson!Entry(v.toJson);
+					
+					sqlTable.add(ent);
+				}
+			}
+			
+			table = sqlTable;
+		}
+		catch(ConnTimeoutException ex)
+		{
+		    logger.logError("There is no free connections in the pool, retry over 1 sec...");
+		    Thread.sleep(1.seconds);
+		}
+	}
+	
+	IConnectionPool pool;
+	
+	SqlJsonTable table;
+	
+	Cache cache;
+	
+	AppConfig appConfig;
+	
+	ILogger logger;
 }
