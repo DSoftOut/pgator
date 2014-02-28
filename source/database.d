@@ -65,6 +65,12 @@ shared class Database
 		createCache();
 	}
 	
+	/// finalize async db.pool
+	void finalizePool(void delegate() del)
+	{
+		pool.finalize(del);
+	}
+	
 	/**
 	* Queries parsed request from async pool <br>
 	*
@@ -198,12 +204,6 @@ shared class Database
 	void createCache()
 	{
 		cache = new shared Cache(table); 
-	}
-	
-	/// finalize async db.pool
-	void finalizePool(void delegate() del)
-	{
-		pool.finalize(del);
 	}
 	
 	/**
