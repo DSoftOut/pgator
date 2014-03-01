@@ -222,7 +222,7 @@ shared class Database
 		
 		shared SqlJsonTable sqlTable = new shared SqlJsonTable();
 		
-		try
+		void load()
 		{
 			auto frombd = pool.execQuery(queryStr, []);
 			
@@ -244,11 +244,21 @@ shared class Database
 			}
 			
 			table = sqlTable;
+			
+			logger.logInfo("Table loaded");
+		}
+		
+		try
+		{
+			load();
 		}
 		catch(ConnTimeoutException ex)
 		{
 		    logger.logError("There is no free connections in the pool, retry over 1 sec...");
+		    
 		    Thread.sleep(1.seconds);
+		    
+		    load();
 		}
 	}
 	

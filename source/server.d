@@ -19,6 +19,7 @@ import vibe.http.server;
 import vibe.http.router;
 import vibe.core.driver;
 import vibe.core.core;
+import vibe.core.log;
 
 import json_rpc.request;
 import json_rpc.error;
@@ -52,6 +53,8 @@ class Application
 	{			
 		if (running) return;
 		
+		logger.logInfo("Running server...");
+		
 		startServer();
 	}
 	
@@ -79,8 +82,6 @@ class Application
 		
 		if (database)
 		{
-			bool exit;
-			
 			database.finalizePool();
 			logger.logInfo("Connection pool is finalized");
 		}
@@ -137,6 +138,12 @@ class Application
 			
 		if (appConfig.bindAddresses)
 			settings.bindAddresses = appConfig.bindAddresses;
+		
+		setLogLevel(LogLevel.none);
+		
+		setLogFile("./logs/http.log", LogLevel.info);
+		setLogFile("./logs/http.log", LogLevel.error);
+		setLogFile("./logs/http.log", LogLevel.warn);
 	}
 	
 	void setupRouter()
@@ -166,9 +173,9 @@ class Application
 	
 	void configure()
 	{
-		enforce(loadAppConfig);
+		enforce(loadAppConfig, "Failed to load config");
 		
-		enforce(setupDatabase);
+		enforce(setupDatabase, "Failed to use database");
 		
 		setupSettings();
 		
@@ -177,24 +184,24 @@ class Application
 	
 	void startServer()
 	{
-		scope(failure)
+		try
+		{	
+			configure();
+			
+			listenHTTP(settings, router);
+			
+			logger.logInfo("Starting event loop");
+			
+			running = true;
+			
+			runEventLoop();
+		}
+		catch(Throwable e)
 		{
-			logger.logError("Server error");
+			logger.logError("Server error:"~to!string(e));
 			
 			finalize();
-			
-			return;
 		}
-		
-		configure();
-		
-		listenHTTP(settings, router);
-		
-		logger.logInfo("Starting event loop");
-		
-		running = true;
-		
-		runEventLoop();
 	}
 	
 	void stopServer()
