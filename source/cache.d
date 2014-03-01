@@ -78,7 +78,10 @@ shared class Cache
 		
 		synchronized (mutex.writer)
 		{
-			return cache[req.method].remove(req.getHash);
+			if (req.method in cache)
+			{
+				return cache[req.method].remove(req.getHash);
+			}
 		}
 	}
 	
@@ -118,18 +121,25 @@ shared class Cache
 	
 	bool get(in RpcRequest req, out RpcResponse res)
 	{
-		scope(failure)
-		{
-			return false;
-		}
-		
 		synchronized(mutex.reader)
 		{	
-			res = cast(RpcResponse) cache[req.method][req.getHash];
+			auto p1 = req.method in cache; 
+			if (p1)
+			{
+				auto p2 = req.getHash in cache[req.method];
+				
+				if (p2)
+				{
+					res = cast(RpcResponse) cache[req.method][req.getHash];
 			
-			return true;
+					return true;
+				}
+			}
+					
 		}
-	}
+		
+		return false;
+}
 	
 	private bool ifMaxSize()
 	{
