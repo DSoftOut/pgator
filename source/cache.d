@@ -83,6 +83,8 @@ shared class Cache
 				return cache[req.method].remove(req.getHash);
 			}
 		}
+		
+		return false;
 	}
 	
 	bool reset(string method)
