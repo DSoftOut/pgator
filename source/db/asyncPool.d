@@ -321,9 +321,10 @@ class AsyncPool : IConnectionPool
     *    Awaits all queries to finish and then closes each connection.
     *    Calls $(B callback) when connections are closed.
     */
-    synchronized void finalize(shared void delegate() callback)
+    synchronized void finalize()
     {
-        ids.finalize(callback);
+        if(finalized) return;
+        ids.finalize();
         finalized = true;
     }
     
@@ -424,12 +425,16 @@ class AsyncPool : IConnectionPool
                return shared ThreadIds(closedTid, freeTid, connectingTid, queringTid);
            }
            
-           void finalize(shared void delegate() callback)
+           void finalize()
            {
-               closedCheckerId.send(true);
-               freeCheckerId.send(true);
-               connectingCheckerId.send(true);
-               queringCheckerId.send(true, callback);
+               closedCheckerId.send(thisTid, true);
+               receiveOnly!bool;
+               freeCheckerId.send(thisTid, true);
+               receiveOnly!bool;
+               connectingCheckerId.send(thisTid, true);
+               receiveOnly!bool;
+               queringCheckerId.send(thisTid, true);
+               receiveOnly!bool;
            }
        }
        shared ThreadIds ids;
@@ -449,12 +454,17 @@ class AsyncPool : IConnectionPool
                
                TimedConnList list;
                auto ids = ThreadIds.receive();
+               Tid exitTid;
                
                bool exit = false;
                while(!exit)
                {
                    while (receiveTimeout(dur!"msecs"(1)
-                       , (bool v) {exit = v;}
+                       , (Tid sender, bool v) 
+                           {
+                               exit = v; 
+                               exitTid = sender;
+                           }
                        , (string com, shared(IConnection) conn, TickDuration time) { 
                            if(com == "add")
                            {
@@ -501,7 +511,9 @@ class AsyncPool : IConnectionPool
                        elem.conn.disconnect();
                    } 
                }
-           
+               
+               exitTid.send(true);
+               logger.logInfo("Closed connections thread exited!");
            } catch (Throwable th)
            {
                logger.logError("AsyncPool: closed connections thread died!");
@@ -519,12 +531,17 @@ class AsyncPool : IConnectionPool
                DList!Tid connRequests;
                ConnectionList list;
                auto ids = ThreadIds.receive();
+               Tid exitTid;
                           
                bool exit = false;
                while(!exit)
                {
                    while (receiveTimeout(dur!"msecs"(1)
-                       , (bool v) {exit = v;}
+                       , (Tid sender, bool v) 
+                           {
+                               exit = v; 
+                               exitTid = sender;
+                           }
                        , (string com, shared IConnection conn) 
                        {
                            if(com == "add")
@@ -582,7 +599,9 @@ class AsyncPool : IConnectionPool
                        conn.disconnect();
                    }
                } 
-           
+               
+               exitTid.send(true);
+               logger.logInfo("Free connections thread exited!");
            } catch (Throwable th)
            {
                logger.logError("AsyncPool: free connections thread died!");
@@ -599,12 +618,17 @@ class AsyncPool : IConnectionPool
                
                ConnectionList list;
                auto ids = ThreadIds.receive();
+               Tid exitTid;
                
                bool exit = false;
                while(!exit)
                {
                    while(receiveTimeout(dur!"msecs"(1)
-                       , (bool v) {exit = v;}
+                       , (Tid sender, bool v) 
+                           {
+                               exit = v; 
+                               exitTid = sender;
+                           }
                        , (string com, shared IConnection conn) {
                            if(com == "add")
                            {
@@ -658,6 +682,9 @@ class AsyncPool : IConnectionPool
                        conn.disconnect();
                    } 
                }
+               
+               exitTid.send(true);
+               logger.logInfo("Connecting thread exited!");
            } catch (Throwable th)
            {
                logger.logError("AsyncPool: connecting thread died!");
@@ -679,15 +706,15 @@ class AsyncPool : IConnectionPool
                auto ids = ThreadIds.receive();
               
                bool exit = false;
-               void delegate() exitCallback;
+               Tid exitTid;
                size_t last = list[].walkLength;
                while(!exit || last > 0)
                {
                    while(receiveTimeout(dur!"msecs"(1)
-                       , (bool v, shared void delegate() callback) 
+                       , (Tid sender, bool v) 
                            {
                                exit = v; 
-                               exitCallback = callback;
+                               exitTid = sender;
                            }
                        , (Tid sender, shared IConnection conn, shared Query query) 
                            {
@@ -750,7 +777,8 @@ class AsyncPool : IConnectionPool
                    last = list.length;
                }
     
-               exitCallback();
+               exitTid.send(true);
+               logger.logInfo("Quering thread exited!");
            } catch (Throwable th)
            {
                logger.logError("AsyncPool: quering thread died!");
@@ -917,7 +945,7 @@ unittest
     shared IConnectionProvider provider = new shared LocalProvider();
    
     auto pool = new shared AsyncPool(logger, provider, dur!"msecs"(500), dur!"msecs"(500));
-    scope(exit) pool.finalize((){});
+    scope(exit) pool.finalize();
     pool.addServer("noserver", n);
     
     auto active = pool.activeConnections;
@@ -1001,7 +1029,7 @@ unittest
     shared IConnectionProvider provider = new shared LocalProvider();
     
     auto pool = new shared AsyncPool(logger, provider, dur!"seconds"(100), dur!"seconds"(100));
-    scope(exit) pool.finalize((){});
+    scope(exit) pool.finalize();
     pool.addServer("noserver", n);
     
     auto active = pool.activeConnections;
@@ -1093,7 +1121,7 @@ unittest
     
     shared IConnectionProvider provider = new shared LocalProvider();
     auto pool = new shared AsyncPool(logger, provider, dur!"msecs"(100), dur!"msecs"(100));
-    scope(exit) pool.finalize((){});
+    scope(exit) pool.finalize();
     pool.addServer("noserver", n);
     
     auto active = pool.activeConnections;

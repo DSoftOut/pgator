@@ -139,9 +139,8 @@ interface IConnectionPool
         
     /**
     *    Awaits all queries to finish and then closes each connection.
-    *    Calls $(B callback) when connections are closed.
     */
-    synchronized void finalize(shared void delegate() callback);
+    synchronized void finalize();
     
     /**
     *   Returns date format used in ONE OF sql servers.

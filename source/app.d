@@ -48,7 +48,7 @@ else version(IntegrationTest1)
         auto connProvider = new shared PQConnProvider(logger, api);
         
         auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(1));
-        scope(exit) pool.finalize(() {});
+        scope(exit) pool.finalize();
         logger.logInfo("AssyncPool was created.");
         
         pool.addServer(connString, connCount);
@@ -60,7 +60,7 @@ else version(IntegrationTest1)
         logger.logInfo(text("active connections:   ", pool.activeConnections));
         logger.logInfo(text("inactive connections: ", pool.inactiveConnections));
         
-        pool.finalize(() {});
+        pool.finalize();
         logger.finalize();
         std.c.stdlib.exit(0);
         return 0;
@@ -106,7 +106,7 @@ else version(IntegrationTest2)
         auto connProvider = new shared PQConnProvider(logger, api);
         
         auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5));
-        scope(failure) pool.finalize(() {});
+        scope(failure) pool.finalize();
         logger.logInfo("AssyncPool was created.");
         
         pool.addServer(connString, connCount);
@@ -114,10 +114,7 @@ else version(IntegrationTest2)
         
         testConvertions(logger, pool);
         
-        pool.finalize(() {canExit = true;});
-        while(!canExit) {}
-        
-        pool.finalize(() {});
+        pool.finalize();
         logger.finalize();
         std.c.stdlib.exit(0);
         return 0;

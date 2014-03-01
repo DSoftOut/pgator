@@ -81,9 +81,8 @@ class Application
 		{
 			bool exit;
 			
-			database.finalizePool((){logger.logInfo("Pool finalized"); exit = true;});
-			
-			while(!exit){}
+			database.finalizePool();
+			logger.logInfo("Connection pool is finalized");
 		}
 		
 		if (running)

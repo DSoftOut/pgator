@@ -66,9 +66,9 @@ shared class Database
 	}
 	
 	/// finalize async db.pool
-	void finalizePool(void delegate() del)
+	void finalizePool()
 	{
-		pool.finalize(del);
+		pool.finalize();
 	}
 	
 	/**
