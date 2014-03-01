@@ -25,6 +25,8 @@ import sql_json;
 
 import util;
 
+private enum MAX_CACHE_SIZE = 1024 * 1024 * 1024; //1 Gbyte
+
 private alias RpcResponse[string] stash;
 
 private alias stash[string] CacheType;
@@ -95,6 +97,8 @@ shared class Cache
 	
 	void add(in RpcRequest req, shared RpcResponse res)
 	{	
+		if (ifMaxSize) return;
+		
 		synchronized (mutex.writer)
 		{
 			if ((req.method in cache) is null)
@@ -124,6 +128,21 @@ shared class Cache
 			res = cast(RpcResponse) cache[req.method][req.getHash];
 			
 			return true;
+		}
+	}
+	
+	private bool ifMaxSize()
+	{
+		synchronized(mutex.writer)
+		{
+			ulong size;
+			
+			foreach(key; cache.byKey())
+			{
+				size += cache[key].length * RpcResponse.sizeof;
+			}
+			
+			return size > MAX_CACHE_SIZE;
 		}
 	}
 	 
