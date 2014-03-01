@@ -50,6 +50,9 @@ struct AppConfig
 	@possible
 	int sqlReconnectTime = -1;
 	
+	@possible
+	string vibelog = "logs/http.log";
+	
 	this(Json json)
 	{
 

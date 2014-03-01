@@ -137,6 +137,7 @@ else
 						Linux only.
 				    --log=<string> - specifies logging file name, 
 				    	default is 'rpc-proxy-server.log'.
+			    	--config=<string> - specifies config file path
 				    --help - prints this message
 	`;
 	

@@ -141,9 +141,9 @@ class Application
 		
 		setLogLevel(LogLevel.none);
 		
-		setLogFile("./logs/http.log", LogLevel.info);
-		setLogFile("./logs/http.log", LogLevel.error);
-		setLogFile("./logs/http.log", LogLevel.warn);
+		setLogFile(appConfig.vibelog, LogLevel.info);
+		setLogFile(appConfig.vibelog, LogLevel.error);
+		setLogFile(appConfig.vibelog, LogLevel.warn);
 	}
 	
 	void setupRouter()

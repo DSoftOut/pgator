@@ -110,14 +110,16 @@ shared class Database
 			}
 			else
 			{
-				queryStr = "BEGIN; ";
-				
-				foreach(key; req.auth.byKey())
-				{
-					queryStr ~= format("SET LOCAL %s = '%s'; ", key, req.auth[key]);
-				}
-				
-				queryStr ~= entry.sql_query~ " COMMIT;";
+//				queryStr = "BEGIN; ";
+//				
+//				foreach(key; req.auth.byKey())
+//				{
+//					queryStr ~= format("SET LOCAL %s = '%s'; ", key, req.auth[key]);
+//				}
+//				
+//				queryStr ~= entry.sql_query~ " COMMIT;";
+			
+				queryStr = entry.sql_query;
 			}
 			
 			logger.logInfo("Querying pool");
