@@ -12,6 +12,8 @@ public import derelict.pq.pq;
 import derelict.util.exception;
 import std.exception;
 import std.string;
+import std.regex;
+import std.conv;
 import core.atomic;
 import core.memory;
 import util;
@@ -407,6 +409,46 @@ synchronized class CPGconn : IPGconn
     }
     
     /**
+    *   Prototype: PQsendQuery
+    *   Throws: PGQueryException
+    */
+    void sendQuery(string command)
+    in
+    {
+        assert(conn !is null, "PGconn was finished!");
+        assert(PQsendQuery !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        auto res = PQsendQuery(conn, command.toStringz);
+        if (res == 0)
+        {
+            throw new PGQueryException(errorMessage);
+        }
+    }
+    
+    /**
+    *   Like sendQueryParams but uses libpq escaping functions
+    *   and sendQuery. 
+    *   
+    *   The main advantage of the function is ability to handle
+    *   multiple SQL commands in one query.
+    *   Throws: PGQueryException
+    */
+    void sendQueryParamsExt(string command, string[] paramValues)
+    {
+        try
+        {
+            std.stdio.writeln(escapeParams(command, paramValues));
+            sendQuery(escapeParams(command, paramValues));
+        }
+        catch(PGEscapeException e)
+        {
+            throw new PGQueryException(e.msg);
+        }
+    }
+    
+    /**
     *   Prototype: PQgetResult
     *   Note: Even when PQresultStatus indicates a fatal error, 
     *         PQgetResult should be called until it returns a null pointer 
@@ -456,6 +498,37 @@ synchronized class CPGconn : IPGconn
     body
     {
         return PQisBusy(conn) > 0;
+    }
+    
+    /**
+    *   Prototype: PQescapeLiteral
+    *   Throws: PGEscapeException
+    */
+    string escapeLiteral(string msg) const
+    in
+    {
+        assert(conn !is null, "PGconn was finished!");
+        assert(PQescapeLiteral !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        auto res = PQescapeLiteral(conn, msg.toStringz, msg.length);
+        if(res is null) throw new PGEscapeException(errorMessage);
+        return fromStringz(res);
+    }
+    
+    /**
+    *   Escaping query like PQexecParams does. This function
+    *   enables use of multiple SQL commands in one query.
+    */
+    private string escapeParams(string query, string[] args)
+    {
+        foreach(i, arg; args)
+        {
+            auto reg = regex(text(`\$`, i));
+            query = query.replaceAll(reg, escapeLiteral(arg));
+        }
+        return query;
     }
     
     private __gshared PGconn* conn;

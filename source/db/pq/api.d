@@ -62,6 +62,17 @@ class PGQueryException : PGException
 }
 
 /**
+*   The exception is thrown when postgres ran in problem with parameters escaping.
+*/
+class PGEscapeException : PGException
+{
+    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(msg, file, line); 
+    }
+}
+
+/**
 *   Prototype: PGResult
 */
 interface IPGresult
@@ -236,10 +247,29 @@ interface IPGconn
     *   Prototype: PQsendQueryParams
     *   Note: This is simplified version of the command that
     *         handles only string params.
+    *   Warning: libpq doesn't support multiple SQL commands in
+    *            the function. See the sendQueryParamsExt as
+    *            an extended version of the function. 
     *   Throws: PGQueryException
     */
     void sendQueryParams(string command, string[] paramValues); 
     
+    /**
+    *   Prototype: PQsendQuery
+    *   Throws: PGQueryException
+    */
+    void sendQuery(string command);
+    
+    /**
+    *   Like sendQueryParams but uses libpq escaping functions
+    *   and sendQuery. 
+    *   
+    *   The main advantage of the function is ability to handle
+    *   multiple SQL commands in one query.
+    *   Throws: PGQueryException
+    */
+    void sendQueryParamsExt(string command, string[] paramValues);
+     
     /**
     *   Prototype: PQgetResult
     *   Note: Even when PQresultStatus indicates a fatal error, 
@@ -260,6 +290,12 @@ interface IPGconn
     *   Prototype: PQisBusy
     */
     bool isBusy() nothrow;
+    
+    /**
+    *   Prototype: PQescapeLiteral
+    *   Throws: PGEscapeException
+    */
+    string escapeLiteral(string msg) const;
 }
 
 /**
