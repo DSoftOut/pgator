@@ -324,7 +324,7 @@ class AsyncPool : IConnectionPool
     synchronized void finalize()
     {
         if(finalized) return;
-        ids.finalize();
+        ids.finalize(logger);
         finalized = true;
     }
     
@@ -425,16 +425,21 @@ class AsyncPool : IConnectionPool
                return shared ThreadIds(closedTid, freeTid, connectingTid, queringTid);
            }
            
-           void finalize()
+           void finalize(shared ILogger logger)
            {
-               closedCheckerId.send(thisTid, true);
-               receiveOnly!bool;
-               freeCheckerId.send(thisTid, true);
-               receiveOnly!bool;
-               connectingCheckerId.send(thisTid, true);
-               receiveOnly!bool;
-               queringCheckerId.send(thisTid, true);
-               receiveOnly!bool;
+               void finalizeThread(Tid tid, string name)
+               {
+                   tid.send(thisTid, true);
+                   if(!receiveTimeout(dur!"seconds"(1), (bool val) {}))
+                   {
+                      logger.logInfo(text(name, " thread refused to terminated safely!"));
+                   }
+               }
+               
+               finalizeThread(closedCheckerId, "Closed connections");
+               finalizeThread(freeCheckerId, "Free connections");
+               finalizeThread(connectingCheckerId, "Connecting connections");
+               finalizeThread(queringCheckerId, "Quering connections");
            }
        }
        shared ThreadIds ids;
