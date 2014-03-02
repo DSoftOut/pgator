@@ -3,11 +3,11 @@
 	"description": "Server that transforms JSON-RPC calls in SQL queries for PostgreSQL",
 	"copyright": "Copyright © 2014, DSoftOut",
 	"authors": [
-		 "Anton Gushcha (NCrashed)"
+		 "Anton Gushcha (NCrashed <ncrashed@gmail.com>)"
 		,"Shamyan Roman (Zaramzan)"
 		],
 	"targetPath": "bin",
-	"versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
+	"versions": ["Have_vibe_d", "Have_Int64_TimeStamp"],
 	"dependencies": {
 		"vibe-d" : "~master",
 		"derelict-pq": "~master",
@@ -17,7 +17,8 @@
 	"configurations": [
 		{
 			"name": "production",
-			"targetType": "executable"
+			"targetType": "executable",
+			"versions": ["VibeCustomMain"]
 		},
 		{
 			"name": "test1",
@@ -28,6 +29,13 @@
 			"name": "test2",
 			"targetType": "executable",
 			"versions": ["IntegrationTest2"]
+		},
+		{
+			"name": "testclient",
+			"description": "Simple json-rpc client to test the server",
+			"targetType": "executable",
+			"targetName": "rpc-sql-proxy-client",
+			"versions": ["RpcClient", "VibeCustomMain"]
 		}
 	]
 }

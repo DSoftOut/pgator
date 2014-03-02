@@ -97,7 +97,6 @@ else version(IntegrationTest2)
             return 0;
         }
         
-        bool canExit = false;
         auto logger = new shared CLogger(logName);
         scope(exit) logger.finalize();
         
@@ -117,6 +116,52 @@ else version(IntegrationTest2)
         pool.finalize();
         logger.finalize();
         std.c.stdlib.exit(0);
+        return 0;
+    }
+}
+else version(RpcClient)
+{
+    import std.getopt;
+    import std.stdio;
+    import client.client;
+    import client.test.testcase;
+    import client.test.simple;
+
+    immutable helpStr =
+    "JSON-RPC client for testing purposes of main rpc-server.\n"
+    "   rpc-proxy-client [arguments]\n\n"
+    "   arguments = --host=<string> - rpc-server url"
+    "               --conn=<string> - postgres server conn string"
+    "               --tableName=<string> - json_rpc table"
+    "               --serverpid=<uint> - rpc server pid";
+    
+    int main(string[] args)
+    {
+        string host;
+        string connString;
+        string tableName;
+        uint pid;
+        bool help = false;
+        
+        getopt(args,
+            "host", &host,
+            "help|h", &help,
+            "conn", &connString,
+            "tableName", &tableName,
+            "serverpid", &pid
+        );
+        
+        if(help || host == "" || connString == "" || tableName == "" || pid == 0)
+        {
+            writeln(helpStr);
+            return 1;
+        }
+        
+        auto client = new RpcClient!(SimpleTestCase)(host, connString, tableName, pid);
+        scope(exit) client.finalize;
+        
+        client.runTests();
+        
         return 0;
     }
 }

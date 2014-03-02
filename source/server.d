@@ -210,6 +210,7 @@ class Application
 	{
 		logger.logInfo("Stopping event loop");
 		
+		database.finalizePool();
 		getEventDriver().exitEventLoop();
 		
 		running = false;

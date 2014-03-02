@@ -433,7 +433,8 @@ class AsyncPool : IConnectionPool
            {
                foreach(res; results)
                {
-                  if(res.resultStatus != ExecStatusType.PGRES_TUPLES_OK)
+                  if(res.resultStatus != ExecStatusType.PGRES_TUPLES_OK &&
+                     res.resultStatus != ExecStatusType.PGRES_COMMAND_OK)
                   {
                       failed = true;
                       exception = res.resultErrorMessage;
@@ -847,8 +848,8 @@ class AsyncPool : IConnectionPool
                    {
                        commandPosting = true;
                        try 
-                       {    
-                           conn.postQuery(transaction.commands[transactPos], transaction.params.dup); 
+                       {
+                           conn.postQuery(transaction.commands[transactPos], transaction.params.dup);  
                            transactPos++; 
                        }
                        catch (QueryException e)
