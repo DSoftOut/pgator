@@ -34,16 +34,10 @@ Bson queryValue(shared ILogger logger, shared IConnectionPool pool, string val)
 {
     auto query = "SELECT "~val~" as test_field";
     logger.logInfo(query);
-    auto results = pool.execQuery(query, []).array;
-    assert(results.length == 1);
+    auto res = cast()pool.execTransaction([query]).front;
     
-    auto res = results[0];
-    logger.logInfo(res.resultStatus.text);
-    assert(res.resultStatus == ExecStatusType.PGRES_COMMAND_OK 
-        || res.resultStatus == ExecStatusType.PGRES_TUPLES_OK, res.resultErrorMessage);
-    
-    logger.logInfo(text(results[0].asBson));
-    return results[0].asBson.get!(Bson[string])["test_field"][0];
+    logger.logInfo(text(res));
+    return res.get!(Bson[string])["test_field"][0];
 }
 
 void testValue(T, alias converter = to!string, alias resConverter = id)

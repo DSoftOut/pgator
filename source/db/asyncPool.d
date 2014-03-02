@@ -9,6 +9,7 @@ import log;
 import db.pool;
 import db.connection;
 import db.pq.api;
+import derelict.pq.pq;
 import std.algorithm;
 import std.conv;
 import std.container;
@@ -18,8 +19,9 @@ import std.range;
 import std.typecons;
 import core.time;
 import core.thread;
-import vibe.core.core;
-    
+import vibe.core.core : yield;
+import vibe.data.bson;  
+  
 /**
 *    Describes asynchronous connection pool.
 */
@@ -81,121 +83,173 @@ class AsyncPool : IConnectionPool
             ids.closedCheckerId.send("add", elem.conn, elem.duration);
     }
     
-    protected synchronized static class Query : IQuery
+    protected static class Transaction : ITransaction
     {
-        this(string command, string[] params)
+        this(string[] commands, string[] params, string[string] vars) immutable
         {
-            this.command = command;
-            this.params = params.dup;
+            this.commands = commands.idup;
+            this.params = params.idup;
+            string[string] temp = vars.dup;
+            this.vars = assumeUnique(temp);
         }
         
-        bool opEqual(Object o)
+        override bool opEquals(Object o) nothrow 
         {
-            auto b = cast(Query)o;
+            auto b = cast(Transaction)o;
             if(b is null) return false;
             
-            return command == b.command && params == b.params;
+            return commands == b.commands && params == b.params && vars == b.vars;
         }
         
-        immutable string command;
+        override hash_t toHash() nothrow @trusted
+        {
+            auto stringHash = &(typeid(string).getHash);
+            
+            hash_t toHashArr(immutable string[] arr) nothrow
+            {
+                hash_t h;
+                foreach(elem; arr) h += stringHash(&elem);
+                return h;
+            }
+            
+            hash_t toHashAss(immutable string[string] arr) nothrow
+            {
+                hash_t h;
+                scope(failure) return 0;
+                foreach(key, val; arr) h += stringHash(&key) + stringHash(&val);
+                return h;
+            }
+            
+            return toHashArr(commands) + toHashArr(params) + toHashAss(vars);
+        }
+        
+        override int opCmp(Object o) nothrow
+        {
+            scope(failure) return -1;
+            
+            auto b = cast(Transaction)o;
+            if(b is null) return -1;
+            
+            if(this == b) return 0;
+            else
+            {
+                if(commands == b.commands)
+                {
+                    if(params == b.params)
+                    {
+                        return cast(int)(vars.length) - cast(int)(b.vars.length);
+                    } else return cast(int)(params.length) - cast(int)(b.params.length);
+                } else return cast(int)commands.length - cast(int)b.commands.length;
+            }
+        } 
+        
+        immutable string[] commands;
         immutable string[] params;
+        immutable string[string] vars;
     }
     
     /**
-    *   Synchronous blocking way to execute query.
+    *   Performs several SQL $(B commands) on single connection
+    *   wrapped in a transaction (BEGIN/COMMIT in PostgreSQL).
+    *   Each command should use '$n' notation to refer $(B params)
+    *   values. Before any command occurs in transaction the
+    *   local SQL variables is set from $(B vars). 
+    *
     *   Throws: ConnTimeoutException, QueryProcessingException
     */
-    InputRange!(shared IPGresult) execQuery(string command, string[] params) shared
+    InputRange!(immutable Bson) execTransaction(string[] commands, string[] params, string[string] vars) shared
     {
-        auto query = postQuery(command, params);
-        while(!isQueryReady(query)) yield;
-        return getQuery(query);
+        auto transaction = postTransaction(commands, params, vars);
+        while(isTransactionReady(transaction)) yield;
+        return getTransaction(transaction);
     }
     
     /**
-    *   Asynchronous way to execute query. User can check
-    *   query status by calling $(B isQueryReady) method.
-    *   When $(B isQueryReady) method returns true, the
-    *   query can be finalized by $(B getQuery) method.
+    *   Asynchronous way to execute transaction. User can check
+    *   transaction status by calling $(B isTransactionReady) method.
+    *   When $(B isTransactionReady) method returns true, the
+    *   transaction can be finalized by $(B getTransaction) method.
     * 
     *   Returns: Specific interface to distinct the query
     *            among others.
-    *   See_Also: isQueryReady, getQuery.
+    *   See_Also: isTransactionReady, getTransaction.
     *   Throws: ConnTimeoutException
     */
-    shared(IQuery) postQuery(string command, string[] params) shared
+    immutable(ITransaction) postTransaction(string[] commands, string[] params, string[string] vars) shared
     {
         auto conn = fetchFreeConnection();
-        auto query = new shared Query(command, params);
-        processingQueries.insert(query); 
+        auto transaction = new immutable Transaction(commands, params, vars);
+        processingTransactions.insert(cast(shared)transaction); 
         
-        ids.queringCheckerId.send(thisTid, conn, query);
+        ids.queringCheckerId.send(thisTid, conn, cast(shared)transaction);
         
-        return query;
+        return transaction;
     }
     
     /**
-    *   Returns true if query processing is finished (doesn't
-    *   matter the actual reason, error or query object is invalid,
+    *   Returns true if transaction processing is finished (doesn't
+    *   matter the actual reason, error or transaction object is invalid,
     *   or successful completion).
     *
-    *   If the method returns true, then $(B getQuery) method
+    *   If the method returns true, then $(B getTransaction) method
     *   can be called in non-blocking manner.
     *
-    *   See_Also: postQuery, getQuery.
+    *   See_Also: postTransaction, getTransaction.
     */
-    bool isQueryReady(shared IQuery query) nothrow shared
+    bool isTransactionReady(immutable ITransaction transaction) shared
     {
         scope(failure) return true;
         
-        if(processingQueries[].find(query).empty)
+        if(processingTransactions[].find(cast(shared)transaction).empty)
             return true;
             
         fetchResponds();
-        
-        if(query in awaitingResponds) return true;
+
+        if(transaction in awaitingResponds) return true;
         else return false;
     }
     
-    private void fetchResponds() shared
-    {
-        receiveTimeout(dur!"msecs"(1),
-            (Tid tid, shared IQuery query, Respond respond)
-            {
-                assert(query !in awaitingResponds);
-                awaitingResponds[query] = respond;
-            }
-        );
-    }
-    
     /**
-    *   Retrieves SQL result from specified query.
+    *   Retrieves SQL result from specified transaction.
     *   
-    *   If previously called $(B isQueryReady) returns true,
+    *   If previously called $(B isTransactionReady) returns true,
     *   then the method is not blocking, else it falls back
-    *   to $(B execQuery) behave.
+    *   to $(B execTransaction) behavior.
     *
-    *   See_Also: postQuery, isQueryReady
-    *   Throws: UnknownQueryException, QueryProcessingException
+    *   See_Also: postTransaction, isTransactionReady
+    *   Throws: UnknownTransactionException, QueryProcessingException
     */
-    InputRange!(shared IPGresult) getQuery(shared IQuery query) shared
+    InputRange!(immutable Bson) getTransaction(immutable ITransaction transaction) shared
     {
-        if(processingQueries[].find(query).empty)
-            throw new UnknownQueryException();
+        if(processingTransactions[].find(cast(shared)transaction).empty)
+            throw new UnknownTransactionException();
              
-        if(query in awaitingResponds) 
+        if(transaction in awaitingResponds) 
         {
-            processingQueries.removeOne(query);
-            auto respond = awaitingResponds[query];
+            processingTransactions.removeOne(cast(shared)transaction);
+            auto respond = awaitingResponds[transaction];
+            awaitingResponds.remove(transaction);
             if(respond.failed)
-                throw new QueryProcessingException(respond.exception.msg);
+                throw new QueryProcessingException(respond.exception);
             else
                 return respond.result[].inputRangeObject;
         } else
         {
-            while(!isQueryReady(query)) yield;
-            return getQuery(query);
+            while(!isTransactionReady(transaction)) yield;
+            return getTransaction(transaction);
         }
+    }
+    
+    
+    private void fetchResponds() shared
+    {
+        receiveTimeout(dur!"msecs"(1),
+            (Tid tid, shared Transaction transaction, Respond respond)
+            {
+                assert(cast(immutable)transaction !in awaitingResponds);
+                awaitingResponds[cast(immutable)transaction] = respond;
+            }
+        );
     }
     
     /**
@@ -359,8 +413,8 @@ class AsyncPool : IConnectionPool
     private
     {
        shared ILogger logger;
-       __gshared DList!(shared IQuery) processingQueries;
-       Respond[shared IQuery] awaitingResponds;
+       __gshared DList!(shared ITransaction) processingTransactions;
+       Respond[immutable ITransaction] awaitingResponds;
        IConnectionProvider provider;
        Duration mReconnectTime;
        Duration mFreeConnTimeout;
@@ -371,18 +425,28 @@ class AsyncPool : IConnectionPool
            this(QueryException e)
            {
                failed = true;
-               exception = e;
+               exception = e.msg;
            }
            
-           this(DList!(shared IPGresult) result)
+           bool collect(DList!(shared IPGresult) results)
            {
-               failed = false;
-               this.result = result;
+               foreach(res; results)
+               {
+                  if(res.resultStatus != ExecStatusType.PGRES_TUPLES_OK)
+                  {
+                      failed = true;
+                      exception = res.resultErrorMessage;
+                      return false;
+                  }
+                  result ~= cast(immutable)res.asColumnBson;
+                  res.clear();
+               }
+               return true;
            }
            
-           bool failed;
-           __gshared QueryException exception;
-           __gshared DList!(shared IPGresult) result;
+           bool failed = false;
+           string exception;
+           immutable(Bson)[] result;
        }
        
        shared struct ThreadIds
@@ -697,17 +761,189 @@ class AsyncPool : IConnectionPool
            }
        }
        
-       alias Tuple!(Tid, "sender", shared IConnection, "conn", shared IQuery, "query") QueryConnListElem;
-       alias DList!QueryConnListElem QueryConnList;
-       
        static void queringChecker(shared ILogger logger)
        {
+           struct Element
+           {
+               Tid sender;
+               shared IConnection conn;
+               
+               immutable Transaction transaction;
+               private size_t transactPos = 0;
+               private immutable string[] varsQueries;
+               private size_t localVars = 0;
+               private bool transStarted = false;
+               private bool transEnded = false;
+               private bool commandPosting = false;
+               
+               enum Stage
+               {
+                   MoreQueries,
+                   Proccessing,
+                   Finished
+               }
+               Stage stage = Stage.MoreQueries;
+               private Respond respond;
+               
+               this(Tid sender, shared IConnection conn, immutable Transaction transaction)
+               {
+                   this.sender = sender;
+                   this.conn = conn;
+                   this.transaction = transaction;
+                   
+                   foreach(key, value; transaction.vars)
+                   {
+                       varsQueries ~= `SET LOCAL "`~key~`" = '`~value~`';`; 
+                   } 
+               }
+               
+               void postQuery()
+               {
+                   assert(stage == Stage.MoreQueries); 
+                   
+                   if(!transStarted)
+                   {
+                       transStarted = true; 
+                       try conn.postQuery("BEGIN;", []);
+                       catch(QueryException e)
+                       {
+                           respond = Respond(e);                
+                           stage = Stage.Finished;
+                           return;
+                       }
+                       stage = Stage.Proccessing;                
+                       return;
+                   }
+                   
+                   if(localVars < varsQueries.length)
+                   {
+                       try 
+                       {    
+                           conn.postQuery(varsQueries[localVars], []); 
+                           localVars++; 
+                       }
+                       catch (QueryException e)
+                       {
+                          respond = Respond(e);                
+                          stage = Stage.Finished;
+                          return;
+                       }
+                       stage = Stage.Proccessing;                
+                       return;
+                   }
+                   
+                   if(transactPos < transaction.commands.length)
+                   {
+                       commandPosting = true;
+                       try 
+                       {    
+                           conn.postQuery(transaction.commands[transactPos], transaction.params.dup); 
+                           transactPos++; 
+                       }
+                       catch (QueryException e)
+                       {
+                          respond = Respond(e);                
+                          stage = Stage.Finished;
+                          return;
+                       }
+                       stage = Stage.Proccessing;                
+                       return;
+                   }
+                   
+                   if(!transEnded)
+                   {
+                       commandPosting = false;
+                       transEnded = true; 
+                       try conn.postQuery("COMMIT;", []);
+                       catch(QueryException e)
+                       {
+                           respond = Respond(e);                
+                           stage = Stage.Finished;
+                           return;
+                       }
+                       stage = Stage.Proccessing;                
+                       return;
+                   }
+                   
+                   assert(false);
+               }
+               
+               private bool hasMoreQueries()
+               {
+                   return !transStarted || !transEnded || localVars < varsQueries.length || transactPos < transaction.commands.length;
+               }
+               
+               private bool needCollectResult()
+               {
+                   return commandPosting;
+               }
+               
+               void stepQuery()
+               {
+                   assert(stage == Stage.Proccessing);                
+                   
+                   final switch(conn.pollQueringStatus())
+                   {
+                       case QueringStatus.Pending:
+                       { 
+                           return;                
+                       }
+                       case QueringStatus.Error:
+                       {
+                           try conn.pollQueryException();
+                           catch(QueryException e)
+                           {
+                               respond = Respond(e);
+                               stage = Stage.Finished;
+                               return;
+                           } 
+                           break;
+                       }
+                       case QueringStatus.Finished:
+                       {
+                           try 
+                           {
+                               auto res = conn.getQueryResult;
+                               if(needCollectResult) 
+                               {
+                                   if(!respond.collect(res))
+                                   {
+                                       stage = Stage.Finished;
+                                       return;
+                                   }
+                               }
+                                             
+                               if(!hasMoreQueries)
+                               {
+                                   stage = Stage.Finished; 
+                                   return;
+                               }
+                               stage = Stage.MoreQueries;
+                           }
+                           catch(QueryException e)
+                           {
+                               respond = Respond(e);
+                               stage = Stage.Finished;                            
+                               return;
+                           } 
+                           break;
+                       }
+                   }
+               }
+               
+               void sendRespond()
+               {
+                   sender.send(thisTid, cast(shared)transaction, respond);            
+               }
+           }
+           
+           
            try
            {
                setMaxMailboxSize(thisTid, 0, OnCrowding.block);
                Thread.getThis.isDaemon = true;
                
-               QueryConnList list;
+               DList!Element list;
                auto ids = ThreadIds.receive();
               
                bool exit = false;
@@ -721,17 +957,9 @@ class AsyncPool : IConnectionPool
                                exit = v; 
                                exitTid = sender;
                            }
-                       , (Tid sender, shared IConnection conn, shared Query query) 
+                       , (Tid sender, shared IConnection conn, shared Transaction transaction) 
                            {
-                               bool failed = false;
-                               try conn.postQuery(query.command.dup, query.params.dup);
-                               catch (QueryException e)
-                               {
-                                  failed = true;
-                                  sender.send(thisTid, cast(shared IQuery)query, Respond(e));
-                               }
-                               if(!failed)
-                                   list.insert(QueryConnListElem(sender, conn, query));
+                               list.insert(Element(sender, conn, cast(immutable)transaction));
                            }
                        , (Tid sender, string com) 
                            {
@@ -743,42 +971,33 @@ class AsyncPool : IConnectionPool
                        , (Variant v) { assert(false, "Unhandled message!"); }
                    )) {}
                    
-                   foreach(elem; list)
+                   DList!Element nextList;
+                   foreach(ref elem; list[])
                    {
-                       Tid sender = elem.sender;
-                       auto conn = elem.conn;
-                       auto query = elem.query;
-                       
-                       final switch(conn.pollQueringStatus())
+                       final switch(elem.stage)
                        {
-                           case QueringStatus.Pending:
+                           case Element.Stage.MoreQueries:
                            {
-                               continue;
-                           }
-                           case QueringStatus.Error:
-                           {
-                               try conn.pollQueryException();
-                               catch(QueryException e)
-                               {
-                                   sender.send(thisTid, query, Respond(e));
-                               } 
+                               elem.postQuery();
+                               nextList.insert(elem);
                                break;
                            }
-                           case QueringStatus.Finished:
+                           case Element.Stage.Proccessing:
                            {
-                               try sender.send(thisTid, query, Respond(conn.getQueryResult));
-                               catch(QueryException e)
-                               {
-                                   sender.send(thisTid, query, Respond(e));
-                               } 
+                               elem.stepQuery();
+                               nextList.insert(elem);
                                break;
+                           }
+                           case Element.Stage.Finished:
+                           {
+                               elem.sendRespond();
+                               
+                               if(exit) elem.conn.disconnect();
+                               else ids.freeCheckerId.send("add", elem.conn);
                            }
                        }
-                       
-                       list.removeOne(elem);
-                       if(exit) conn.disconnect();
-                       else ids.freeCheckerId.send("add", conn);
                    }
+                   list = nextList;
                    last = list.length;
                }
     

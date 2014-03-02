@@ -12,6 +12,7 @@ import db.connection;
 import db.pq.api;
 import std.range;
 import core.time;
+import vibe.data.bson;
 
 /**
 *    The exception is thrown when there is no any free connection
@@ -26,14 +27,14 @@ class ConnTimeoutException : Exception
 }
 
 /**
-*   The exception is thrown when invalid query interface is passed to
-*   $(B isQueryReady) and $(B getQuery) methods.
+*   The exception is thrown when invalid transaction interface is passed to
+*   $(B isTransactionReady) and $(B getTransaction) methods.
 */
-class UnknownQueryException : Exception
+class UnknownTransactionException : Exception
 {
     @safe pure nothrow this(string file = __FILE__, size_t line = __LINE__)
     {
-        super("There is no such query that is processing now!", file, line); 
+        super("There is no such transaction that is processing now!", file, line); 
     }
 }
 
@@ -70,47 +71,52 @@ interface IConnectionPool
     void addServer(string connString, size_t connNum) shared;
     
     /**
-    *   Synchronous blocking way to execute query.
+    *   Performs several SQL $(B commands) on single connection
+    *   wrapped in a transaction (BEGIN/COMMIT in PostgreSQL).
+    *   Each command should use '$n' notation to refer $(B params)
+    *   values. Before any command occurs in transaction the
+    *   local SQL variables is set from $(B vars). 
+    *
     *   Throws: ConnTimeoutException, QueryProcessingException
     */
-    InputRange!(shared IPGresult) execQuery(string command, string[] params) shared;
+    InputRange!(immutable Bson) execTransaction(string[] commands, string[] params = [], string[string] vars = AssociativeArray!(string, string)()) shared;
     
     /**
-    *   Asynchronous way to execute query. User can check
-    *   query status by calling $(B isQueryReady) method.
-    *   When $(B isQueryReady) method returns true, the
-    *   query can be finalized by $(B getQuery) method.
+    *   Asynchronous way to execute transaction. User can check
+    *   transaction status by calling $(B isTransactionReady) method.
+    *   When $(B isTransactionReady) method returns true, the
+    *   transaction can be finalized by $(B getTransaction) method.
     * 
     *   Returns: Specific interface to distinct the query
     *            among others.
-    *   See_Also: isQueryReady, getQuery.
+    *   See_Also: isTransactionReady, getTransaction.
     *   Throws: ConnTimeoutException
     */
-    shared(IQuery) postQuery(string command, string[] params) shared;
+    immutable(ITransaction) postTransaction(string[] commands, string[] params = [], string[string] vars = AssociativeArray!(string, string)()) shared;
     
     /**
-    *   Returns true if query processing is finished (doesn't
-    *   matter the actual reason, error or query object is invalid,
+    *   Returns true if transaction processing is finished (doesn't
+    *   matter the actual reason, error or transaction object is invalid,
     *   or successful completion).
     *
-    *   If the method returns true, then $(B getQuery) method
+    *   If the method returns true, then $(B getTransaction) method
     *   can be called in non-blocking manner.
     *
-    *   See_Also: postQuery, getQuery.
+    *   See_Also: postTransaction, getTransaction.
     */
-    bool isQueryReady(shared IQuery query) nothrow shared;
+    bool isTransactionReady(immutable ITransaction transaction) shared;
     
     /**
-    *   Retrieves SQL result from specified query.
+    *   Retrieves SQL result from specified transaction.
     *   
-    *   If previously called $(B isQueryReady) returns true,
+    *   If previously called $(B isTransactionReady) returns true,
     *   then the method is not blocking, else it falls back
-    *   to $(B execQuery) behave.
+    *   to $(B execTransaction) behavior.
     *
-    *   See_Also: postQuery, isQueryReady
+    *   See_Also: postTransaction, isTransactionReady
     *   Throws: UnknownQueryException, QueryProcessingException
     */
-    InputRange!(shared IPGresult) getQuery(shared IQuery query) shared;
+    InputRange!(immutable Bson) getTransaction(immutable ITransaction transaction) shared;
     
     /**
     *    If connection to a SQL server is down,
@@ -156,5 +162,5 @@ interface IConnectionPool
     */
     protected shared(IConnection) fetchFreeConnection() shared;
     
-    protected interface IQuery {}
+    protected interface ITransaction {}
 }

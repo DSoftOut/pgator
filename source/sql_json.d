@@ -19,7 +19,7 @@ struct Entry
 	string method;
 	
 	@required
-	string sql_query;
+	string[] sql_queries;
 	
 	@required
 	uint arg_num;

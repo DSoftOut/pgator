@@ -4,6 +4,7 @@
 *
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
+*        , NCrashed <ncrashed@gmail.com>
 */
 module database;
 
@@ -11,6 +12,8 @@ import core.time;
 import core.thread;
 
 import std.string;
+import std.range;
+import std.array;
 
 import vibe.data.bson;
 
@@ -102,52 +105,18 @@ shared class Database
 				throw new RpcInvalidParams();
 			}
 			
-			string queryStr; 
-			
-			if (entry.set_username && req.auth is null)
-			{
-				throw new RpcServerError("Authorization required");
-			}
-			else
-			{
-				queryStr = "BEGIN; ";
-				
-				foreach(key; req.auth.byKey())
-				{
-					queryStr ~= format("SET LOCAL %s = '%s'; ", key, req.auth[key]);
-				}
-				
-				queryStr ~= entry.sql_query~ " COMMIT;";
-			}
-			
 			logger.logInfo("Querying pool");
 			
-			auto frombd = tryEx!RpcServerError(pool.execQuery(queryStr, req.params));
+			auto irange = tryEx!RpcServerError(pool.execTransaction(entry.sql_queries, req.params, req.auth));
 			
-			Bson[] arr = new Bson[0];
-			
-			RpcServerError error = null;
-			
-			foreach(each; frombd)
+			auto builder = appender!(Bson[]);
+			foreach(ibson; irange)
 			{
-				if (each.resultStatus != ExecStatusType.PGRES_TUPLES_OK)
-				{
-					error =  new RpcServerError(each.resultErrorMessage);
-				}
-				
-				arr ~= each.asBson();
+			    builder.put(Bson.fromJson(ibson.toJson));
 			}
 			
-			if (error is null)
-			{
-				RpcResult result = RpcResult(Bson(arr));
-			
-				res = RpcResponse(req.id, result);
-			}
-			else
-			{
-				res = RpcResponse(req.id, RpcError(error));
-			}
+			RpcResult result = RpcResult(Bson(builder.data));
+			res = RpcResponse(req.id, result);
 
 			shared RpcResponse cacheRes = res.toShared();
 			
@@ -218,28 +187,40 @@ shared class Database
 	*/
 	void loadJsonSqlTable()
 	{
+	    Bson[] convertRowEchelon(const Bson from)
+	    {
+	        auto map = from.deserializeBson!(Bson[][string]);
+	        Bson[string][] result;
+	        foreach(colName, colVals; map)
+	        {
+	            foreach(row, val; colVals)
+	            {
+	                if(result.length <= row)
+	                {
+	                    result ~= [colName:val];
+	                }
+	                else
+	                {
+	                    result[row][colName] = val;
+                    }
+                }
+	        }
+	        return result.map!(a => Bson(a)).array;
+	    }
+	    
 		string queryStr = "SELECT * FROM "~appConfig.sqlJsonTable;
 		
 		shared SqlJsonTable sqlTable = new shared SqlJsonTable();
 		
 		try
 		{
-			auto frombd = pool.execQuery(queryStr, []);
+			auto arri = pool.execTransaction([queryStr]);
 			
-			foreach(entry; frombd)
+			foreach(ibson; arri)
 			{			
-				if (entry.resultStatus != ExecStatusType.PGRES_TUPLES_OK)
+				foreach(v; convertRowEchelon(ibson))
 				{
-					throw new Exception(entry.resultErrorMessage);
-				}
-				
-				auto arr = entry.asNatBson().to!(Bson[]);
-				
-				foreach(v; arr)
-				{
-					Entry ent = deserializeFromJson!Entry(v.toJson);
-					
-					sqlTable.add(ent);
+					sqlTable.add(deserializeFromJson!Entry(v.toJson));
 				}
 			}
 			

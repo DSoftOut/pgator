@@ -146,7 +146,12 @@ interface IPGresult
     */
     PQType ftype(size_t colNumber) const;
     
-    final Bson asBson()
+    /**
+    *   Creates Bson from result in column echelon order.
+    *   
+    *   Bson consists of named arrays of column values.
+    */
+    final Bson asColumnBson()
     {
         Bson[string] fields;
         foreach(i; 0..nfields)
@@ -163,12 +168,13 @@ interface IPGresult
     }
     
     /**
-    * Create Bson from result in native order. <br>
-    * Each row in result will be represented as structure with column fields
+    * Creates Bson from result in row echelon order. 
+    *
+    * Each row in result is represented as structure with column fields.
     *
     * Authors: Zaramzan <shamyan.roman@gmail.com>
     */
-    final Bson asNatBson()
+    final Bson asRowBson()
     {
     	Bson[] arr = new Bson[0];
     	

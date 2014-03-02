@@ -110,7 +110,7 @@ synchronized class CLogger : ILogger
 
         try
         {
-            mLogFile = new std.stream.File(mLocation, FileMode.Out);
+            mLogFile = new std.stream.File(mLocation, FileMode.OutNew);
         } 
         catch(OpenException e)
         {

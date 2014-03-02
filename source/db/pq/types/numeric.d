@@ -289,16 +289,10 @@ version(IntegrationTest2)
             }
 
             logger.logInfo(query);
-            auto results = pool.execQuery(query, []).array;
-            assert(results.length == 1);
-            
-            auto res = results[0];
-            logger.logInfo(res.resultStatus.text);
-            assert(res.resultStatus == ExecStatusType.PGRES_COMMAND_OK 
-                || res.resultStatus == ExecStatusType.PGRES_TUPLES_OK, res.resultErrorMessage);
-            
-            logger.logInfo(text(results[0].asBson));
-            auto node = results[0].asBson.get!(Bson[string])["test_field"][0];
+            auto res = cast()pool.execTransaction([query]).front;
+
+            logger.logInfo(text(res));
+            auto node = res.get!(Bson[string])["test_field"][0];
             if(node.type == Bson.Type.double_)
             {
                 auto remote = node.get!double;
