@@ -153,29 +153,31 @@ class Application
 		router.any("*", del);
 	}
 	
-	bool setupDatabase()
+	void setupDatabase()
 	{
-		try
-		{
-			database = new shared Database(logger, appConfig);
-			
-			database.setupPool();
-			
-			return true;
-		}
-		catch (Throwable e)
-		{
-			logger.logError("Database error: "~e.msg);
-		}
+		database = new shared Database(logger, appConfig);
 		
-		return false;
+		database.setupPool();
 	}
 	
 	void configure()
 	{
 		enforce(loadAppConfig, "Failed to use config");
 		
-		enforceEx!InternalError(setupDatabase, "Failed to use database");
+		setupDatabase();
+		
+		try
+		{
+			database.loadJsonSqlTable();
+		}
+		catch(Throwable e)
+		{
+			logger.logError("Server error:"~to!string(e));
+			
+			internalError = true;
+		}
+		
+		database.createCache();
 		
 		setupSettings();
 		
@@ -187,16 +189,14 @@ class Application
 		try
 		{	
 			configure();
-		}
-		catch(InternalError e)
-		{
-			logger.logError("Server error:"~to!string(e));
 			
-			internalError = true;
+			listenHTTP(settings, router);
+		
+			logger.logInfo("Starting event loop");
 			
-			setupSettings();
+			running = true;
 			
-			setupRouter();
+			runEventLoop();
 		}
 		catch(Throwable e)
 		{
@@ -204,15 +204,6 @@ class Application
 			
 			finalize();
 		}
-		
-		
-		listenHTTP(settings, router);
-		
-		logger.logInfo("Starting event loop");
-		
-		running = true;
-		
-		runEventLoop();
 	}
 	
 	void stopServer()
@@ -251,16 +242,7 @@ class Application
 	
 	/// handles HTTP requests
 	void handler(HTTPServerRequest req, HTTPServerResponse res)
-	{
-		if (internalError)
-		{
-			res.statusCode = HTTPStatus.internalServerError;
-			
-			res.statusPhrase = "Failed to use database";
-			
-			return;
-		}
-		
+	{	
 		atomicOp!"+="(conns, 1);
 		
 		scope(exit)
@@ -272,14 +254,16 @@ class Application
 		
 		if (ifMaxConn)
 		{
-			res.statusCode = HTTPStatus.serviceUnavailable;
-			return;
+			res.statusPhrase = "Reached maximum connections";
+			throw new HTTPStatusException(HTTPStatus.serviceUnavailable,
+				res.statusPhrase);
 		}
 		
 		if (req.contentType != CONTENT_TYPE)
 		{
-			res.statusCode = HTTPStatus.notImplemented;
-			return;
+			res.statusPhrase = "Supported only application/json content type";
+			throw new HTTPStatusException(HTTPStatus.notImplemented,
+				res.statusPhrase);
 		}
 		
 		RpcRequest rpcReq;
@@ -302,6 +286,14 @@ class Application
 				rpcReq.auth[appConfig.sqlAuth[0]] = user;
 				
 				rpcReq.auth[appConfig.sqlAuth[1]] = password;
+			}
+			
+			if (internalError)
+			{				
+				res.statusPhrase = "Failed to use table: "~appConfig.sqlJsonTable;
+				
+				throw new HTTPStatusException(HTTPStatus.internalServerError,
+					res.statusPhrase);
 			}
 			
 			auto rpcRes = database.query(rpcReq);
@@ -364,13 +356,4 @@ class Application
 	HTTPServerSettings settings;
 	
 	URLRouter router;
-}
-
-class InternalError:Exception
-{
-	@safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
-	{
-		super(msg, file, line, next); 
-	}
-
 }

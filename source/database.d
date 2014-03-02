@@ -62,11 +62,82 @@ shared class Database
 			
 			logger.logInfo("Connecting to " ~ server.name);
 		}
-		
-		loadJsonSqlTable();
-		
-		createCache();
 	}
+	
+	/// allocate shared cache
+	void createCache()
+	{
+		cache = new shared Cache(table); 
+	}
+	
+	/**
+	* Loads main table from database
+	*
+	* Throws:
+	* 	on $(B ConnTimeoutException) tries to reconnect
+	*
+	* Authors: 
+	*	Zaramzan <shamyan.roman@gmail.com>
+	* 	Ncrashed <ncrashed@gmail.com>
+	*/
+	void loadJsonSqlTable()
+	{
+	    Bson[] convertRowEchelon(const Bson from)
+	    {
+	        auto map = from.deserializeBson!(Bson[][string]);
+	        Bson[string][] result;
+	        foreach(colName, colVals; map)
+	        {
+	            foreach(row, val; colVals)
+	            {
+	                if(result.length <= row)
+	                {
+	                    result ~= [colName:val];
+	                }
+	                else
+	                {
+	                    result[row][colName] = val;
+                    }
+                }
+	        }
+	        return result.map!(a => Bson(a)).array;
+	    }
+	    
+		string queryStr = "SELECT * FROM "~appConfig.sqlJsonTable;
+		
+		shared SqlJsonTable sqlTable = new shared SqlJsonTable();
+		
+		void load()
+		{
+			auto arri = pool.execTransaction([queryStr]);
+			
+			foreach(ibson; arri)
+			{			
+				foreach(v; convertRowEchelon(ibson))
+				{
+					sqlTable.add(deserializeFromJson!Entry(v.toJson));
+				}
+			}
+			
+			table = sqlTable;
+			
+			logger.logInfo("Table loaded");
+		}
+		
+		try
+		{
+			load();
+		}
+		catch(ConnTimeoutException ex)
+		{
+		    logger.logError("There is no free connections in the pool, retry over 1 sec...");
+		    
+		    Thread.sleep(1.seconds);
+		    
+		    load();
+		}
+	}
+	
 	
 	/// finalize async db.pool
 	void finalizePool()
@@ -167,80 +238,6 @@ shared class Database
 		auto provider = new shared PQConnProvider(logger, new PostgreSQL);
 		
 		pool = new shared AsyncPool(logger, provider, reTime, timeout);
-	}
-	
-	/// allocate shared cache
-	void createCache()
-	{
-		cache = new shared Cache(table); 
-	}
-	
-	/**
-	* Loads main table from database
-	*
-	* Throws:
-	* 	on $(B ConnTimeoutException) tries to reconnect
-	*
-	* Authors: 
-	*	Zaramzan <shamyan.roman@gmail.com>
-	* 	Ncrashed <ncrashed@gmail.com>
-	*/
-	void loadJsonSqlTable()
-	{
-	    Bson[] convertRowEchelon(const Bson from)
-	    {
-	        auto map = from.deserializeBson!(Bson[][string]);
-	        Bson[string][] result;
-	        foreach(colName, colVals; map)
-	        {
-	            foreach(row, val; colVals)
-	            {
-	                if(result.length <= row)
-	                {
-	                    result ~= [colName:val];
-	                }
-	                else
-	                {
-	                    result[row][colName] = val;
-                    }
-                }
-	        }
-	        return result.map!(a => Bson(a)).array;
-	    }
-	    
-		string queryStr = "SELECT * FROM "~appConfig.sqlJsonTable;
-		
-		shared SqlJsonTable sqlTable = new shared SqlJsonTable();
-		
-		void load()
-		{
-			auto arri = pool.execTransaction([queryStr]);
-			
-			foreach(ibson; arri)
-			{			
-				foreach(v; convertRowEchelon(ibson))
-				{
-					sqlTable.add(deserializeFromJson!Entry(v.toJson));
-				}
-			}
-			
-			table = sqlTable;
-			
-			logger.logInfo("Table loaded");
-		}
-		
-		try
-		{
-			load();
-		}
-		catch(ConnTimeoutException ex)
-		{
-		    logger.logError("There is no free connections in the pool, retry over 1 sec...");
-		    
-		    Thread.sleep(1.seconds);
-		    
-		    load();
-		}
 	}
 	
 	IConnectionPool pool;
