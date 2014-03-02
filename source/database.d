@@ -151,22 +151,22 @@ shared class Database
 	//called once
 	void init()
 	{
-		Duration reTime = dur!"msecs"(appConfig.sqlTimeout);
+		Duration timeout = dur!"msecs"(appConfig.sqlTimeout);
 		
-		Duration freeTime;
+		Duration reTime;
 		
 		if (appConfig.sqlReconnectTime > 0)
 		{
-			freeTime = dur!"msecs"(appConfig.sqlReconnectTime);
+			reTime = dur!"msecs"(appConfig.sqlReconnectTime);
 		}
 		else
 		{
-			freeTime = reTime;
+			reTime = timeout;
 		}
 
 		auto provider = new shared PQConnProvider(logger, new PostgreSQL);
 		
-		pool = new shared AsyncPool(logger, provider, reTime, freeTime);
+		pool = new shared AsyncPool(logger, provider, reTime, timeout);
 	}
 	
 	/// allocate shared cache
