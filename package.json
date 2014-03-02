@@ -7,7 +7,7 @@
 		,"Shamyan Roman (Zaramzan)"
 		],
 	"targetPath": "bin",
-	"versions": ["Have_vibe_d", "Have_Int64_TimeStamp"],
+	"versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
 	"dependencies": {
 		"vibe-d" : "~master",
 		"derelict-pq": "~master",
@@ -17,8 +17,7 @@
 	"configurations": [
 		{
 			"name": "production",
-			"targetType": "executable",
-			"versions": ["VibeCustomMain"]
+			"targetType": "executable"
 		},
 		{
 			"name": "test1",
@@ -35,7 +34,7 @@
 			"description": "Simple json-rpc client to test the server",
 			"targetType": "executable",
 			"targetName": "rpc-sql-proxy-client",
-			"versions": ["RpcClient", "VibeCustomMain"]
+			"versions": ["RpcClient"]
 		}
 	]
 }
