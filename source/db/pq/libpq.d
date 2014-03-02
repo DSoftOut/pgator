@@ -286,7 +286,7 @@ synchronized class CPGconn : IPGconn
     {
         auto res = PQresetStart(conn);
         if(res == 1)
-            throw new PGReconnectException();
+            throw new PGReconnectException(errorMessage);
     }
     
     /**

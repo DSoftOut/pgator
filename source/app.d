@@ -47,14 +47,14 @@ else version(IntegrationTest1)
         logger.logInfo("PostgreSQL was inited.");
         auto connProvider = new shared PQConnProvider(logger, api);
         
-        auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(1));
+        auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(5), dur!"seconds"(5));
         scope(exit) pool.finalize();
         logger.logInfo("AssyncPool was created.");
         
         pool.addServer(connString, connCount);
         logger.logInfo(text(connCount, " new connections were added to the pool."));
         
-        Thread.sleep(dur!"seconds"(5));
+        Thread.sleep(dur!"seconds"(30));
         
         logger.logInfo("Test ended. Results:"); 
         logger.logInfo(text("active connections:   ", pool.activeConnections));

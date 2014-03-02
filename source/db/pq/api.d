@@ -44,9 +44,9 @@ class PGMemoryLackException : PGException
 */
 class PGReconnectException : PGException
 {
-    @safe pure nothrow this(string file = __FILE__, size_t line = __LINE__)
+    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__)
     {
-        super("PostgreSQL API: failed to reconnect to SQL server!", file, line); 
+        super(msg, file, line); 
     }
 }
 

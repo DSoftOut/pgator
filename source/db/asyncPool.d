@@ -68,7 +68,8 @@ class AsyncPool : IConnectionPool
             {
                 failed = true;
                 logger.logError(e.msg);
-                logger.logInfo("Will retry to connect to "~e.server~" over "~to!string(reconnectTime.seconds)~" seconds.");
+                logger.logInfo(text("Will retry to connect to ", e.server, " over "
+                       , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds."));
                
                 auto whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
                 failedList.insert(TimedConnListElem(conn, whenRetry));
@@ -536,7 +537,7 @@ class AsyncPool : IConnectionPool
                            }
                        , (string com, shared(IConnection) conn, TickDuration time) { 
                            if(com == "add")
-                           {
+                           {                 
                               list.insert(TimedConnListElem(conn, time));
                            }}
                        , (Tid sender, string com) {
@@ -548,29 +549,37 @@ class AsyncPool : IConnectionPool
                        , (Variant v) { assert(false, "Unhandled message!"); }
                    )) {}
                    
-                   foreach(ref elem; list)
+                   TimedConnList nextList;
+                   foreach(elem; list)
                    {
                        auto conn = elem.conn;
                        auto time = elem.duration;
-                       
+
                        if(TickDuration.currSystemTick > time)
                        {
+                           
                            try
                            {
                                scope(success)
                                {
-                                   list.removeOne(elem);
                                    ids.connectingCheckerId.send("add", conn);
                                }
+                               
                                conn.reconnect();      
                            } catch(ConnectException e)
                            {
-                               logger.logInfo("Connection to server "~e.server~" is still failing! Will retry over "
-                                   ~to!string(reconnectTime.seconds)~" seconds.");
-                               elem.duration = TickDuration.currSystemTick + cast(TickDuration)reconnectTime; 
+                               logger.logInfo(text("Connection to server ",e.server," is still failing! Will retry over "
+                                   , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds."));
+                               elem.duration = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
+                               nextList.insert(elem);
                            }
-                       }
-                   }  
+                       } else
+                       {
+                           nextList.insert(elem);
+                       } 
+                   }
+                   list.clear;  
+                   list = nextList;
                }
                
                scope(exit)
@@ -651,7 +660,8 @@ class AsyncPool : IConnectionPool
                            catch(ConnectException e)
                            {
                                logger.logError(e.msg);
-                               logger.logInfo("Will retry to connect to "~e.server~" over "~to!string(reconnectTime.seconds)~" seconds.");
+                               logger.logInfo(text("Will retry to connect to ", e.server, " over "
+                                       , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds."));
                                list.removeOne(conn);
                            
                                TickDuration whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
@@ -726,7 +736,8 @@ class AsyncPool : IConnectionPool
                                catch(ConnectException e)
                                {
                                    logger.logError(e.msg);
-                                   logger.logInfo("Will retry to connect to "~e.server~" over "~to!string(reconnectTime.seconds)~" seconds.");
+                                   logger.logInfo(text("Will retry to connect to ", e.server, " over "
+                                       , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds."));
                                    list.removeOne(conn);
                                
                                    TickDuration whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
