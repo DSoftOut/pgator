@@ -172,7 +172,7 @@ class Application
 		}
 		catch(Throwable e)
 		{
-			logger.logError("Server error:"~to!string(e));
+			logger.logError("Server error:"~e.msg);
 			
 			internalError = true;
 		}
