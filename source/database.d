@@ -107,7 +107,7 @@ shared class Database
 						
 			logger.logInfo("Querying pool");
 			
-			auto irange = tryEx!RpcServerError(pool.execTransaction(entry.sql_queries, req.params, req.auth));
+			auto irange = tryEx!(RpcServerError)(pool.execTransaction(entry.sql_queries, req.params, req.auth));
 			
 			auto builder = appender!(Bson[]);
 			foreach(ibson; irange)

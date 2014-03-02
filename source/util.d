@@ -221,6 +221,28 @@ template toUnqual(T)
 	}
 }
 
+version(unittest)
+{
+	bool thrower()
+	{
+		throw new Exception("Exception");
+	}
+	
+	class TestException: Exception
+	{
+		@safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+		{
+			super(msg, file, line, next); 
+		}
+	}
+}
+
+unittest
+{
+	import std.exception;
+	
+	assertThrown!TestException(tryEx!TestException(thrower()));
+}
 
 
 /// fromStringz

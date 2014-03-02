@@ -165,7 +165,7 @@ class Application
 		}
 		catch (Throwable e)
 		{
-			logger.logError("Database error:"~e.msg);
+			logger.logError("Database error: "~e.msg);
 		}
 		
 		return false;
@@ -173,9 +173,9 @@ class Application
 	
 	void configure()
 	{
-		enforce(loadAppConfig, "Failed to load config");
+		enforce(loadAppConfig, "Failed to use config");
 		
-		enforce(setupDatabase, "Failed to use database");
+		enforceEx!InternalError(setupDatabase, "Failed to use database");
 		
 		setupSettings();
 		
@@ -187,14 +187,16 @@ class Application
 		try
 		{	
 			configure();
+		}
+		catch(InternalError e)
+		{
+			logger.logError("Server error:"~to!string(e));
 			
-			listenHTTP(settings, router);
+			internalError = true;
 			
-			logger.logInfo("Starting event loop");
+			setupSettings();
 			
-			running = true;
-			
-			runEventLoop();
+			setupRouter();
 		}
 		catch(Throwable e)
 		{
@@ -202,6 +204,15 @@ class Application
 			
 			finalize();
 		}
+		
+		
+		listenHTTP(settings, router);
+		
+		logger.logInfo("Starting event loop");
+		
+		running = true;
+		
+		runEventLoop();
 	}
 	
 	void stopServer()
@@ -241,6 +252,15 @@ class Application
 	/// handles HTTP requests
 	void handler(HTTPServerRequest req, HTTPServerResponse res)
 	{
+		if (internalError)
+		{
+			res.statusCode = HTTPStatus.internalServerError;
+			
+			res.statusPhrase = "Failed to use database";
+			
+			return;
+		}
+		
 		atomicOp!"+="(conns, 1);
 		
 		scope(exit)
@@ -337,9 +357,20 @@ class Application
 	
 	bool running;
 	
+	bool internalError;
+	
 	__gshared private:
 	
 	HTTPServerSettings settings;
 	
 	URLRouter router;
+}
+
+class InternalError:Exception
+{
+	@safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+	{
+		super(msg, file, line, next); 
+	}
+
 }
