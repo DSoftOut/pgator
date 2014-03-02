@@ -104,7 +104,7 @@ shared class Database
 			{
 				throw new RpcInvalidParams();
 			}
-			
+						
 			logger.logInfo("Querying pool");
 			
 			auto irange = tryEx!RpcServerError(pool.execTransaction(entry.sql_queries, req.params, req.auth));
@@ -212,7 +212,7 @@ shared class Database
 		
 		shared SqlJsonTable sqlTable = new shared SqlJsonTable();
 		
-		try
+		void load()
 		{
 			auto arri = pool.execTransaction([queryStr]);
 			
@@ -225,11 +225,21 @@ shared class Database
 			}
 			
 			table = sqlTable;
+			
+			logger.logInfo("Table loaded");
+		}
+		
+		try
+		{
+			load();
 		}
 		catch(ConnTimeoutException ex)
 		{
 		    logger.logError("There is no free connections in the pool, retry over 1 sec...");
+		    
 		    Thread.sleep(1.seconds);
+		    
+		    load();
 		}
 	}
 	
