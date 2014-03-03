@@ -72,53 +72,63 @@ shared class SqlJsonTable
 	
 	bool need_cache(string method)
 	{
-		scope(failure)
-		{
-			return false;
-		}
+		auto p = method in map;
 		
-		return map[method].need_cache && map[method].read_only;
+		if (p is null) return false;
+		
+		auto val = *p;
+		
+		return val.need_cache && val.read_only;
 	}
 	
 	bool read_only(string method)
 	{
-		scope(failure)
-		{
-			return false;
-		}
+		auto p = method in map;
 		
-		return map[method].read_only;
+		if (p is null) return false;
+		
+		auto val = *p;
+		
+		return val.read_only;
 	}
 	
 	string[] reset_caches(string method)
 	{
-		scope(failure)
-		{
-			return new string[0];
-		}
+		auto p = method in map;
 		
-		return cast(string[])(map[method].reset_caches);
+		if (p is null) return null;
+		
+		auto val = *p;
+		
+		return cast(string[])(val.reset_caches);
 	}
 	
 	string[] reset_by(string method)
 	{
-		scope(failure)
-		{
-			return new string[0];
-		}
+		auto p = method in map;
 		
-		return cast(string[])(map[method].reset_by);
+		if (p is null) return null;
+		
+		auto val = *p;
+		
+		return cast(string[])(val.reset_by);
 	}
 	
 	string[] needDrop(string method)
 	{
 		string[] arr = new string[0];
 		
-		if (need_cache(method))
+		auto p = method in map;
+		
+		if (p is null) return arr;
+		
+		auto val = *p;
+		
+		if (val.need_cache)
 		{
-			if (!read_only(method))
+			if (!val.read_only)
 			{
-				foreach(str1; reset_caches(method))
+				foreach(str1; val.reset_caches)
 				{
 					foreach(key; map.byKey())
 					{
@@ -126,7 +136,7 @@ shared class SqlJsonTable
 						{
 							if (str1 == str2) 
 							{
-								arr ~= map[key].method;
+								arr ~= key; //key is method
 								
 								break;
 							}
@@ -157,12 +167,11 @@ shared class SqlJsonTable
 	
 	Entry getEntry(string method)
 	{
-		scope(failure)
-		{
-			return Entry();
-		}
+		auto p = method in map;
 		
-		return cast(Entry) map[method];
+		if (p is null) return Entry();
+		
+		return cast(Entry) *p;
 	}
 	
 	bool methodFound(string method)
