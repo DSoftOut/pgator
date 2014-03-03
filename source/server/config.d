@@ -9,7 +9,7 @@
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 *
 */
-module config;
+module server.config;
 
 import std.exception;
 import std.stdio;

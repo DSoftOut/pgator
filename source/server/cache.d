@@ -6,7 +6,7 @@
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 *
 */
-module cache;
+module server.cache;
 
 import core.atomic;
 import core.sync.rwmutex;
@@ -21,7 +21,7 @@ import json_rpc.response;
 import json_rpc.request;
 import json_rpc.error;
 
-import sql_json;
+import server.sql_json;
 
 import util;
 

@@ -6,7 +6,7 @@
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 *
 */
-module server;
+module server.server;
 
 import core.atomic;
 
@@ -25,8 +25,9 @@ import json_rpc.request;
 import json_rpc.error;
 import json_rpc.response;
 
-import database;
-import config;
+import server.database;
+import server.config;
+
 import util;
 import log;
 

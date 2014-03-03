@@ -7,7 +7,7 @@
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 *
 */
-module sql_json;
+module server.sql_json;
 
 import std.traits;
 

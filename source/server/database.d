@@ -6,7 +6,7 @@
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 *        , NCrashed <ncrashed@gmail.com>
 */
-module database;
+module server.database;
 
 import core.time;
 import core.thread;
@@ -28,10 +28,11 @@ import json_rpc.error;
 import json_rpc.request;
 import json_rpc.response;
 
-import cache;
-import config;
+import server.cache;
+import server.config;
+import server.sql_json;
+
 import log;
-import sql_json;
 import util;
 
 

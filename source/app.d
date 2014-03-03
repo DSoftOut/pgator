@@ -170,9 +170,12 @@ else
 	import std.stdio;
 	import std.getopt;
 	import std.functional;
+	
+	import server.server;
+	
 	import daemon;
 	import terminal;
-	import server;
+	
 
 	immutable help = `
 	Server that transforms JSON-RPC calls in SQL queries for PostgreSQL.
