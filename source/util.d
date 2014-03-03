@@ -31,6 +31,29 @@ enum required;
 enum possible;
 
 
+/**
+* Deserializer from Json to type T<br>
+*
+* Supported only structs yet
+*
+* Example:
+* ----
+* struct S
+* {
+*    @required
+*	int a; //get value from Json. Throws RequiredFieldException
+*
+*    @possible
+*	int b; //tries to get value from Json
+*
+*	int c; //will be ignored
+* }
+*
+* auto s = deserializeFromJson!S(json);
+* ------
+*
+* Authors: Zaramzan <shamyan.roman@gmail.com>
+*/
 T deserializeFromJson(T)(Json src)
 {
 	T ret;
@@ -119,7 +142,7 @@ T deserializeFromJson(T)(Json src)
 	return ret;
 }
 
-static bool isRequired(alias mem, T)()
+private bool isRequired(alias mem, T)()
 {
 	foreach(attr;__traits(getAttributes, mixin("T."~mem)))
 	{
@@ -132,7 +155,7 @@ static bool isRequired(alias mem, T)()
 	return false;
 }
 
-static bool isOptional(alias mem, T)()
+private bool isOptional(alias mem, T)()
 {
 	foreach(attr;__traits(getAttributes, mixin("T."~mem)))
 	{
@@ -161,6 +184,7 @@ class RequiredJsonObject:Exception
 	}
 }
 
+/// tries to call function. On exception throws Ex, otherwise return func() result
 template tryEx(Ex, alias func)
 {
 	static assert(isSomeFunction!func, "func must be some function");
@@ -186,6 +210,7 @@ template tryEx(Ex, alias func)
 	alias foo!P tryEx;
 }
 
+/// tries to evaluate par. On exception throws Ex, otherwise return par
 T tryEx(Ex, T)(lazy T par)
 {
 	static assert(is(Ex:Exception), "Ex must be Exception");
@@ -200,10 +225,10 @@ T tryEx(Ex, T)(lazy T par)
 	}
 }
 
+/// cast to shared type T
 template toShared(T)
 {
 	private alias Unqual!T P;
-	
 	
 	shared(P) toShared(T par)
 	{
@@ -211,6 +236,7 @@ template toShared(T)
 	}
 }
 
+/// cast to unqual type T
 template toUnqual(T)
 {
 	private alias Unqual!T P;
