@@ -14,6 +14,7 @@ import core.thread;
 import std.string;
 import std.range;
 import std.array;
+import std.algorithm;
 
 import vibe.data.bson;
 
@@ -84,9 +85,9 @@ shared class Database
 	{
 	    Bson[] convertRowEchelon(const Bson from)
 	    {
-	        auto map = from.deserializeBson!(Bson[][string]);
+	        auto m = from.deserializeBson!(Bson[][string]);
 	        Bson[string][] result;
-	        foreach(colName, colVals; map)
+	        foreach(colName, colVals; m)
 	        {
 	            foreach(row, val; colVals)
 	            {
@@ -178,16 +179,27 @@ shared class Database
 						
 			logger.logInfo("Querying pool");
 			
-			auto irange = tryEx!(RpcServerError)(pool.execTransaction(entry.sql_queries, req.params, req.auth));
-			
-			auto builder = appender!(Bson[]);
-			foreach(ibson; irange)
-			{
-			    builder.put(Bson.fromJson(ibson.toJson));
+			try
+			{			
+				auto irange = pool.execTransaction(entry.sql_queries, req.params, req.auth);
+				
+				auto builder = appender!(Bson[]);
+				foreach(ibson; irange)
+				{
+				    builder.put(Bson.fromJson(ibson.toJson));
+				}
+				
+				RpcResult result = RpcResult(Bson(builder.data));
+				res = RpcResponse(req.id, result);
 			}
-			
-			RpcResult result = RpcResult(Bson(builder.data));
-			res = RpcResponse(req.id, result);
+			catch (QueryProcessingException e)
+			{
+				res = RpcResponse(req.id, RpcError(RPC_ERROR_CODE.SERVER_ERROR, e.msg));
+			}
+			catch (Exception e)
+			{
+				throw new RpcServerError(e.msg);
+			}
 
 			shared RpcResponse cacheRes = res.toShared();
 			
@@ -208,7 +220,7 @@ shared class Database
 	{
 		foreach(meth; table.needDrop(method))
 		{
-			logger.logInfo("Reseting method:"~method);
+			logger.logInfo("Reseting method: "~meth);
 			cache.reset(meth);
 		}
 	}
