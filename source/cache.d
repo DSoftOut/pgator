@@ -70,12 +70,7 @@ shared class Cache
 	}
 	
 	bool reset(RpcRequest req)
-	{		
-		if (!table.needDrop(req.method))
-		{
-			return false;
-		}
-		
+	{			
 		synchronized (mutex.writer)
 		{
 			if (req.method in cache)
@@ -88,12 +83,7 @@ shared class Cache
 	}
 	
 	bool reset(string method)
-	{
-		if (!table.needDrop(method))
-		{
-			return false;
-		}
-		
+	{		
 		synchronized (mutex.writer)
 		{	
 			return cache.remove(method);
