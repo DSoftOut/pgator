@@ -1,0 +1,14 @@
+PROJECTNAME = Rpc-sql-proxy
+REFERENCETOP = example.example.html
+REPOSRCTREE = https://github.com/DSoftOut/rpc-sql-proxy/tree/master
+TITLEBARTEXT = <a href="https://github.com/DSoftOut/rpc-sql-proxy/tree/master">Github Page</a>
+RESOURCEROOT =
+ISSUETRACKER = https://github.com/DSoftOut/rpc-sql-proxy/issues
+DEFAULTPACKAGE = app
+PACKAGESEP = .
+FAVICON = $(RESOURCEROOT)assets/ico/favicon.ico
+LOGOSRC = $(RESOURCEROOT)assets/img/icon-github.png
+LOGOALT = $(PROJECTNAME)
+LOGOLINK = $(REFERENCETOP)
+COPYRIGHT = DSoftOut Team
+COPYRIGHTFOOTER = &copy; $(COPYRIGHT) 2014-$(YEAR)

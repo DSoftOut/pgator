@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+	<meta charset="utf-8">
+	<title>db.connection - Rpc-sql-proxy documentation</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="">
+	<meta name="author" content="">
+
+	<!-- styles -->
+	<link href="assets/css/bootstrap.css" rel="stylesheet">
+	<style type="text/css">
+		body {
+		padding-top: 60px;
+		padding-bottom: 40px;
+		}
+		.sidebar-nav {
+		padding: 9px 0;
+		}
+	</style>
+	<link href="assets/css/bootstrap-responsive.css" rel="stylesheet">
+	<link href="bootdoc.css" rel="stylesheet">
+
+	<!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+	<!--[if lt IE 9]>
+		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+
+	<!-- fav and touch icons -->
+	<link rel="shortcut icon" href="assets/ico/favicon.ico">
+	<link rel="apple-touch-icon-precomposed" sizes="114x114" href="assets/ico/apple-touch-icon-114-precomposed.png">
+	<link rel="apple-touch-icon-precomposed" sizes="72x72" href="assets/ico/apple-touch-icon-72-precomposed.png">
+	<link rel="apple-touch-icon-precomposed" href="assets/ico/apple-touch-icon-57-precomposed.png">
+	
+	<!-- Introduce DDoc settings required by JavaScript -->
+	<script type="text/javascript">
+		var Title = 'db.connection';
+		var SourceRepository = 'https://github.com/DSoftOut/rpc-sql-proxy/tree/master';
+		var PackageSeparator = '.';
+	</script>
+	
+	<style type="text/css">
+		.ddoc-icon-variable { background-image: url('ddoc-icons/var.png'); }
+		.ddoc-icon-function { background-image: url('ddoc-icons/func.png'); }
+		.ddoc-icon-property { background-image: url('ddoc-icons/property.png'); }
+		.ddoc-icon-struct { background-image: url('ddoc-icons/struct.png'); }
+		.ddoc-icon-class { background-image: url('ddoc-icons/class.png'); }
+		.ddoc-icon-enum { background-image: url('ddoc-icons/enum.png'); }
+		.ddoc-icon-template { background-image: url('ddoc-icons/template.png'); }
+	</style>
+	</head>
+
+	<body>
+	<!--
+	JavaScript reaps the module list from this element.
+	This is required for the MODULES macro to be reusable
+	in a noscript element later.
+	-->
+	<ul id="module-list-source" class="hidden">
+		
+	<li class="sidebar-list-entry tree-leaf"><a href="app.html" title="app"><i class="icon-th"></i>app</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="bufflog.html" title="bufflog"><i class="icon-th"></i>bufflog</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.cache.html" title="server.cache"><i class="icon-th"></i>server.cache</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.config.html" title="server.config"><i class="icon-th"></i>server.config</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="daemon.html" title="daemon"><i class="icon-th"></i>daemon</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="log.html" title="log"><i class="icon-th"></i>log</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="stdlog.html" title="stdlog"><i class="icon-th"></i>stdlog</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="terminal.html" title="terminal"><i class="icon-th"></i>terminal</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="util.html" title="util"><i class="icon-th"></i>util</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.client.html" title="client.client"><i class="icon-th"></i>client.client</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.rpcapi.html" title="client.rpcapi"><i class="icon-th"></i>client.rpcapi</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.test.simple.html" title="client.test.simple"><i class="icon-th"></i>client.test.simple</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.test.testcase.html" title="client.test.testcase"><i class="icon-th"></i>client.test.testcase</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.connection.html" title="db.pq.connection"><i class="icon-th"></i>db.pq.connection</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.libpq.html" title="db.pq.libpq"><i class="icon-th"></i>db.pq.libpq</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.array.html" title="db.pq.types.array"><i class="icon-th"></i>db.pq.types.array</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.conv.html" title="db.pq.types.conv"><i class="icon-th"></i>db.pq.types.conv</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.geometric.html" title="db.pq.types.geometric"><i class="icon-th"></i>db.pq.types.geometric</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.inet.html" title="db.pq.types.inet"><i class="icon-th"></i>db.pq.types.inet</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.numeric.html" title="db.pq.types.numeric"><i class="icon-th"></i>db.pq.types.numeric</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.oids.html" title="db.pq.types.oids"><i class="icon-th"></i>db.pq.types.oids</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.plain.html" title="db.pq.types.plain"><i class="icon-th"></i>db.pq.types.plain</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.test.html" title="db.pq.types.test"><i class="icon-th"></i>db.pq.types.test</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.time.html" title="db.pq.types.time"><i class="icon-th"></i>db.pq.types.time</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.error.html" title="json_rpc.error"><i class="icon-th"></i>json_rpc.error</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.request.html" title="json_rpc.request"><i class="icon-th"></i>json_rpc.request</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.response.html" title="json_rpc.response"><i class="icon-th"></i>json_rpc.response</a></li>
+	</ul>
+	
+	<div class="navbar navbar-fixed-top">
+		<div class="navbar-inner">
+			<div class="container-fluid">
+				<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</a>
+				<a class="brand" href="example.example.html">Rpc-sql-proxy</a>
+				<div class="nav-collapse">
+					<ul class="nav">
+						<li class="active"><a href="example.example.html">Reference</a></li>
+					</ul>
+					
+					<form id="gotosymbol" class="navbar-search pull-left hidden">
+						<input type="text" class="search-query" placeholder="Go to symbol in db.connection" data-provide="typeahead" data-items="4">
+					</form>
+					
+					<p class="navbar-text pull-right"><a href="https://github.com/DSoftOut/rpc-sql-proxy/tree/master">Github Page</a></p>
+				</div><!--/.nav-collapse -->
+			</div>
+		</div>
+	</div>
+
+	<div class="container-fluid">
+		<div class="row-fluid">
+			<div class="span2">
+				<div class="well sidebar-nav">
+				<ul class="nav nav-list">
+					<li id="module-list" class="nav-header sidebar-list-entry">Modules<li>
+					<noscript>
+						
+	<li class="sidebar-list-entry tree-leaf"><a href="app.html" title="app"><i class="icon-th"></i>app</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="bufflog.html" title="bufflog"><i class="icon-th"></i>bufflog</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.cache.html" title="server.cache"><i class="icon-th"></i>server.cache</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.config.html" title="server.config"><i class="icon-th"></i>server.config</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="daemon.html" title="daemon"><i class="icon-th"></i>daemon</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="log.html" title="log"><i class="icon-th"></i>log</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="stdlog.html" title="stdlog"><i class="icon-th"></i>stdlog</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="terminal.html" title="terminal"><i class="icon-th"></i>terminal</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="util.html" title="util"><i class="icon-th"></i>util</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.client.html" title="client.client"><i class="icon-th"></i>client.client</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.rpcapi.html" title="client.rpcapi"><i class="icon-th"></i>client.rpcapi</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.test.simple.html" title="client.test.simple"><i class="icon-th"></i>client.test.simple</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.test.testcase.html" title="client.test.testcase"><i class="icon-th"></i>client.test.testcase</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.connection.html" title="db.pq.connection"><i class="icon-th"></i>db.pq.connection</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.libpq.html" title="db.pq.libpq"><i class="icon-th"></i>db.pq.libpq</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.array.html" title="db.pq.types.array"><i class="icon-th"></i>db.pq.types.array</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.conv.html" title="db.pq.types.conv"><i class="icon-th"></i>db.pq.types.conv</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.geometric.html" title="db.pq.types.geometric"><i class="icon-th"></i>db.pq.types.geometric</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.inet.html" title="db.pq.types.inet"><i class="icon-th"></i>db.pq.types.inet</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.numeric.html" title="db.pq.types.numeric"><i class="icon-th"></i>db.pq.types.numeric</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.oids.html" title="db.pq.types.oids"><i class="icon-th"></i>db.pq.types.oids</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.plain.html" title="db.pq.types.plain"><i class="icon-th"></i>db.pq.types.plain</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.test.html" title="db.pq.types.test"><i class="icon-th"></i>db.pq.types.test</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.time.html" title="db.pq.types.time"><i class="icon-th"></i>db.pq.types.time</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.error.html" title="json_rpc.error"><i class="icon-th"></i>json_rpc.error</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.request.html" title="json_rpc.request"><i class="icon-th"></i>json_rpc.request</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.response.html" title="json_rpc.response"><i class="icon-th"></i>json_rpc.response</a></li>
+					</noscript>
+					<li id="symbol-list" class="nav-header sidebar-list-entry hidden">db.connection</li>
+				</ul>
+				</div><!--/.well -->
+			</div><!--/span-->
+			
+			<div class="span10">
+				<div class="row-fluid">
+					<div class="span11">
+						<ul id="module-breadcrumb" class="breadcrumb">
+							<noscript><h1>db.connection</h1></noscript>
+						</ul>
+						
+					</div>
+					<div class="span1 offset11">
+						<a href="example.example.html"><img src="assets/img/icon-github.png" alt="Rpc-sql-proxy"/></a>
+					</div>
+				</div>
+				<div id="declaration-list">
+					<!-- Generated by Ddoc from ../source/db/connection.d -->
+<dl><dt>Authors</dt><dd>NCrashed <ncrashed@gmail.com></dd>
+</dl>
+<hr><div class="row-fluid declaration"><h3>class <span class="symbol-target" id="ConnectException">&nbsp;</span><a class="symbol-link" href="#ConnectException">ConnectException</a>: object.Exception;
+</h3></div>
+<div class="declaration-content"><dl><p>The exception is thrown when connection attempt to SQL server is failed due some reason.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>class <span class="symbol-target" id="ReconnectException">&nbsp;</span><a class="symbol-link" href="#ReconnectException">ReconnectException</a>: db.connection.ConnectException;
+</h3></div>
+<div class="declaration-content"><dl><p>The exception is thrown when <b>reconnect</b> method is called, but there wasn't any call of
+   <b>connect</b> method to grab connection string from.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>class <span class="symbol-target" id="QueryException">&nbsp;</span><a class="symbol-link" href="#QueryException">QueryException</a>: object.Exception;
+</h3></div>
+<div class="declaration-content"><dl><p>The exception is thrown when query is failed due some reason.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>enum <span class="symbol-target" id="ConnectionStatus">&nbsp;</span><a class="symbol-link" href="#ConnectionStatus">ConnectionStatus</a>: int;
+</h3></div>
+<div class="declaration-content"><dl><p>Describes result of connection status polling.</p>
+</dl>
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3><span class="symbol-target" id="Pending">&nbsp;</span><a class="symbol-link" href="#Pending">Pending</a></h3></div>
+<div class="declaration-content"><dl><p>Connection is in progress</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3><span class="symbol-target" id="Error">&nbsp;</span><a class="symbol-link" href="#Error">Error</a></h3></div>
+<div class="declaration-content"><dl><p>Connection is finished with error</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3><span class="symbol-target" id="Finished">&nbsp;</span><a class="symbol-link" href="#Finished">Finished</a></h3></div>
+<div class="declaration-content"><dl><p>Connection is finished successfully</p>
+</dl>
+</div>
+</div>
+</div>
+<hr><div class="row-fluid declaration"><h3>enum <span class="symbol-target" id="QueringStatus">&nbsp;</span><a class="symbol-link" href="#QueringStatus">QueringStatus</a>: int;
+</h3></div>
+<div class="declaration-content"><dl><p>Describes result of quering status polling.</p>
+</dl>
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3><span class="symbol-target" id="Pending">&nbsp;</span><a class="symbol-link" href="#Pending">Pending</a></h3></div>
+<div class="declaration-content"><dl><p>Quering is in progress</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3><span class="symbol-target" id="Error">&nbsp;</span><a class="symbol-link" href="#Error">Error</a></h3></div>
+<div class="declaration-content"><dl><p>SQL server returned an error</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3><span class="symbol-target" id="Finished">&nbsp;</span><a class="symbol-link" href="#Finished">Finished</a></h3></div>
+<div class="declaration-content"><dl><p>SQL server returned normal result</p>
+</dl>
+</div>
+</div>
+</div>
+<hr><div class="row-fluid declaration"><h3>struct <span class="symbol-target" id="DateFormat">&nbsp;</span><a class="symbol-link" href="#DateFormat">DateFormat</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Representing server configuration for
+   displaying dates and converting ambitious values.</p>
+</dl>
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3>enum <span class="symbol-target" id="StringFormat">&nbsp;</span><a class="symbol-link" href="#StringFormat">StringFormat</a>: int;
+</h3></div>
+<div class="declaration-content"><dl><p>Representing output format.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>enum <span class="symbol-target" id="OrderFormat">&nbsp;</span><a class="symbol-link" href="#OrderFormat">OrderFormat</a>: int;
+</h3></div>
+<div class="declaration-content"><dl><p>Representing behavior for ambitious values.</p>
+</dl>
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3><span class="symbol-target" id="DMY">&nbsp;</span><a class="symbol-link" href="#DMY">DMY</a></h3></div>
+<div class="declaration-content"><dl><p>Day Month Year</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3><span class="symbol-target" id="MDY">&nbsp;</span><a class="symbol-link" href="#MDY">MDY</a></h3></div>
+<div class="declaration-content"><dl><p>Month Day Year</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3><span class="symbol-target" id="YMD">&nbsp;</span><a class="symbol-link" href="#YMD">YMD</a></h3></div>
+<div class="declaration-content"><dl><p>Year Month Day</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3><span class="symbol-target" id="Unknown">&nbsp;</span><a class="symbol-link" href="#Unknown">Unknown</a></h3></div>
+<div class="declaration-content"><dl><p>Unsupported by the bindings</p>
+</dl>
+</div>
+</div>
+</div>
+<hr><div class="row-fluid declaration"><h3>StringFormat <span class="symbol-target" id="stringFormat">&nbsp;</span><a class="symbol-link" href="#stringFormat">stringFormat</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Current output format</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>OrderFormat <span class="symbol-target" id="orderFormat">&nbsp;</span><a class="symbol-link" href="#orderFormat">orderFormat</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Current order format</p>
+</dl>
+</div>
+</div>
+</div>
+<hr><div class="row-fluid declaration"><h3>interface <span class="symbol-target" id="IConnection">&nbsp;</span><a class="symbol-link" href="#IConnection">IConnection</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Handles a single connection to a SQL server.</p>
+</dl>
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3>abstract shared void <span class="symbol-target" id="connect">&nbsp;</span><a class="symbol-link" href="#connect">connect</a>(string <i>connString</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Tries to establish connection with a SQL server described
+    in <b><i>connString</i></b>.
+</p>
+<dt>Throws</dt><dd>ConnectException</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared void <span class="symbol-target" id="reconnect">&nbsp;</span><a class="symbol-link" href="#reconnect">reconnect</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Tries to establish connection with a SQL server described
+   in previous call of <b>connect</b>.
+</p>
+<p>Should throw ReconnectException if method cannot get stored
+   connection string (the <b>connect</b> method wasn't called).
+
+</p>
+<dt>Throws</dt><dd>ConnectException, ReconnectException</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared nothrow ConnectionStatus <span class="symbol-target" id="pollConnectionStatus">&nbsp;</span><a class="symbol-link" href="#pollConnectionStatus">pollConnectionStatus</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns current status of connection.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared void <span class="symbol-target" id="pollConnectionException">&nbsp;</span><a class="symbol-link" href="#pollConnectionException">pollConnectionException</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>If connection process is ended with error state, then
+   throws ConnectException, else do nothing.
+</p>
+<dt>Throws</dt><dd>ConnectException</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared void <span class="symbol-target" id="postQuery">&nbsp;</span><a class="symbol-link" href="#postQuery">postQuery</a>(string <i>com</i>, string[] <i>params</i> = []);
+</h3></div>
+<div class="declaration-content"><dl><p>Initializes querying process in non-blocking manner.
+</p>
+<dt>Throws</dt><dd>QueryException</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared nothrow QueringStatus <span class="symbol-target" id="pollQueringStatus">&nbsp;</span><a class="symbol-link" href="#pollQueringStatus">pollQueringStatus</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns quering status of connection.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared void <span class="symbol-target" id="pollQueryException">&nbsp;</span><a class="symbol-link" href="#pollQueryException">pollQueryException</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>If quering process is ended with error state, then
+   throws QueryException, else do nothing.
+</p>
+<dt>Throws</dt><dd>QueryException</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared DList!(shared(IPGresult)) <span class="symbol-target" id="getQueryResult">&nbsp;</span><a class="symbol-link" href="#getQueryResult">getQueryResult</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns query result, if <b>pollQueringStatus</b> shows that
+   query is processed without errors, else blocks the caller
+   until the answer is arrived.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared nothrow void <span class="symbol-target" id="disconnect">&nbsp;</span><a class="symbol-link" href="#disconnect">disconnect</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Closes connection to the SQL server instantly.
+</p>
+<p>Also should interrupt connections in progress.
+<br><br>
+
+    Calls <b>callback</b> when closed.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared const nothrow @property string <span class="symbol-target" id="server">&nbsp;</span><a class="symbol-link" href="#server">server</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns SQL <span class="symbol-target" id="server">&nbsp;</span><a class="symbol-link" href="#server">server</a> name (domain) the connection is desired to connect to.
+   If connection isn't ever established (or tried) the method returns empty string.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared @property DateFormat <span class="symbol-target" id="dateFormat">&nbsp;</span><a class="symbol-link" href="#dateFormat">dateFormat</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns current date output format and ambitious values converting behavior.
+</p>
+<dt>Throws</dt><dd>QueryException</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>final shared DList!(shared(IPGresult)) <span class="symbol-target" id="execQuery">&nbsp;</span><a class="symbol-link" href="#execQuery">execQuery</a>(string <i>com</i>, string[] <i>params</i> = []);
+</h3></div>
+<div class="declaration-content"><dl><p>Blocking wrapper to one-command query execution.</p>
+</dl>
+</div>
+</div>
+</div>
+<hr><div class="row-fluid declaration"><h3>interface <span class="symbol-target" id="IConnectionProvider">&nbsp;</span><a class="symbol-link" href="#IConnectionProvider">IConnectionProvider</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Interface that produces connection objects. Used
+   to isolate connection pool from particular connection
+   realization.</p>
+</dl>
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3>abstract shared shared(IConnection) <span class="symbol-target" id="allocate">&nbsp;</span><a class="symbol-link" href="#allocate">allocate</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Allocates new connection shared across threads.</p>
+</dl>
+</div>
+</div>
+</div>
+
+
+				</div>
+				
+				<hr>
+				
+				<footer class="pull-left">
+					<p>Page generated with <a href="https://github.com/JakobOvrum/bootDoc">bootDoc</a>.</p>
+				</footer>
+				
+				<footer class="pull-right">
+					<p>&copy; DSoftOut Team 2014-2014</p>
+				</footer>
+			</div>
+		</div>
+	</div><!--/.fluid-container-->
+
+	<!-- Bootstrap javascript
+	================================================== -->
+	<!-- Placed at the end of the document so the pages load faster -->
+	<script src="assets/js/jquery.min.js"></script>
+	<script src="assets/js/bootstrap.min.js"></script>
+	
+	<!-- bootDoc javascript
+	================================================== -->
+	<script src="bootdoc.js"></script>
+	
+	</body>
+</html>

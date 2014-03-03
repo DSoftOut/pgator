@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+	<meta charset="utf-8">
+	<title>db.asyncPool - Rpc-sql-proxy documentation</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="">
+	<meta name="author" content="">
+
+	<!-- styles -->
+	<link href="assets/css/bootstrap.css" rel="stylesheet">
+	<style type="text/css">
+		body {
+		padding-top: 60px;
+		padding-bottom: 40px;
+		}
+		.sidebar-nav {
+		padding: 9px 0;
+		}
+	</style>
+	<link href="assets/css/bootstrap-responsive.css" rel="stylesheet">
+	<link href="bootdoc.css" rel="stylesheet">
+
+	<!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+	<!--[if lt IE 9]>
+		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+
+	<!-- fav and touch icons -->
+	<link rel="shortcut icon" href="assets/ico/favicon.ico">
+	<link rel="apple-touch-icon-precomposed" sizes="114x114" href="assets/ico/apple-touch-icon-114-precomposed.png">
+	<link rel="apple-touch-icon-precomposed" sizes="72x72" href="assets/ico/apple-touch-icon-72-precomposed.png">
+	<link rel="apple-touch-icon-precomposed" href="assets/ico/apple-touch-icon-57-precomposed.png">
+	
+	<!-- Introduce DDoc settings required by JavaScript -->
+	<script type="text/javascript">
+		var Title = 'db.asyncPool';
+		var SourceRepository = 'https://github.com/DSoftOut/rpc-sql-proxy/tree/master';
+		var PackageSeparator = '.';
+	</script>
+	
+	<style type="text/css">
+		.ddoc-icon-variable { background-image: url('ddoc-icons/var.png'); }
+		.ddoc-icon-function { background-image: url('ddoc-icons/func.png'); }
+		.ddoc-icon-property { background-image: url('ddoc-icons/property.png'); }
+		.ddoc-icon-struct { background-image: url('ddoc-icons/struct.png'); }
+		.ddoc-icon-class { background-image: url('ddoc-icons/class.png'); }
+		.ddoc-icon-enum { background-image: url('ddoc-icons/enum.png'); }
+		.ddoc-icon-template { background-image: url('ddoc-icons/template.png'); }
+	</style>
+	</head>
+
+	<body>
+	<!--
+	JavaScript reaps the module list from this element.
+	This is required for the MODULES macro to be reusable
+	in a noscript element later.
+	-->
+	<ul id="module-list-source" class="hidden">
+		
+	<li class="sidebar-list-entry tree-leaf"><a href="app.html" title="app"><i class="icon-th"></i>app</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="bufflog.html" title="bufflog"><i class="icon-th"></i>bufflog</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.cache.html" title="server.cache"><i class="icon-th"></i>server.cache</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.config.html" title="server.config"><i class="icon-th"></i>server.config</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="daemon.html" title="daemon"><i class="icon-th"></i>daemon</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="log.html" title="log"><i class="icon-th"></i>log</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="stdlog.html" title="stdlog"><i class="icon-th"></i>stdlog</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="terminal.html" title="terminal"><i class="icon-th"></i>terminal</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="util.html" title="util"><i class="icon-th"></i>util</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.client.html" title="client.client"><i class="icon-th"></i>client.client</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.rpcapi.html" title="client.rpcapi"><i class="icon-th"></i>client.rpcapi</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.test.simple.html" title="client.test.simple"><i class="icon-th"></i>client.test.simple</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.test.testcase.html" title="client.test.testcase"><i class="icon-th"></i>client.test.testcase</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.connection.html" title="db.pq.connection"><i class="icon-th"></i>db.pq.connection</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.libpq.html" title="db.pq.libpq"><i class="icon-th"></i>db.pq.libpq</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.array.html" title="db.pq.types.array"><i class="icon-th"></i>db.pq.types.array</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.conv.html" title="db.pq.types.conv"><i class="icon-th"></i>db.pq.types.conv</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.geometric.html" title="db.pq.types.geometric"><i class="icon-th"></i>db.pq.types.geometric</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.inet.html" title="db.pq.types.inet"><i class="icon-th"></i>db.pq.types.inet</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.numeric.html" title="db.pq.types.numeric"><i class="icon-th"></i>db.pq.types.numeric</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.oids.html" title="db.pq.types.oids"><i class="icon-th"></i>db.pq.types.oids</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.plain.html" title="db.pq.types.plain"><i class="icon-th"></i>db.pq.types.plain</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.test.html" title="db.pq.types.test"><i class="icon-th"></i>db.pq.types.test</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.time.html" title="db.pq.types.time"><i class="icon-th"></i>db.pq.types.time</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.error.html" title="json_rpc.error"><i class="icon-th"></i>json_rpc.error</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.request.html" title="json_rpc.request"><i class="icon-th"></i>json_rpc.request</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.response.html" title="json_rpc.response"><i class="icon-th"></i>json_rpc.response</a></li>
+	</ul>
+	
+	<div class="navbar navbar-fixed-top">
+		<div class="navbar-inner">
+			<div class="container-fluid">
+				<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</a>
+				<a class="brand" href="example.example.html">Rpc-sql-proxy</a>
+				<div class="nav-collapse">
+					<ul class="nav">
+						<li class="active"><a href="example.example.html">Reference</a></li>
+					</ul>
+					
+					<form id="gotosymbol" class="navbar-search pull-left hidden">
+						<input type="text" class="search-query" placeholder="Go to symbol in db.asyncPool" data-provide="typeahead" data-items="4">
+					</form>
+					
+					<p class="navbar-text pull-right"><a href="https://github.com/DSoftOut/rpc-sql-proxy/tree/master">Github Page</a></p>
+				</div><!--/.nav-collapse -->
+			</div>
+		</div>
+	</div>
+
+	<div class="container-fluid">
+		<div class="row-fluid">
+			<div class="span2">
+				<div class="well sidebar-nav">
+				<ul class="nav nav-list">
+					<li id="module-list" class="nav-header sidebar-list-entry">Modules<li>
+					<noscript>
+						
+	<li class="sidebar-list-entry tree-leaf"><a href="app.html" title="app"><i class="icon-th"></i>app</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="bufflog.html" title="bufflog"><i class="icon-th"></i>bufflog</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.cache.html" title="server.cache"><i class="icon-th"></i>server.cache</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.config.html" title="server.config"><i class="icon-th"></i>server.config</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="daemon.html" title="daemon"><i class="icon-th"></i>daemon</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="log.html" title="log"><i class="icon-th"></i>log</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="stdlog.html" title="stdlog"><i class="icon-th"></i>stdlog</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="terminal.html" title="terminal"><i class="icon-th"></i>terminal</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="util.html" title="util"><i class="icon-th"></i>util</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.client.html" title="client.client"><i class="icon-th"></i>client.client</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.rpcapi.html" title="client.rpcapi"><i class="icon-th"></i>client.rpcapi</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.test.simple.html" title="client.test.simple"><i class="icon-th"></i>client.test.simple</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="client.test.testcase.html" title="client.test.testcase"><i class="icon-th"></i>client.test.testcase</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.connection.html" title="db.pq.connection"><i class="icon-th"></i>db.pq.connection</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.libpq.html" title="db.pq.libpq"><i class="icon-th"></i>db.pq.libpq</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.array.html" title="db.pq.types.array"><i class="icon-th"></i>db.pq.types.array</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.conv.html" title="db.pq.types.conv"><i class="icon-th"></i>db.pq.types.conv</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.geometric.html" title="db.pq.types.geometric"><i class="icon-th"></i>db.pq.types.geometric</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.inet.html" title="db.pq.types.inet"><i class="icon-th"></i>db.pq.types.inet</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.numeric.html" title="db.pq.types.numeric"><i class="icon-th"></i>db.pq.types.numeric</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.oids.html" title="db.pq.types.oids"><i class="icon-th"></i>db.pq.types.oids</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.plain.html" title="db.pq.types.plain"><i class="icon-th"></i>db.pq.types.plain</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.test.html" title="db.pq.types.test"><i class="icon-th"></i>db.pq.types.test</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.types.time.html" title="db.pq.types.time"><i class="icon-th"></i>db.pq.types.time</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.error.html" title="json_rpc.error"><i class="icon-th"></i>json_rpc.error</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.request.html" title="json_rpc.request"><i class="icon-th"></i>json_rpc.request</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.response.html" title="json_rpc.response"><i class="icon-th"></i>json_rpc.response</a></li>
+					</noscript>
+					<li id="symbol-list" class="nav-header sidebar-list-entry hidden">db.asyncPool</li>
+				</ul>
+				</div><!--/.well -->
+			</div><!--/span-->
+			
+			<div class="span10">
+				<div class="row-fluid">
+					<div class="span11">
+						<ul id="module-breadcrumb" class="breadcrumb">
+							<noscript><h1>db.asyncPool</h1></noscript>
+						</ul>
+						
+					</div>
+					<div class="span1 offset11">
+						<a href="example.example.html"><img src="assets/img/icon-github.png" alt="Rpc-sql-proxy"/></a>
+					</div>
+				</div>
+				<div id="declaration-list">
+					<!-- Generated by Ddoc from ../source/db/asyncPool.d -->
+<dl><dt>Authors</dt><dd>NCrashed <ncrashed@gmail.com></dd>
+</dl>
+<hr><div class="row-fluid declaration"><h3>class <span class="symbol-target" id="AsyncPool">&nbsp;</span><a class="symbol-link" href="#AsyncPool">AsyncPool</a>: db.pool.IConnectionPool;
+</h3></div>
+<div class="declaration-content"><dl><p>Describes asynchronous connection pool.</p>
+</dl>
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3>shared void <span class="symbol-target" id="addServer">&nbsp;</span><a class="symbol-link" href="#addServer">addServer</a>(string <i>connString</i>, size_t <i>connNum</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Adds connection string to a SQL server with
+    maximum connections count.
+</p>
+<p>The pool will try to reconnect to the sql
+    server every <b>reconnectTime</b> is connection
+    is dropped (or is down initially).</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared InputRange!(immutable(Bson)) <span class="symbol-target" id="execTransaction">&nbsp;</span><a class="symbol-link" href="#execTransaction">execTransaction</a>(string[] <i>commands</i>, string[] <i>params</i>, string[string] <i>vars</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Performs several SQL <b><i>commands</i></b> on single connection
+   wrapped in a transaction (BEGIN/COMMIT in PostgreSQL).
+   Each command should use '$n' notation to refer <b><i>params</i></b>
+   values. Before any command occurs in transaction the
+   local SQL variables is set from <b><i>vars</i></b>.
+</p>
+<dt>Throws</dt><dd>ConnTimeoutException, QueryProcessingException</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared immutable(ITransaction) <span class="symbol-target" id="postTransaction">&nbsp;</span><a class="symbol-link" href="#postTransaction">postTransaction</a>(string[] <i>commands</i>, string[] <i>params</i>, string[string] <i>vars</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Asynchronous way to execute transaction. User can check
+   transaction status by calling <b>isTransactionReady</b> method.
+   When <b>isTransactionReady</b> method returns <span class="d_keyword">true</span>, the
+   transaction can be finalized by <b>getTransaction</b> method.
+</p>
+<dt>Returns</dt><dd>Specific interface to distinct the query
+            among others.
+</dd>
+<dt>See Also</dt><dd>isTransactionReady, getTransaction.
+</dd>
+<dt>Throws</dt><dd>ConnTimeoutException</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared bool <span class="symbol-target" id="isTransactionReady">&nbsp;</span><a class="symbol-link" href="#isTransactionReady">isTransactionReady</a>(immutable ITransaction <i>transaction</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Returns <span class="d_keyword">true</span> if <i>transaction</i> processing is finished (doesn't
+   matter the actual reason, error or <i>transaction</i> object is invalid,
+   or successful completion).
+</p>
+<p>If the method returns <span class="d_keyword">true</span>, then <b>getTransaction</b> method
+   can be called in non-blocking manner.
+
+</p>
+<dt>See Also</dt><dd>postTransaction, getTransaction.</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared InputRange!(immutable(Bson)) <span class="symbol-target" id="getTransaction">&nbsp;</span><a class="symbol-link" href="#getTransaction">getTransaction</a>(immutable ITransaction <i>transaction</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Retrieves SQL result from specified <i>transaction</i>.
+</p>
+<p>If previously called <b>isTransactionReady</b> returns <span class="d_keyword">true</span>,
+   then the method is not blocking, else it falls back
+   to <b>execTransaction</b> behavior.
+
+</p>
+<dt>See Also</dt><dd>postTransaction, isTransactionReady
+</dd>
+<dt>Throws</dt><dd>UnknownTransactionException, QueryProcessingException</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared @property Duration <span class="symbol-target" id="reconnectTime">&nbsp;</span><a class="symbol-link" href="#reconnectTime">reconnectTime</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>If connection to a SQL server is down,
+    the pool tries to reestablish it every
+    time units returned by the method.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared @property Duration <span class="symbol-target" id="freeConnTimeout">&nbsp;</span><a class="symbol-link" href="#freeConnTimeout">freeConnTimeout</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>If there is no free connection for
+    specified duration while trying to
+    initialize SQL query, then the pool
+    throws <b>ConnTimeoutException</b> exception.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared @property size_t <span class="symbol-target" id="activeConnections">&nbsp;</span><a class="symbol-link" href="#activeConnections">activeConnections</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns current alive connections number.
+</p>
+<dt>Warning:</dt><dd>
+The method displays count of active connections at the moment,
+            returned value can become invalid as soon as it returned due
+            async nature of the pool.</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared @property size_t <span class="symbol-target" id="inactiveConnections">&nbsp;</span><a class="symbol-link" href="#inactiveConnections">inactiveConnections</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns current frozen connections number.
+</p>
+<dt>Warning:</dt><dd>
+The method displays count of active connections at the moment,
+            returned value can become invalid as soon as it returned due
+            async nature of the pool.</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared void <span class="symbol-target" id="finalize">&nbsp;</span><a class="symbol-link" href="#finalize">finalize</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Awaits all queries to finish and then closes each connection.
+    Calls <b>callback</b> when connections are closed.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>protected shared shared(IConnection) <span class="symbol-target" id="fetchFreeConnection">&nbsp;</span><a class="symbol-link" href="#fetchFreeConnection">fetchFreeConnection</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns first free connection from the pool.
+</p>
+<dt>Throws</dt><dd>ConnTimeoutException</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared @property DateFormat <span class="symbol-target" id="dateFormat">&nbsp;</span><a class="symbol-link" href="#dateFormat">dateFormat</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns date format used in ONE OF sql servers.
+</p>
+<dt>Warning:</dt><dd>
+This method can be trust only the pool conns are connected
+            to the same sql server.
+</dd>
+<dt>TODO:</dt><dd>
+Make a way to get such configs for particular connection.</dd>
+</dl>
+</div>
+</div>
+</div>
+
+
+				</div>
+				
+				<hr>
+				
+				<footer class="pull-left">
+					<p>Page generated with <a href="https://github.com/JakobOvrum/bootDoc">bootDoc</a>.</p>
+				</footer>
+				
+				<footer class="pull-right">
+					<p>&copy; DSoftOut Team 2014-2014</p>
+				</footer>
+			</div>
+		</div>
+	</div><!--/.fluid-container-->
+
+	<!-- Bootstrap javascript
+	================================================== -->
+	<!-- Placed at the end of the document so the pages load faster -->
+	<script src="assets/js/jquery.min.js"></script>
+	<script src="assets/js/bootstrap.min.js"></script>
+	
+	<!-- bootDoc javascript
+	================================================== -->
+	<script src="bootdoc.js"></script>
+	
+	</body>
+</html>
