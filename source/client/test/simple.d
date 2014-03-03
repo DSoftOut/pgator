@@ -12,8 +12,6 @@ import db.pool;
 
 class SimpleTestCase : ITestCase
 {
-    this() {}
-    
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
         insertRow(pool, tableName, JsonRpcRow("plus", 2, "SELECT $1::int8 + $2::int8 as test_field;"));
@@ -33,6 +31,7 @@ class SimpleTestCase : ITestCase
     */
     protected void performTests(IRpcApi api)
     {
-        api.runRpc!"plus"(2, 1).assertOk;
+        auto result = api.runRpc!"plus"(2, 1).assertOk!(Column!(ulong, "test_field"));
+        assert(result.test_field[0] == 3);
     }
 }
