@@ -95,7 +95,28 @@ class InvalidConfig:Exception
 		super(msg, file, line);
 	}
 }
- 
+
+/**
+*   Returns config example to be edited by end user.
+*   
+*   If the application cannot find configuration file, it
+*   terminates and ask an user to edit the default configuration
+*   file that is written to the specified place.
+*/
+AppConfig defaultConfig()
+{
+    AppConfig ret;
+    ret.port = 8080;
+    ret.maxConn = 100;
+    ret.sqlServers = [SqlConfig("sql-server-1", 100, "dbname=rpc-proxy user=rpc-proxy password=123456")];
+    ret.sqlAuth = ["login", "password"];
+    ret.sqlTimeout = 1000;
+    ret.sqlReconnectTime = 5000;
+    ret.sqlJsonTable = "public.json_rpc";
+    ret.bindAddresses = ["127.0.0.1"];
+    ret.vibelog = "logs/http.log";
+    return ret;
+}
 
 version(unittest)
 {

@@ -13,6 +13,7 @@ import core.atomic;
 import std.base64;
 import std.string;
 import std.exception;
+import std.stdio;
 
 import vibe.data.bson;
 import vibe.http.server;
@@ -119,6 +120,19 @@ class Application
 		catch (ErrnoException e)
 		{
 			logger.logError("Config not found. "~e.msg);
+			logger.logError(text("Generating default config at '", configPath, "'. "
+			        "Edit and reload the application with the new configuration file."));
+			scope(failure)
+			{
+			    logger.logError(text("Failed to write default configuration file to ", configPath));
+			    return false;
+			}
+		    auto file = new File(configPath, "w");
+		    scope(exit) file.close();
+		    
+		    auto builder = appender!string;
+		    writePrettyJsonString(builder, defaultConfig.serializeToJson, 0);
+		    file.writeln(builder.data);
 		}
 		
 		return false;
