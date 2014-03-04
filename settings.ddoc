@@ -1,8 +1,8 @@
 PROJECTNAME = Rpc-sql-proxy
-REFERENCETOP = example.example.html
+REFERENCETOP = app.html
 REPOSRCTREE = https://github.com/DSoftOut/rpc-sql-proxy/tree/master
 TITLEBARTEXT = <a href="https://github.com/DSoftOut/rpc-sql-proxy/tree/master">Github Page</a>
-RESOURCEROOT =
+RESOURCEROOT = bootDoc/
 ISSUETRACKER = https://github.com/DSoftOut/rpc-sql-proxy/issues
 DEFAULTPACKAGE = app
 PACKAGESEP = .
