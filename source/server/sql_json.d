@@ -116,37 +116,11 @@ shared class SqlJsonTable
 	
 	string[] needDrop(string method)
 	{
-		string[] arr = new string[0];
+		auto p = method in dropMap;
 		
-		auto p = method in map;
+		if (p is null) return null;
 		
-		if (p is null) return arr;
-		
-		auto val = *p;
-		
-		if (val.need_cache)
-		{
-			if (!val.read_only)
-			{
-				foreach(str1; val.reset_caches)
-				{
-					foreach(key; map.byKey())
-					{
-						foreach(str2; map[key].reset_by)
-						{
-							if (str1 == str2) 
-							{
-								arr ~= key; //key is method
-								
-								break;
-							}
-						} 
-					}
-				}
-			}
-		}
-		
-		return arr;
+		return cast(string[]) *p;
 	}
 	
 	bool methodFound(string method, out Entry entry)
@@ -178,6 +152,43 @@ shared class SqlJsonTable
 	{	
 		return (method in map) !is null;
 	}
+	
+	void makeDropMap()
+	{
+		foreach(val; map.byValue())
+		{
+			string[] arr = new string[0];
+			
+			if (val.need_cache)
+			{
+				if (!val.read_only)
+				{
+					foreach(str1; val.reset_caches)
+					{
+						foreach(key; map.byKey())
+						{
+							foreach(str2; map[key].reset_by)
+							{
+								if (str1 == str2) 
+								{
+									arr ~= key; //key is method
+									break;
+								}
+							} 
+						}
+					}
+				}
+			}
+			
+			dropMap[val.method] = toShared(arr);
+		}
+	}
+	
+	private:
+	
+	alias string[] dropArr;
+	
+	dropArr[string] dropMap;
 	
 }
 

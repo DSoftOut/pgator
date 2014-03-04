@@ -123,6 +123,8 @@ shared class Database
 			
 			table = sqlTable;
 			
+			table.makeDropMap();
+			
 			logger.logInfo("Table loaded");
 		}
 		
