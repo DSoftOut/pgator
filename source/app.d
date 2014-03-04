@@ -187,6 +187,7 @@ else
 				    --log=<string> - specifies logging file name, 
 				    	default is 'rpc-proxy-server.log'.
 			    	--config=<string> - specifies config file path
+			    	--gen-config=<path> generate default config at path
 				    --help - prints this message
 	`;
 	
@@ -196,6 +197,7 @@ else
 		bool help = false;
 		string logName = args[0]~".log";
 		string configPath = null;
+		string genPath = null;
 		
 		try
 		{
@@ -203,7 +205,8 @@ else
 						 "daemon", &daemon,
 					 	 "log", &logName,
 					 	 "help", &help,
-					 	 "config", &configPath);
+					 	 "config", &configPath,
+					 	 "gen-config", &genPath);
 		} catch(Exception e)
 		{
 			writeln(e.msg); 
@@ -219,15 +222,13 @@ else
 		
 		auto logger = new shared CLogger(logName, DEF_LOG_DIR);
 		
-		shared Application app;
+		shared Application app = new shared Application(logger, configPath);
 		
-		if (configPath)
+		if (genPath)
 		{
-			app = new shared Application(logger, configPath);
-		}
-		else
-		{
-			app = new shared Application(logger);
+			app.genConfig(genPath);
+			
+			return 0;
 		}
 		
 		if(daemon) 

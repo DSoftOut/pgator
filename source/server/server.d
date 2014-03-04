@@ -38,7 +38,7 @@ class Application
 {
 	shared public:
 	
-	this(shared ILogger logger, string configPath = CONFIG_PATH)
+	this(shared ILogger logger, string configPath)
 	{
 		this.logger = logger;
 		
@@ -98,6 +98,14 @@ class Application
 		}
 	}
 	
+	void genConfig(string path)
+	{
+		if (!writeJsonConfig(defaultConfig.serializeRequiredToJson, path, ""))
+		{
+			logger.logError("Can't generate config at "~path);
+		}
+	}
+	
 	shared private:
 	
 	/// initialize resources
@@ -117,6 +125,7 @@ class Application
 		
 		bool tryReadConfig(string path)
 		{
+			if (path is null) return false;
 			
 			try
 			{
@@ -140,14 +149,33 @@ class Application
 			}
 		}
 		
-		
-		if ( 
-			tryReadConfig(configPath) || 
+		if (tryReadConfig(configPath))
+		{
+			if (invalid)
+			{
+				logger.logError("Invalid config");
+				
+				return false;
+			}
 			
-			tryReadConfig(CONF_HOME~"/"~APPNAME~DEF_EXT) || 
+			appConfig = toShared(aConf);
 			
-			tryReadConfig(CONF_ETC~"/"~APPNAME~DEF_EXT) 
-		)
+			return true;
+		}
+		else if (tryReadConfig(CONF_HOME~"/"~APPNAME~DEF_EXT))
+		{
+			if (invalid)
+			{
+				logger.logError("Invalid config");
+				
+				return false;
+			}
+			
+			appConfig = toShared(aConf);
+			
+			return true;
+		}
+		else if (tryReadConfig(CONF_ETC~"/"~APPNAME~DEF_EXT))
 		{
 			if (invalid)
 			{
@@ -161,25 +189,25 @@ class Application
 			return true;
 		}
 		
-		// tries to generate config
-		version (linux)
-		{
-			auto json = defaultConfig.serializeRequiredToJson;
-			
-			if (writeJsonConfig(json, APPNAME~DEF_EXT, CONF_HOME))
-			{
-				logger.logInfo("Generated default config at "~CONF_HOME~". Edit them");
-				
-				return false;
-			}
-			
-			if (writeJsonConfig(json, APPNAME~DEF_EXT, CONF_ETC))
-			{
-				logger.logInfo("Generated default config at "~CONF_ETC~". Edit them");
-				
-				return false;
-			}
-		}
+//		// tries to generate config
+//		version (linux)
+//		{
+//			auto json = defaultConfig.serializeRequiredToJson;
+//			
+//			if (writeJsonConfig(json, APPNAME~DEF_EXT, CONF_HOME))
+//			{
+//				logger.logInfo("Generated default config at "~CONF_HOME~". Edit them");
+//				
+//				return false;
+//			}
+//			
+//			if (writeJsonConfig(json, APPNAME~DEF_EXT, CONF_ETC))
+//			{
+//				logger.logInfo("Generated default config at "~CONF_ETC~". Edit them");
+//				
+//				return false;
+//			}
+//		}
 		
 		logger.logError("Can't read config");
 		
