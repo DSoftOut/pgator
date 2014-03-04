@@ -4,6 +4,8 @@ rpc-sql-proxy
 
 Server that transforms JSON-RPC calls in SQL queries for PostgreSQL.
 
+[Technical documentation (ongoing)](http://dsoftout.github.io/rpc-sql-proxy/app.html)
+
 ####Зачем это надо?
 Чтобы работать с SQL БД необходим API.
 
