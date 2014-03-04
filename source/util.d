@@ -32,7 +32,7 @@ enum possible;
 
 
 /**
-* Deserializer from Json to type T<br>
+* Deserializes from Json to type T<br>
 *
 * Supported only structs yet
 *
@@ -137,6 +137,72 @@ T deserializeFromJson(T)(Json src)
 	
 		}
 		
+	}
+	
+	return ret;
+}
+
+/**
+* Serializes struct with $(B @required) attributes fields to Json  <br>
+* 
+* Example
+* ------
+* struct S
+* {
+*    @required
+*	int a = 1; //will be used
+*
+*    @possible
+*	int b = 2; //will be ignored
+*
+*	int c; //will be ignored
+* }
+*
+* writeln(serializeRequiredToJson(S())); // { "a":1 }
+* ------
+*/
+Json serializeRequiredToJson(T)(T val)
+{
+	static assert (is(T == struct), "Need struct type, not "~T.stringof);
+	
+	Json ret = Json.emptyObject;
+	
+	foreach(mem; __traits(allMembers, T))
+	{
+		static if (isRequired!(mem, T))
+		{
+			alias getMemberType!(T, mem) MemType;
+			
+			alias vibe.data.json.serializeToJson vibeSer;
+			
+			static if (is(MemType == struct))
+			{
+				ret[mem] = serializeRequiredToJson!MemType(mixin("val."~mem));
+			}
+			else static if (isArray!MemType)
+			{
+				alias ElementType!MemType EType;
+				static if (is(EType == struct))
+				{
+					auto j1 = Json.emptyArray;
+				
+					foreach(elem; mixin("val."~mem))
+					{
+						j1 ~= serializeRequiredToJson(elem);
+					}
+					
+					ret[mem] = j1;
+				}
+				else
+				{
+					ret[mem] = vibeSer(mixin("val."~mem));
+				}
+			}
+			else
+			{
+				ret[mem] = vibeSer(mixin("val."~mem));
+			}
+		}
 	}
 	
 	return ret;

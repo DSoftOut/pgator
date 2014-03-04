@@ -14,6 +14,7 @@ import std.base64;
 import std.string;
 import std.exception;
 import std.stdio;
+import std.file;
 
 import vibe.data.bson;
 import vibe.http.server;
@@ -107,35 +108,80 @@ class Application
 	
 	bool loadAppConfig()
 	{
-		try
+		AppConfig aConf;
+		
+		bool invalid;
+		
+		bool tryReadConfig(string path)
 		{
-			appConfig = toShared(AppConfig(configPath));
+			
+			try
+			{
+				aConf = AppConfig(path);
+				
+				logger.logInfo("Readed "~path);
+				
+				return true;
+			}
+			catch(InvalidConfig e)
+			{
+				logger.logError(e.msg);
+				
+				invalid = true;
+				
+				return true;
+			}
+			catch(Exception e)
+			{
+				return false;
+			}
+		}
+		
+		
+		if ( 
+			tryReadConfig(configPath) || 
+			
+			tryReadConfig(CONF_HOME~"/"~APPNAME~DEF_EXT) || 
+			
+			tryReadConfig(CONF_ETC~"/"~APPNAME~DEF_EXT) 
+		)
+		{
+			if (invalid)
+			{
+				logger.logError("Invalid config");
+				
+				return false;
+			}
+			
+			appConfig = toShared(aConf);
 			
 			return true;
 		}
-		catch (InvalidConfig e)
+		
+		// tries to generate config
+		version (linux)
 		{
-			logger.logError("Bad config. "~e.msg);
-		}
-		catch (ErrnoException e)
-		{
-			logger.logError("Config not found. "~e.msg);
-			logger.logError(text("Generating default config at '", configPath, "'. "
-			        "Edit and reload the application with the new configuration file."));
-			scope(failure)
+			auto json = defaultConfig.serializeRequiredToJson;
+			
+			if (writeJsonConfig(json, APPNAME~DEF_EXT, CONF_HOME))
 			{
-			    logger.logError(text("Failed to write default configuration file to ", configPath));
-			    return false;
+				logger.logInfo("Generated default config at "~CONF_HOME~". Edit them");
+				
+				return false;
 			}
-		    auto file = new File(configPath, "w");
-		    scope(exit) file.close();
-		    
-		    auto builder = appender!string;
-		    writePrettyJsonString(builder, defaultConfig.serializeToJson, 0);
-		    file.writeln(builder.data);
+			
+			if (writeJsonConfig(json, APPNAME~DEF_EXT, CONF_ETC))
+			{
+				logger.logInfo("Generated default config at "~CONF_ETC~". Edit them");
+				
+				return false;
+			}
 		}
 		
+		logger.logError("Can't read config");
+		
 		return false;
+		
 	}
 	
 	void setupSettings()
@@ -187,7 +233,7 @@ class Application
 		}
 		catch(Throwable e)
 		{
-			logger.logError("Server error:"~e.msg);
+			logger.logError("Server error: "~e.msg);
 			
 			internalError = true;
 		}
@@ -215,7 +261,7 @@ class Application
 		}
 		catch(Throwable e)
 		{
-			logger.logError("Server error:"~to!string(e));
+			logger.logError("Server error: "~e.msg);
 			
 			finalize();
 		}

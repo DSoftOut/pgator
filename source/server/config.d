@@ -13,45 +13,62 @@ module server.config;
 
 import std.exception;
 import std.stdio;
+import std.path;
+import std.file;
 
 import vibe.data.json;
 import vibe.core.log;
 
 import util;
 
-enum CONFIG_PATH = "config.json";
+enum APPNAME = "rpc-sql-proxy";
+
+enum DEF_EXT = ".conf";
+
+enum CONFIG_PATH = APPNAME~DEF_EXT;
+
+version (linux)
+{		
+	string CONF_HOME() { return ("~/.config/"~APPNAME).expandTilde; }
+	
+	string CONF_ETC() { return "/etc/"~APPNAME; }
+}
+
 
 struct AppConfig
 {
 	@required
-	ushort port;
+	ushort port = 8080;
 	
 	@required
-	uint maxConn;
+	uint maxConn = 100;
 	
 	@required
-	SqlConfig[] sqlServers;
+	SqlConfig[] sqlServers = [SqlConfig("sql-server-1", 100, "dbname=rpc-proxy user=rpc-proxy password=123456")];
 	
 	@required
-	string[] sqlAuth;
+	string[] sqlAuth = ["login", "password"];
 	
 	@required
-	uint sqlTimeout;
+	uint sqlTimeout = 1000; //ms
 	
 	@required
-	string sqlJsonTable;
+	string sqlJsonTable = "public.json_rpc";
 	
 	@possible
-	string[] bindAddresses = null;
+	string[] bindAddresses = null; //["127.0.0.1"];
 	
 	@possible
-	string hostname = null;
+	string hostname = null; //"localhost";
 	
 	@possible
-	int sqlReconnectTime = -1;
+	int sqlReconnectTime = -1; //1500; //ms
 	
 	@possible
 	string vibelog = "logs/http.log";
+	
+	@required
+	string logname = null;
 	
 	this(Json json)
 	{
@@ -118,6 +135,62 @@ AppConfig defaultConfig()
     return ret;
 }
 
+bool writeConfig(AppConfig appConfig, string name, string dir)
+{
+	scope(failure)
+	{
+		return false;
+	}
+	
+	if (!dir.exists)
+	{
+		dir.mkdirRecurse;
+	}
+	
+	string fullPath = buildNormalizedPath(dir, name);
+	
+	auto file = new File(fullPath, "w");
+	
+	scope(exit) file.close();
+		    
+    auto builder = appender!string;
+    
+    writePrettyJsonString(builder, vibe.data.json.serializeToJson(appConfig), 0);
+    
+    file.writeln(builder.data);
+    
+    return true;
+	
+}
+
+bool writeJsonConfig(Json json, string name, string dir)
+{
+	scope(failure)
+	{
+		return false;
+	}
+	
+	if (!dir.exists)
+	{
+		dir.mkdirRecurse;
+	}
+	
+	string fullPath = buildNormalizedPath(dir, name);
+	
+	auto file = new File(fullPath, "w");
+	
+	scope(exit) file.close();
+		    
+    auto builder = appender!string;
+    
+    writePrettyJsonString(builder, json, 0);
+    
+    file.writeln(builder.data);
+    
+    return true;
+	
+}
+
 version(unittest)
 {
 	string configExample = "
@@ -153,6 +226,8 @@ version(unittest)
 	    \"sqlAuth\" : [\"login\",\"password\"],
 	
 	    \"sqlJsonTable\" : \"json_rpc\"
+
+	    \"logname\" : \"log.txt\"
 	    }";
 }
 
@@ -168,6 +243,7 @@ unittest
 	config2.maxConn = cast(uint) 50;
 	config2.sqlAuth = ["login", "password"];
 	config2.sqlJsonTable = "json_rpc";
+	config2.logname = "log.txt";
 	config2.sqlReconnectTime = 150;
 	config2.sqlTimeout = 100;
 	config2.sqlServers = [SqlConfig("sql1", cast(size_t)1,""), SqlConfig("sql2", cast(size_t)2, "",)];
