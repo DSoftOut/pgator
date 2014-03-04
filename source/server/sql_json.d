@@ -182,6 +182,8 @@ shared class SqlJsonTable
 			
 			dropMap[val.method] = toShared(arr);
 		}
+		
+		dropMap.rehash();
 	}
 	
 	private:
