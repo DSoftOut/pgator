@@ -110,6 +110,10 @@ synchronized class CLogger : ILogger
 
         try
         {
+        	if (!dir.exists)
+        	{
+        		dir.mkdirRecurse;
+        	}
             mLogFile = new std.stream.File(mLocation, FileMode.OutNew);
         } 
         catch(OpenException e)

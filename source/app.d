@@ -175,6 +175,7 @@ else
 	
 	import daemon;
 	import terminal;
+	import util;
 	
 
 	immutable help = `
@@ -216,7 +217,7 @@ else
 			return 0;
 		}
 		
-		auto logger = new shared CLogger(logName);
+		auto logger = new shared CLogger(logName, DEF_LOG_DIR);
 		
 		shared Application app;
 		

@@ -11,7 +11,30 @@ import std.string;
 import std.conv;
 import std.traits;
 import std.range;
+import std.path;
 import vibe.data.json;
+
+enum APPNAME = "rpc-sql-proxy";
+
+enum DEF_EXT = ".conf";
+
+enum CONFIG_PATH = APPNAME~DEF_EXT;
+
+version(linux)
+{
+	enum DEF_LOG_DIR = "/var/log/"~APPNAME;
+}
+else
+{
+	enum DEF_LOG_DIR = "./logs";
+}
+
+version (linux)
+{		
+	string CONF_HOME() { return ("~/.config/"~APPNAME).expandTilde; }
+	
+	string CONF_ETC() { return "/etc/"~APPNAME; }
+}
 
 mixin template t_field(T, alias fieldName)
 {

@@ -32,6 +32,7 @@ import server.config;
 
 import util;
 import log;
+import stdlog;
 
 class Application
 {
@@ -48,6 +49,8 @@ class Application
 	
 	~this()
 	{
+		localLogger.finalize();
+		
 		finalize();
 	}
 	
@@ -202,9 +205,13 @@ class Application
 		
 		setLogLevel(LogLevel.none);
 		
-		setLogFile(appConfig.vibelog, LogLevel.info);
-		setLogFile(appConfig.vibelog, LogLevel.error);
-		setLogFile(appConfig.vibelog, LogLevel.warn);
+		string vibelog = DEF_LOG_DIR~"/"~appConfig.vibelog;
+		
+		setLogFile(vibelog, LogLevel.info);
+		setLogFile(vibelog, LogLevel.error);
+		setLogFile(vibelog, LogLevel.warn);
+		
+		lowerPrivileges();
 	}
 	
 	void setupRouter()
@@ -216,14 +223,21 @@ class Application
 	
 	void setupDatabase()
 	{
-		database = new shared Database(logger, appConfig);
+		database = new shared Database(localLogger, appConfig);
 		
 		database.setupPool();
 	}
 	
-	void configure()
+	void setupLocalLog()
 	{
+		localLogger = new shared CLogger(appConfig.logname, DEF_LOG_DIR); 
+	}
+	
+	void configure()
+	{	
 		enforce(loadAppConfig, "Failed to use config");
+		
+		setupLocalLog();
 		
 		setupDatabase();
 		
@@ -233,7 +247,7 @@ class Application
 		}
 		catch(Throwable e)
 		{
-			logger.logError("Server error: "~e.msg);
+			localLogger.logError("Server error: "~e.msg);
 			
 			internalError = true;
 		}
@@ -400,6 +414,8 @@ class Application
 	}
 	
 	ILogger logger;
+	
+	ILogger localLogger;
 	
 	string configPath;
 	

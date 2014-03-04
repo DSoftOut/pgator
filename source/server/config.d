@@ -21,54 +21,41 @@ import vibe.core.log;
 
 import util;
 
-enum APPNAME = "rpc-sql-proxy";
-
-enum DEF_EXT = ".conf";
-
-enum CONFIG_PATH = APPNAME~DEF_EXT;
-
-version (linux)
-{		
-	string CONF_HOME() { return ("~/.config/"~APPNAME).expandTilde; }
-	
-	string CONF_ETC() { return "/etc/"~APPNAME; }
-}
-
 
 struct AppConfig
 {
 	@required
-	ushort port = 8080;
+	ushort port;
 	
 	@required
-	uint maxConn = 100;
+	uint maxConn;
 	
 	@required
-	SqlConfig[] sqlServers = [SqlConfig("sql-server-1", 100, "dbname=rpc-proxy user=rpc-proxy password=123456")];
+	SqlConfig[] sqlServers;
 	
 	@required
-	string[] sqlAuth = ["login", "password"];
+	string[] sqlAuth;
 	
 	@required
-	uint sqlTimeout = 1000; //ms
+	uint sqlTimeout; //ms
 	
 	@required
-	string sqlJsonTable = "public.json_rpc";
+	string sqlJsonTable;
 	
 	@possible
 	string[] bindAddresses = null; //["127.0.0.1"];
 	
 	@possible
-	string hostname = null; //"localhost";
+	string hostname = null;
 	
 	@possible
-	int sqlReconnectTime = -1; //1500; //ms
+	int sqlReconnectTime = -1; //ms
 	
 	@possible
-	string vibelog = "logs/http.log";
+	string vibelog = "http.txt";
 	
 	@required
-	string logname = null;
+	string logname = "log.txt";
 	
 	this(Json json)
 	{
@@ -125,13 +112,13 @@ AppConfig defaultConfig()
     AppConfig ret;
     ret.port = 8080;
     ret.maxConn = 100;
-    ret.sqlServers = [SqlConfig("sql-server-1", 100, "dbname=rpc-proxy user=rpc-proxy password=123456")];
+    ret.sqlServers = [SqlConfig("sql-server-1", 1, "dbname=rpc-proxy user=rpc-proxy password=123456")];
     ret.sqlAuth = ["login", "password"];
     ret.sqlTimeout = 1000;
     ret.sqlReconnectTime = 5000;
     ret.sqlJsonTable = "public.json_rpc";
     ret.bindAddresses = ["127.0.0.1"];
-    ret.vibelog = "logs/http.log";
+    ret.logname = "log.txt";
     return ret;
 }
 
@@ -225,7 +212,7 @@ version(unittest)
 	
 	    \"sqlAuth\" : [\"login\",\"password\"],
 	
-	    \"sqlJsonTable\" : \"json_rpc\"
+	    \"sqlJsonTable\" : \"json_rpc\",
 
 	    \"logname\" : \"log.txt\"
 	    }";
