@@ -187,13 +187,16 @@
 </dd>
 <dt>Authors</dt><dd>NCrashed <ncrashed@gmail.com></dd>
 </dl>
-<hr><div class="row-fluid declaration"><h3>int <span class="symbol-target" id="runTerminal">&nbsp;</span><a class="symbol-link" href="#runTerminal">runTerminal</a>(shared ILogger <i>logger</i>, int delegate(string[]) <i>progMain</i>, string[] <i>args</i>, void delegate() <i>listener</i>, void delegate() <i>termListener</i>);
+<hr><div class="row-fluid declaration"><h3>int <span class="symbol-target" id="runTerminal">&nbsp;</span><a class="symbol-link" href="#runTerminal">runTerminal</a>(shared ILogger <i>logger</i>, int delegate(string[]) <i>progMain</i>, string[] <i>args</i>, void delegate() <i>listener</i>, void delegate() <i>termListener</i>, void delegate(int) <i>usrListener</i>);
 </h3></div>
 <div class="declaration-content"><dl><p>Run application as casual process (attached to tty) with <b><i>progMain</i></b> main function and passes <b><i>args</i></b> into it.
     If daemon catches SIGHUP signal, <b><i>listener</i></b> delegate is called (available on linux only).
 </p>
 <p>If application receives some kind of terminating signal, the <b><i>termListener</i></b> is called. <b><i>termListener</i></b> should
     end <b><i>progMain</i></b> to be able to clearly shutdown the application.
+<br><br>
+
+   If USR1 or USR2 signal is caught, then <b><i>usrListener</i></b> is called with actual value of received signal.
 <br><br>
 
     Daemon writes log message into provided <b><i>logger</i></b>.</p>

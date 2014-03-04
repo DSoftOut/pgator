@@ -186,7 +186,7 @@
 </dl>
 <hr><div class="row-fluid declaration"><h3>T <span class="symbol-target" id="deserializeFromJson">&nbsp;</span><a class="symbol-link" href="#deserializeFromJson">deserializeFromJson</a>(T)(Json <i>src</i>);
 </h3></div>
-<div class="declaration-content"><dl><p>Deserializer from Json to type T<br>
+<div class="declaration-content"><dl><p>Deserializes from Json to type T<br>
 </p>
 <p>Supported only structs yet
 
@@ -208,6 +208,27 @@
 
 </dd>
 <dt>Authors</dt><dd>Zaramzan <shamyan.roman@gmail.com></dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>Json <span class="symbol-target" id="serializeRequiredToJson">&nbsp;</span><a class="symbol-link" href="#serializeRequiredToJson">serializeRequiredToJson</a>(T)(T <i>val</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Serializes struct with <b>@required</b> attributes fields to Json  <br>
+</p>
+<p>Example
+<pre class="d_code"><span class="d_keyword">struct</span> S
+{
+   @required
+<span class="d_keyword">int</span> a = 1; <span class="d_comment">//will be used
+</span>
+   @possible
+<span class="d_keyword">int</span> b = 2; <span class="d_comment">//will be ignored
+</span>
+<span class="d_keyword">int</span> c; <span class="d_comment">//will be ignored
+</span>}
+
+writeln(<u>serializeRequiredToJson</u>(S())); <span class="d_comment">// { "a":1 }
+</span></pre>
+</p>
 </dl>
 </div>
 <hr><div class="row-fluid declaration"><h3>template <span class="symbol-target" id="tryEx">&nbsp;</span><a class="symbol-link" href="#tryEx">tryEx</a>(Ex, alias func)</h3></div>

@@ -187,13 +187,16 @@
 </dd>
 <dt>Authors</dt><dd>NCrashed <ncrashed@gmail.com></dd>
 </dl>
-<hr><div class="row-fluid declaration"><h3>int <span class="symbol-target" id="runDaemon">&nbsp;</span><a class="symbol-link" href="#runDaemon">runDaemon</a>(shared ILogger <i>logger</i>, int delegate(string[]) <i>progMain</i>, string[] <i>args</i>, void delegate() <i>listener</i>, void delegate() <i>termListener</i>);
+<hr><div class="row-fluid declaration"><h3>int <span class="symbol-target" id="runDaemon">&nbsp;</span><a class="symbol-link" href="#runDaemon">runDaemon</a>(shared ILogger <i>logger</i>, int delegate(string[]) <i>progMain</i>, string[] <i>args</i>, void delegate() <i>listener</i>, void delegate() <i>termListener</i>, void delegate(int) <i>usrListener</i>);
 </h3></div>
 <div class="declaration-content"><dl><p>Forks daemon process with <b><i>progMain</i></b> main function and passes <b><i>args</i></b> to it. If daemon
    catches SIGHUP signal, <b><i>listener</i></b> delegate is called. If daemon catches SIGQUIT, SIGABRT,
    or any other terminating sygnal, the <i>termListener</i> is called.
 </p>
-<p>Daemon writes log message into provided <b><i>logger</i></b> and will close it while exiting.</p>
+<p>If USR1 or USR2 signal is caught, then <b><i>usrListener</i></b> is called with actual value of received signal.
+<br><br>
+
+   Daemon writes log message into provided <b><i>logger</i></b> and will close it while exiting.</p>
 </dl>
 </div>
 

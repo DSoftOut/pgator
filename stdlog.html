@@ -183,7 +183,19 @@
 <br><br>
 <hr><div class="row-fluid declaration"><h3>class <span class="symbol-target" id="CLogger">&nbsp;</span><a class="symbol-link" href="#CLogger">CLogger</a>: log.ILogger;
 </h3></div>
-<div class="declaration-content"><dl><p>Standart implementation of ILogger interface.</p>
+<div class="declaration-content"><dl><p>Standard implementation of ILogger interface.
+</p>
+<dt>Example:</dt><dd>
+<pre class="d_code"><span class="d_keyword">shared</span> ILogger logger = <span class="d_keyword">new</span> <u>CLogger</u>(<span class="d_string">"my_awesome_log.log"</span>);
+logger.minOutputLevel = LoggingLevel.Warning; <span class="d_comment">// info msgs won't be printed in console
+</span>logger.logInfo(<span class="d_string">"Info message!"</span>);
+logger.logError(<span class="d_string">"Error message!"</span>);
+logger.logDebug(<span class="d_string">"Debug message!"</span>);
+
+<span class="d_comment">// received USR1 signal from logrotate
+</span>logger.reload;
+</pre>
+</dd>
 </dl>
 <div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3>shared const nothrow @property @safe string <span class="symbol-target" id="name">&nbsp;</span><a class="symbol-link" href="#name">name</a>();
 </h3></div>
@@ -209,6 +221,41 @@
 <hr><div class="row-fluid declaration"><h3>shared nothrow @property @trusted void <span class="symbol-target" id="minOutputLevel">&nbsp;</span><a class="symbol-link" href="#minOutputLevel">minOutputLevel</a>(LoggingLevel <i>level</i>);
 </h3></div>
 <div class="declaration-content"><dl><p>Setups minimum log <i>level</i>,</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared @safe void <span class="symbol-target" id="reload">&nbsp;</span><a class="symbol-link" href="#reload">reload</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Checks if the log file is exists at specified <b>location</b> and
+   if can't find it, recreates the file and continues write into it.
+</p>
+<p>Useful for <b>logrotate</b> utility. GNU/Linux system checks file identity by
+   inode, that doesn't change while renaming. Thus after renaming the file at
+   <b>location</b> log continues write into the renamed file. The call to the
+   <b><span class="symbol-target" id="reload">&nbsp;</span><a class="symbol-link" href="#reload">reload</a></b> method force splitting log into two parts.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>@trusted  this(string <i>name</i>, string <i>dir</i> = DEFAULT_DIR);
+</h3></div>
+<div class="declaration-content"><dl><p>Creates log at <b><i>dir</i></b>/<b><i>name</i></b>. Tries to create <b><i>dir</i></b>
+   and all sub directories.
+</p>
+<dt>Note:</dt><dd>
+Can throw if there is a problem with access permitions.</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>protected shared @trusted void <span class="symbol-target" id="initialize">&nbsp;</span><a class="symbol-link" href="#initialize">initialize</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Tries to create log file at <b>location</b>.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared @trusted string <span class="symbol-target" id="formatString">&nbsp;</span><a class="symbol-link" href="#formatString">formatString</a>(lazy string <i>message</i>, LoggingLevel <i>level</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Format <i>message</i> with default logging style (etc. time and <i>level</i> string).</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared @trusted void <span class="symbol-target" id="rawInput">&nbsp;</span><a class="symbol-link" href="#rawInput">rawInput</a>(string <i>message</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Unsafe write down the <i>message</i> without any meta information.</p>
 </dl>
 </div>
 <hr><div class="row-fluid declaration"><h3>shared nothrow @trusted void <span class="symbol-target" id="finalize">&nbsp;</span><a class="symbol-link" href="#finalize">finalize</a>();

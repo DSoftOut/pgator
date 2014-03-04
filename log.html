@@ -259,6 +259,21 @@
 <div class="declaration-content"><dl><p>Format <i>message</i> with default logging style (etc. time and <i>level</i> string).</p>
 </dl>
 </div>
+<hr><div class="row-fluid declaration"><h3>abstract shared @safe void <span class="symbol-target" id="reload">&nbsp;</span><a class="symbol-link" href="#reload">reload</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Checks if the log file is exists at specified <b>location</b> and
+   if can't find it, recreates the file and continues write into it.
+</p>
+<p>Useful for <b>logrotate</b> utility. GNU/Linux system checks file identity by
+   inode, that doesn't change while renaming. Thus after renaming the file at
+   <b>location</b> log continues write into the renamed file. The call to the
+   <b><span class="symbol-target" id="reload">&nbsp;</span><a class="symbol-link" href="#reload">reload</a></b> method force splitting log into two parts.
+
+</p>
+<dt>Note:</dt><dd>
+The method is not nothrow!</dd>
+</dl>
+</div>
 <hr><div class="row-fluid declaration"><h3>const @trusted void <span class="symbol-target" id="logDebug">&nbsp;</span><a class="symbol-link" href="#logDebug">logDebug</a>(E...)(E <i>args</i>);
 </h3></div>
 <div class="declaration-content"><dl><p>Wrapper for handy debug messages.
