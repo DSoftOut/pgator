@@ -39,7 +39,19 @@ import std.datetime;
 import std.traits;
 
 /**
-*   Standart implementation of ILogger interface.
+*   Standard implementation of ILogger interface.
+*
+*   Example:
+*   -----------
+*   shared ILogger logger = new CLogger("my_awesome_log.log");
+*   logger.minOutputLevel = LoggingLevel.Warning; // info msgs won't be printed in console 
+*   logger.logInfo("Info message!");
+*   logger.logError("Error message!");
+*   logger.logDebug("Debug message!");
+*
+*   // received USR1 signal from logrotate
+*   logger.reload;
+*   -----------
 */
 synchronized class CLogger : ILogger
 {
@@ -63,7 +75,7 @@ synchronized class CLogger : ILogger
         {
             return mLocation;
         }
-
+        
         /**
         *   Prints message into log. Displaying in the console
         *   controlled by minOutputLevel property.
@@ -103,18 +115,50 @@ synchronized class CLogger : ILogger
         }
     }
 
+    /**
+    *   Checks if the log file is exists at specified $(B location) and
+    *   if can't find it, recreates the file and continues write into it.
+    *
+    *   Useful for $(B logrotate) utility. GNU/Linux system checks file identity by
+    *   inode, that doesn't change while renaming. Thus after renaming the file at 
+    *   $(B location) log continues write into the renamed file. The call to the
+    *   $(B reload) method force splitting log into two parts.
+    */
+    void reload()
+    {
+        if(!location.exists)
+        {
+            initialize();
+        }
+    }
+    
+    /**
+    *   Creates log at $(B dir)/$(B name). Tries to create $(B dir)
+    *   and all sub directories.
+    *
+    *   Note: Can throw if there is a problem with access permitions.
+    */    
     this(string name, string dir = DEFAULT_DIR) @trusted
     {
         mName = name;
         mLocation = buildNormalizedPath(dir, name~DEFAULT_EXT);        
 
+        initialize();
+    }
+    
+    /**
+    *   Tries to create log file at $(B location).
+    */
+    protected void initialize() @trusted
+    {
+        auto dir = location.dirName;
         try
         {
-        	if (!dir.exists)
-        	{
-        		dir.mkdirRecurse;
-        	}
-            mLogFile = new std.stream.File(mLocation, FileMode.OutNew);
+            if (!dir.exists)
+            {
+                dir.mkdirRecurse;
+            }
+            mLogFile = new std.stream.File(location, FileMode.OutNew);
         } 
         catch(OpenException e)
         {
@@ -129,12 +173,18 @@ synchronized class CLogger : ILogger
         mMinOutputLevel = LoggingLevel.Notice;
     }
     
+    /**
+    *   Format message with default logging style (etc. time and level string).
+    */
     string formatString(lazy string message, LoggingLevel level) @trusted
     {
         auto timeString = Clock.currTime.toISOExtString();
         return text("[", timeString, "]:", logsStyles[level], message);
     }
     
+    /**
+    *   Unsafe write down the message without any meta information.
+    */
     void rawInput(string message)  @trusted
     {
         mLogFile.writeLine(message);

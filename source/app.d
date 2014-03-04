@@ -178,17 +178,18 @@ else
 	import util;
 	
 
-	immutable help = `
-	Server that transforms JSON-RPC calls in SQL queries for PostgreSQL.
-		rpc-proxy-server [arguments]
+	immutable helpString = 
+    `Server that transforms JSON-RPC calls in SQL queries for PostgreSQL.
+        
+        rpc-proxy-server [arguments]
 		
-		arguments = --daemon - run in daemon mode (detached from tty). 
-						Linux only.
-				    --log=<string> - specifies logging file name, 
-				    	default is 'rpc-proxy-server.log'.
-			    	--config=<string> - specifies config file path
-			    	--gen-config=<path> generate default config at path
-				    --help - prints this message
+        arguments = --daemon - run in daemon mode (detached from tty). 
+                               Linux only.
+                    --log=<string> - specifies logging file name, 
+                                     default is 'rpc-proxy-server.log'.
+                    --config=<string> - specifies config file path
+                    --gen-config=<path> generate default config at path
+                    --help - prints this message
 	`;
 	
 	int main(string[] args)
@@ -216,7 +217,7 @@ else
 		
 		if(help)
 		{
-			writeln(help);
+			writeln(helpString);
 			return 0;
 		}
 		
@@ -232,9 +233,11 @@ else
 		}
 		
 		if(daemon) 
-			return runDaemon(logger, &curry!(progMain, app), args, (){ app.restart(); }, (){ app.finalize(); });
+			return runDaemon(logger, &curry!(progMain, app), args, 
+			    (){app.restart;}, (){app.finalize;}, (int) {app.logger.reload;});
 		else 
-			return runTerminal(logger, &curry!(progMain, app), args, (){ app.restart(); }, (){ app.finalize(); });
+			return runTerminal(logger, &curry!(progMain, app), args, 
+			    (){app.restart;}, (){app.finalize;}, (int) {app.logger.reload;});
 	}
 	
 	

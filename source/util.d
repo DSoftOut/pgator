@@ -359,7 +359,6 @@ unittest
 	assertThrown!TestException(tryEx!TestException(thrower()));
 }
 
-
 /// fromStringz
 /**
 *   Returns new string formed from C-style (null-terminated) string $(D msg). Usefull

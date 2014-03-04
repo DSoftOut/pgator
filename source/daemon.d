@@ -18,6 +18,8 @@ import log;
 private 
 {
     void delegate() savedListener, savedTermListener;
+    void delegate(int) savedUsrListener;
+    
     shared ILogger savedLogger;
     
     extern(C)
@@ -43,15 +45,21 @@ private
     
             void termsig(int sig) 
             {
-                savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
+                savedLogger.logInfo(text("Signal ", sig, " is caught!"));
                 savedTermListener();
                 terminate(EXIT_SUCCESS);
             }
             
             void customHandler(int sig)
             {
-                savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
+                savedLogger.logInfo(text("Signal ", sig, " is caught!"));
                 savedListener();
+            }
+            
+            void usrDaemonHandler(int sig)
+            {
+                savedLogger.logInfo(text("User signal ", sig, " is caught!"));
+                savedUsrListener(sig);
             }
         }
     }
@@ -77,10 +85,12 @@ private void terminate(int code)
 *   catches SIGHUP signal, $(B listener) delegate is called. If daemon catches SIGQUIT, SIGABRT,
 *   or any other terminating sygnal, the termListener is called.
 *
+*   If USR1 or USR2 signal is caught, then $(B usrListener) is called with actual value of received signal.
+* 
 *   Daemon writes log message into provided $(B logger) and will close it while exiting.
 */
 int runDaemon(shared ILogger logger, int delegate(string[]) progMain, string[] args, void delegate() listener,
-        void delegate() termListener)
+        void delegate() termListener, void delegate(int) usrListener)
 {
     savedLogger = logger;
     
@@ -132,6 +142,10 @@ int runDaemon(shared ILogger logger, int delegate(string[]) progMain, string[] a
         
         savedListener = listener;
         signal(SIGHUP, &customHandler);
+        
+        savedUsrListener = usrListener;
+        signal(SIGUSR1, &usrDaemonHandler);
+        signal(SIGUSR2, &usrDaemonHandler);
     }
 
     savedLogger.logInfo("Server is starting in daemon mode...");

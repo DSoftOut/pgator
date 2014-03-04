@@ -40,7 +40,7 @@ class Application
 	
 	this(shared ILogger logger, string configPath)
 	{
-		this.logger = logger;
+		this.mLogger = logger;
 		
 		this.configPath = configPath;
 		
@@ -104,6 +104,11 @@ class Application
 		{
 			logger.logError("Can't generate config at "~path);
 		}
+	}
+	
+	shared(ILogger) logger()
+	{
+	    return mLogger;
 	}
 	
 	shared private:
@@ -441,9 +446,7 @@ class Application
 		}
 	}
 	
-	ILogger logger;
-	
-	ILogger localLogger;
+	shared ILogger mLogger, localLogger;
 	
 	string configPath;
 	

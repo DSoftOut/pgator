@@ -122,6 +122,19 @@ interface ILogger
         *   Format message with default logging style (etc. time and level string).
         */
         string formatString(lazy string message, LoggingLevel level);
+        
+        /**
+        *   Checks if the log file is exists at specified $(B location) and
+        *   if can't find it, recreates the file and continues write into it.
+        *
+        *   Useful for $(B logrotate) utility. GNU/Linux system checks file identity by
+        *   inode, that doesn't change while renaming. Thus after renaming the file at 
+        *   $(B location) log continues write into the renamed file. The call to the
+        *   $(B reload) method force splitting log into two parts.
+        *
+        *   Note: The method is not nothrow!
+        */
+        void reload();
     }
     
     /**

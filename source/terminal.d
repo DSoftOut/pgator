@@ -18,6 +18,8 @@ import log;
 private 
 {
     void delegate() savedListener, savedTermListener;
+    void delegate(int) savedUsrListener;
+    
     shared ILogger savedLogger;
     
     extern (C) 
@@ -39,6 +41,12 @@ private
                 savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
                 savedListener();
             }
+            
+            void usrTerminalHandler(int sig)
+            {
+                savedLogger.logInfo(text("User signal ", sig, " is caught!"));
+                savedUsrListener(sig);
+            }
         }
     }
 }
@@ -50,10 +58,12 @@ private
 *    If application receives some kind of terminating signal, the $(B termListener) is called. $(B termListener) should
 *    end $(B progMain) to be able to clearly shutdown the application.
 *
+*   If USR1 or USR2 signal is caught, then $(B usrListener) is called with actual value of received signal.
+*
 *    Daemon writes log message into provided $(B logger).
 */
 int runTerminal(shared ILogger logger, int delegate(string[]) progMain, string[] args, void delegate() listener,
-    void delegate() termListener)
+    void delegate() termListener, void delegate(int) usrListener)
 {
     savedLogger = logger;
         
@@ -69,7 +79,12 @@ int runTerminal(shared ILogger logger, int delegate(string[]) progMain, string[]
         
         savedListener = listener;
         signal(SIGHUP, &sighandler);
-    } else
+        
+        savedUsrListener = usrListener;
+        signal(SIGUSR1, &usrTerminalHandler);
+        signal(SIGUSR2, &usrTerminalHandler);
+    } 
+    else
     {
         logger.logError("This platform doesn't support signals. Updating json-sql table by signal is disabled!");
     }
