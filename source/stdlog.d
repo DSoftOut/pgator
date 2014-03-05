@@ -151,10 +151,17 @@ synchronized class CLogger : ILogger
     */    
     this(string path) @trusted
     {
+        mName = path.baseName;
+        
         mLocation = path;
         
-        mName = path.baseName;        
-
+        auto dir = path.dirName;
+        
+        if (!dir.exists)
+        {
+        	dir.mkdirRecurse;
+    	}  
+             
         initialize();
     }
     
@@ -162,14 +169,9 @@ synchronized class CLogger : ILogger
     *   Tries to create log file at $(B location).
     */
     protected void initialize() @trusted
-    {
-        auto dir = location.dirName;
+    { 
         try
-        {
-            if (!dir.exists)
-            {
-                dir.mkdirRecurse;
-            }
+        {        
             mLogFile = new std.stream.File(location, FileMode.OutNew);
         } 
         catch(OpenException e)
@@ -235,11 +237,6 @@ private immutable(string[LoggingLevel]) logsStyles;
 
 static this() 
 {
-    if(!exists("./logs"))
-    {
-        mkdirRecurse("./logs");
-    }
-
     logsStyles = [
         LoggingLevel.Notice  :   "Notice: ",
         LoggingLevel.Warning :   "Warning: ",

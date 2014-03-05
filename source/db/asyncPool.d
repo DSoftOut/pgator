@@ -1126,7 +1126,7 @@ unittest
     scope(success) writeln("Finished!");
     scope(failure) writeln("Failed!");
     
-    auto logger = new shared CLogger("asyncPool.unittest2");
+    auto logger = new shared CLogger("logs/asyncPool.unittest2.log");
     scope(exit) logger.finalize();
     logger.minOutputLevel = LoggingLevel.Muted;
     
@@ -1208,7 +1208,7 @@ unittest
     scope(success) writeln("Finished!");
     scope(failure) writeln("Failed!");
     
-    auto logger = new shared CLogger("asyncPool.unittest1");
+    auto logger = new shared CLogger("logs/asyncPool.unittest1.log");
     scope(exit) logger.finalize();
     logger.minOutputLevel = LoggingLevel.Muted;
     
@@ -1292,7 +1292,7 @@ unittest
     scope(success) writeln("Finished!");
     scope(failure) writeln("Failed!");
     
-    auto logger = new shared CLogger("asyncPool.unittest2");
+    auto logger = new shared CLogger("logs/asyncPool.unittest2.log");
     scope(exit) logger.finalize();
     logger.minOutputLevel = LoggingLevel.Fatal;
     
