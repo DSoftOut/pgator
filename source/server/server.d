@@ -100,14 +100,6 @@ class Application
 		}
 	}
 	
-	void genConfig(string path)
-	{
-		if (!writeJsonConfig(defaultConfig.serializeRequiredToJson, path, ""))
-		{
-			logger.logError("Can't generate config at "~path);
-		}
-	}
-	
 	shared(ILogger) logger()
 	{
 	    return mLogger;

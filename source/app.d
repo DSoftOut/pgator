@@ -173,6 +173,7 @@ else
 	
 	import server.server;
 	import server.options;
+	import server.config;
 	
 	import daemon;
 	import terminal;
@@ -187,16 +188,16 @@ else
 			return 0;
 		}
 		
-		shared ILogger logger = new shared CLogger(options.logPath);
-		
-		shared Application app = new shared Application(logger, options);
-		
 		if (options.genPath)
 		{
-			app.genConfig(options.genPath);
+			genConfig(options.genPath);
 			
 			return 0;
 		}
+		
+		shared ILogger logger = new shared CLogger(options.logPath);
+		
+		shared Application app = new shared Application(logger, options);
 		
 		if(options.daemon) 
 			return runDaemon(logger, &curry!(progMain, app), args, 

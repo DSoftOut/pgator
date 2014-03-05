@@ -205,6 +205,14 @@ bool writeJsonConfig(Json json, string name, string dir)
 	
 }
 
+void genConfig(string path)
+{
+	if (!writeJsonConfig(defaultConfig.serializeRequiredToJson, path, ""))
+	{
+		std.stdio.writeln("Can't generate config at ", path);
+	}
+}
+
 version(unittest)
 {
 	string configExample = "
