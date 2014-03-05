@@ -68,8 +68,6 @@ enum DEF_LOG_NAME = APPNAME ~ ".log";
 */
 synchronized class CLogger : ILogger
 {
-    enum DEFAULT_DIR = "./logs";
-    enum DEFAULT_EXT = "";
 
     nothrow
     {   
@@ -151,10 +149,11 @@ synchronized class CLogger : ILogger
     *
     *   Note: Can throw if there is a problem with access permitions.
     */    
-    this(string name, string dir = DEFAULT_DIR) @trusted
+    this(string path) @trusted
     {
-        mName = name;
-        mLocation = buildNormalizedPath(dir, name~DEFAULT_EXT);        
+        mLocation = path;
+        
+        mName = path.baseName;        
 
         initialize();
     }
@@ -236,9 +235,9 @@ private immutable(string[LoggingLevel]) logsStyles;
 
 static this() 
 {
-    if(!exists(CLogger.DEFAULT_DIR))
+    if(!exists("./logs"))
     {
-        mkdirRecurse(CLogger.DEFAULT_DIR);
+        mkdirRecurse("./logs");
     }
 
     logsStyles = [
