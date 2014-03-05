@@ -199,9 +199,11 @@ else
 		}
 		
 		if(options.daemon) 
-			return runDaemon(logger, &curry!(progMain, app), args, (){ app.restart(); }, (){ app.finalize(); });
+			return runDaemon(logger, &curry!(progMain, app), args, 
+				(){app.restart;}, (){app.finalize;}, (int) {app.logger.reload;});
 		else 
-			return runTerminal(logger, &curry!(progMain, app), args, (){ app.restart(); }, (){ app.finalize(); });
+			return runTerminal(logger, &curry!(progMain, app), args, 
+				(){app.restart;}, (){app.finalize;}, (int) {app.logger.reload;});
 	}
 	
 	
