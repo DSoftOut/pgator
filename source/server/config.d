@@ -21,6 +21,33 @@ import vibe.core.log;
 
 import util;
 
+enum DEF_CONF_NAME = APPNAME ~ ".conf";
+
+version (linux)
+{
+	string[] CONF_DIRS() @property
+	{
+		return [CONF_HOME, ETC];
+	}
+	
+	private:
+	
+	enum ETC = "/etc/" ~ APPNAME;
+	
+	enum HOME = "~/.config/" ~ APPNAME;
+	
+	string CONF_HOME() @property
+	{
+		return HOME.expandTilde;
+	}
+}
+else
+{
+	string[] CONF_DIRS() @property
+	{
+		return ["."];
+	}
+}
 
 struct AppConfig
 {

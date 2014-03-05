@@ -172,72 +172,36 @@ else
 	import std.functional;
 	
 	import server.server;
+	import server.options;
 	
 	import daemon;
 	import terminal;
-	import util;
-	
-
-	immutable helpString = 
-    `Server that transforms JSON-RPC calls in SQL queries for PostgreSQL.
-        
-        rpc-proxy-server [arguments]
-		
-        arguments = --daemon - run in daemon mode (detached from tty). 
-                               Linux only.
-                    --log=<string> - specifies logging file name, 
-                                     default is 'rpc-proxy-server.log'.
-                    --config=<string> - specifies config file path
-                    --gen-config=<path> generate default config at path
-                    --help - prints this message
-	`;
 	
 	int main(string[] args)
-	{
-		bool daemon = false;
-		bool help = false;
-		string logName = args[0]~".log";
-		string configPath = null;
-		string genPath = null;
+	{	
+		Options options = new Options(args);
 		
-		try
+		if (options.help)
 		{
-			getopt(args, std.getopt.config.passThrough,
-						 "daemon", &daemon,
-					 	 "log", &logName,
-					 	 "help", &help,
-					 	 "config", &configPath,
-					 	 "gen-config", &genPath);
-		} catch(Exception e)
-		{
-			writeln(e.msg); 
-			writeln(help);
+			writeln(options.helpMsg);
 			return 0;
 		}
 		
-		if(help)
+		shared ILogger logger = new shared CLogger(options.logPath);
+		
+		shared Application app = new shared Application(logger, options);
+		
+		if (options.genPath)
 		{
-			writeln(helpString);
-			return 0;
-		}
-		
-		auto logger = new shared CLogger(logName, DEF_LOG_DIR);
-		
-		shared Application app = new shared Application(logger, configPath);
-		
-		if (genPath)
-		{
-			app.genConfig(genPath);
+			app.genConfig(options.genPath);
 			
 			return 0;
 		}
 		
-		if(daemon) 
-			return runDaemon(logger, &curry!(progMain, app), args, 
-			    (){app.restart;}, (){app.finalize;}, (int) {app.logger.reload;});
+		if(options.daemon) 
+			return runDaemon(logger, &curry!(progMain, app), args, (){ app.restart(); }, (){ app.finalize(); });
 		else 
-			return runTerminal(logger, &curry!(progMain, app), args, 
-			    (){app.restart;}, (){app.finalize;}, (int) {app.logger.reload;});
+			return runTerminal(logger, &curry!(progMain, app), args, (){ app.restart(); }, (){ app.finalize(); });
 	}
 	
 	

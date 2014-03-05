@@ -15,6 +15,7 @@ import std.string;
 import std.exception;
 import std.stdio;
 import std.file;
+import std.path;
 
 import vibe.data.bson;
 import vibe.http.server;
@@ -29,6 +30,7 @@ import json_rpc.response;
 
 import server.database;
 import server.config;
+import server.options;
 
 import util;
 import log;
@@ -38,11 +40,11 @@ class Application
 {
 	shared public:
 	
-	this(shared ILogger logger, string configPath)
+	this(shared ILogger logger, Options options)
 	{
 		this.mLogger = logger;
 		
-		this.configPath = configPath;
+		this.options = options;
 		
 		init();
 	}
@@ -154,65 +156,22 @@ class Application
 			}
 		}
 		
-		if (tryReadConfig(configPath))
+		foreach (path; options.configPaths)
 		{
-			if (invalid)
+			if (tryReadConfig(path))
 			{
-				logger.logError("Invalid config");
+				if (invalid)
+				{
+					logger.logError("Invalid config");
 				
-				return false;
-			}
-			
-			appConfig = toShared(aConf);
-			
-			return true;
-		}
-		else if (tryReadConfig(CONF_HOME~"/"~APPNAME~DEF_EXT))
-		{
-			if (invalid)
-			{
-				logger.logError("Invalid config");
+					return false;
+				}
 				
-				return false;
+				appConfig = toShared(aConf);
+			
+				return true;
 			}
-			
-			appConfig = toShared(aConf);
-			
-			return true;
 		}
-		else if (tryReadConfig(CONF_ETC~"/"~APPNAME~DEF_EXT))
-		{
-			if (invalid)
-			{
-				logger.logError("Invalid config");
-				
-				return false;
-			}
-			
-			appConfig = toShared(aConf);
-			
-			return true;
-		}
-		
-//		// tries to generate config
-//		version (linux)
-//		{
-//			auto json = defaultConfig.serializeRequiredToJson;
-//			
-//			if (writeJsonConfig(json, APPNAME~DEF_EXT, CONF_HOME))
-//			{
-//				logger.logInfo("Generated default config at "~CONF_HOME~". Edit them");
-//				
-//				return false;
-//			}
-//			
-//			if (writeJsonConfig(json, APPNAME~DEF_EXT, CONF_ETC))
-//			{
-//				logger.logInfo("Generated default config at "~CONF_ETC~". Edit them");
-//				
-//				return false;
-//			}
-//		}
 		
 		logger.logError("Can't read config");
 		
@@ -238,13 +197,11 @@ class Application
 		
 		setLogLevel(LogLevel.none);
 		
-		string vibelog = DEF_LOG_DIR~"/"~appConfig.vibelog;
+		string vibelog = buildNormalizedPath(options.logDir, appConfig.vibelog);
 		
 		setLogFile(vibelog, LogLevel.info);
 		setLogFile(vibelog, LogLevel.error);
 		setLogFile(vibelog, LogLevel.warn);
-		
-		lowerPrivileges();
 	}
 	
 	void setupRouter()
@@ -263,7 +220,9 @@ class Application
 	
 	void setupLocalLog()
 	{
-		localLogger = new shared CLogger(appConfig.logname, DEF_LOG_DIR); 
+		string localLogPath = buildNormalizedPath(options.logDir, appConfig.logname);
+		
+		localLogger = new shared CLogger(localLogPath); 
 	}
 	
 	void configure()
@@ -299,6 +258,8 @@ class Application
 			configure();
 			
 			listenHTTP(settings, router);
+			
+			lowerPrivileges();
 		
 			logger.logInfo("Starting event loop");
 			
@@ -448,8 +409,6 @@ class Application
 	
 	shared ILogger mLogger, localLogger;
 	
-	string configPath;
-	
 	AppConfig appConfig;
 	
 	Database database;
@@ -461,6 +420,8 @@ class Application
 	bool internalError;
 	
 	__gshared private:
+	
+	Options options;
 	
 	HTTPServerSettings settings;
 	

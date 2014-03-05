@@ -38,6 +38,19 @@ import std.conv;
 import std.datetime;
 import std.traits;
 
+import util;
+
+version(linux)
+{
+	enum DEF_LOG_DIR = "/var/log/"~APPNAME;
+}
+else
+{
+	enum DEF_LOG_DIR = "./logs";
+}
+
+enum DEF_LOG_NAME = APPNAME ~ ".log";
+
 /**
 *   Standard implementation of ILogger interface.
 *
