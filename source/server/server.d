@@ -210,18 +210,25 @@ class Application
 		database.setupPool();
 	}
 	
-	void setupLocalLog()
+	bool setupLocalLog()
 	{
+		scope(failure)
+		{
+			return false;
+		}
+		
 		string localLogPath = buildNormalizedPath(options.logDir, appConfig.logname);
 		
-		localLogger = new shared CLogger(localLogPath); 
+		localLogger = new shared CLogger(localLogPath);
+		
+		return true;
 	}
 	
 	void configure()
 	{	
 		enforce(loadAppConfig, "Failed to use config");
 		
-		setupLocalLog();
+		enforce(setupLocalLog, "Can't create log");
 		
 		setupDatabase();
 		
