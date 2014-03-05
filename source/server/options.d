@@ -94,16 +94,23 @@ class Options
 	string genPath = null;
 	
 	enum helpMsg = `
-	Server that transforms JSON-RPC calls in SQL queries for PostgreSQL.
+	Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 		rpc-proxy-server [arguments]
 		
 		arguments = --daemon - run in daemon mode (detached from tty). 
 						Linux only.
-				    --log=<string> - specifies logging file name, 
-				    	default is 'rpc-proxy-server.log'.
-			    	--config=<string> - specifies config file path
-			    	--gen-config=<path> generate default config at path
-				    --help - prints this message
+
+				    --logDir=<string> - specifies logs dir. Default is '/var/log/rpc-sql-proxy'.
+
+				    --logName=<string> - specifies logname in log directory. 	
+			    	
+				    --configDir=<string> - specifies config directory.
+
+				    --configName=<string> - specifies config file name in config directory.
+			    	
+			    	--genConfig=<path> generate default config at path
+				    
+			    	--help - prints this message
 	`;
 	
 	private:
@@ -133,9 +140,9 @@ class Options
 
 	bool quiet;
 	
-	string m_logName = APPNAME~".log";
+	string m_logName = null;
 	
-	string m_logDir = DEF_LOG_DIR;
+	string m_logDir = null;
 	
 	string m_configName = null;
 	
