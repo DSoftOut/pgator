@@ -195,7 +195,17 @@ else
 			return 0;
 		}
 		
-		shared ILogger logger = new shared CLogger(options.logPath);
+		shared ILogger logger;
+		
+		try
+		{
+			 logger = new shared CLogger(options.logPath);
+		}
+		catch (Exception e)
+		{
+			writeln("Can't create log at "~options.logPath);
+			return 0;
+		}
 		
 		shared Application app = new shared Application(logger, options);
 		
