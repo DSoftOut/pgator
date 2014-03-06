@@ -80,9 +80,9 @@ int runTerminal(shared ILogger logger, int delegate(string[]) progMain, string[]
         savedListener = listener;
         signal(SIGHUP, &sighandler);
         
-        savedUsrListener = usrListener;
-        signal(SIGUSR1, &usrTerminalHandler);
-        signal(SIGUSR2, &usrTerminalHandler);
+//        savedUsrListener = usrListener;
+//        signal(SIGUSR1, &usrTerminalHandler);
+//        signal(SIGUSR2, &usrTerminalHandler);
     } 
     else
     {

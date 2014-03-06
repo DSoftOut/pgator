@@ -86,11 +86,6 @@ interface ILogger
         string name() @property const;
 
         /**
-        *   Full log name.
-        */
-        string location() @property const;
-
-        /**
         *   Prints message into log. Displaying in the console
         *   controlled by minOutputLevel property.
         */

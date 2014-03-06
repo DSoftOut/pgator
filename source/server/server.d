@@ -40,38 +40,53 @@ class Application
 {
 	shared public:
 	
-	this(shared ILogger logger, Options options)
+	this(shared ILogger logger, immutable Options options, immutable AppConfig config)
 	{
 		this.mLogger = logger;
-		
 		this.options = options;
+		this.appConfig = config;
 		
 		init();
 	}
 	
 	~this()
 	{
-		localLogger.finalize();
-		
 		finalize();
 	}
 	
 	/// runs the server
-	void run()
+	int run()
 	{			
-		if (running) return;
+		if (running) return 0;
 		
 		logger.logInfo("Running server...");
 		
-		startServer();
+		return startServer();
 	}
 	
 	/// restart the server
-	void restart()
-	{
-		stopServer();
-		
-		run();
+	/**
+	*  Recreates new application object with refreshed config.
+	*/
+	shared(Application) restart()
+	{	
+        try
+        {
+            auto newConfig = immutable AppConfig(options.configName);
+            auto newLogger = new shared CLogger(newConfig.logname);
+            
+            return new shared Application(newLogger, options, newConfig);
+        }
+        catch(InvalidConfig e)
+        {
+            logger.logError(text("Configuration file at '", e.confPath, "' is invalid! ", e.msg));
+            assert(false);
+        }
+        catch(Exception e)
+        {
+            logger.logError(text("Failed to load configuration file at '", options.configName, "'! Details: ", e.msg));
+            assert(false);
+        }
 	}
 	
 	/**
@@ -79,6 +94,7 @@ class Application
 	*/
 	void finalize()
 	{
+	    scope(exit) logger.finalize();
 		logger.logInfo("Called finalize");
 		
 		scope(failure)
@@ -116,61 +132,6 @@ class Application
 		router = new URLRouter;
 	}
 	
-	bool loadAppConfig()
-	{
-		AppConfig aConf;
-		
-		bool invalid;
-		
-		bool tryReadConfig(string path)
-		{
-			if (path is null) return false;
-			
-			try
-			{
-				aConf = AppConfig(path);
-				
-				logger.logInfo("Readed "~path);
-				
-				return true;
-			}
-			catch(InvalidConfig e)
-			{
-				logger.logError(e.msg);
-				
-				invalid = true;
-				
-				return true;
-			}
-			catch(Exception e)
-			{
-				return false;
-			}
-		}
-		
-		foreach (path; options.configPaths)
-		{
-			if (tryReadConfig(path))
-			{
-				if (invalid)
-				{
-					logger.logError("Invalid config");
-				
-					return false;
-				}
-				
-				appConfig = toShared(aConf);
-			
-				return true;
-			}
-		}
-		
-		logger.logError("Can't read config");
-		
-		return false;
-		
-	}
-	
 	void setupSettings()
 	{
 		settings.port = appConfig.port;
@@ -188,12 +149,9 @@ class Application
 			settings.bindAddresses = appConfig.bindAddresses;
 		
 		setLogLevel(LogLevel.none);
-		
-		string vibelog = buildNormalizedPath(options.logDir, appConfig.vibelog);
-		
-		setLogFile(vibelog, LogLevel.info);
-		setLogFile(vibelog, LogLevel.error);
-		setLogFile(vibelog, LogLevel.warn);
+		setLogFile(appConfig.vibelog, LogLevel.info);
+		setLogFile(appConfig.vibelog, LogLevel.error);
+		setLogFile(appConfig.vibelog, LogLevel.warn);
 	}
 	
 	void setupRouter()
@@ -205,31 +163,13 @@ class Application
 	
 	void setupDatabase()
 	{
-		database = new shared Database(localLogger, appConfig);
+		database = new shared Database(logger, appConfig);
 		
 		database.setupPool();
 	}
 	
-	bool setupLocalLog()
-	{
-		scope(failure)
-		{
-			return false;
-		}
-		
-		string localLogPath = buildNormalizedPath(options.logDir, appConfig.logname);
-		
-		localLogger = new shared CLogger(localLogPath);
-		
-		return true;
-	}
-	
 	void configure()
 	{	
-		enforce(loadAppConfig, "Failed to use config");
-		
-		enforce(setupLocalLog, "Can't create log");
-		
 		setupDatabase();
 		
 		try
@@ -238,7 +178,7 @@ class Application
 		}
 		catch(Throwable e)
 		{
-			localLogger.logError("Server error: "~e.msg);
+			logger.logError("Server error: "~e.msg);
 			
 			internalError = true;
 		}
@@ -250,7 +190,7 @@ class Application
 		setupRouter();
 	}
 	
-	void startServer()
+	int startServer()
 	{
 		try
 		{	
@@ -264,13 +204,14 @@ class Application
 			
 			running = true;
 			
-			runEventLoop();
+			return runEventLoop();
 		}
 		catch(Throwable e)
 		{
 			logger.logError("Server error: "~e.msg);
 			
 			finalize();
+			return -1;
 		}
 	}
 	
@@ -406,9 +347,10 @@ class Application
 		}
 	}
 	
-	shared ILogger mLogger, localLogger;
+	shared ILogger mLogger;
 	
-	AppConfig appConfig;
+	immutable AppConfig appConfig;
+	immutable Options options;
 	
 	Database database;
 	
@@ -418,11 +360,10 @@ class Application
 	
 	bool internalError;
 	
-	__gshared private:
-	
-	Options options;
-	
-	HTTPServerSettings settings;
-	
-	URLRouter router;
+	__gshared private
+	{	
+    	HTTPServerSettings settings;
+    	
+    	URLRouter router;
+	}
 }

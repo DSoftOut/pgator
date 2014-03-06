@@ -44,8 +44,7 @@ import util;
 */
 shared class Database
 {
-	
-	this(shared ILogger logger, shared AppConfig appConfig)
+	this(shared ILogger logger, immutable AppConfig appConfig)
 	{
 		this.logger = logger;
 		
@@ -261,7 +260,7 @@ shared class Database
 	
 	Cache cache;
 	
-	AppConfig appConfig;
+	immutable AppConfig appConfig;
 	
 	ILogger logger;
 }

@@ -143,9 +143,9 @@ int runDaemon(shared ILogger logger, int delegate(string[]) progMain, string[] a
         savedListener = listener;
         signal(SIGHUP, &customHandler);
         
-        savedUsrListener = usrListener;
-        signal(SIGUSR1, &usrDaemonHandler);
-        signal(SIGUSR2, &usrDaemonHandler);
+//        savedUsrListener = usrListener;
+//        signal(SIGUSR1, &usrDaemonHandler);
+//        signal(SIGUSR2, &usrDaemonHandler);
     }
 
     savedLogger.logInfo("Server is starting in daemon mode...");

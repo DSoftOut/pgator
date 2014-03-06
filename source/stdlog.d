@@ -38,19 +38,6 @@ import std.conv;
 import std.datetime;
 import std.traits;
 
-import util;
-
-version(linux)
-{
-	enum DEF_LOG_DIR = "/var/log/"~APPNAME;
-}
-else
-{
-	enum DEF_LOG_DIR = "./logs";
-}
-
-enum DEF_LOG_NAME = APPNAME ~ ".log";
-
 /**
 *   Standard implementation of ILogger interface.
 *
@@ -68,7 +55,6 @@ enum DEF_LOG_NAME = APPNAME ~ ".log";
 */
 synchronized class CLogger : ILogger
 {
-
     nothrow
     {   
         /**
@@ -79,14 +65,6 @@ synchronized class CLogger : ILogger
             return mName;
         }
 
-        /**
-        *   Full log name.
-        */
-        string location() const @property @safe
-        {
-            return mLocation;
-        }
-        
         /**
         *   Prints message into log. Displaying in the console
         *   controlled by minOutputLevel property.
@@ -105,7 +83,7 @@ synchronized class CLogger : ILogger
             catch(Exception e)
             {
                 if(minOutputLevel != LoggingLevel.Muted)
-                    writeln(logsStyles[LoggingLevel.Warning], "Failed to write into log ", mLocation);
+                    writeln(logsStyles[LoggingLevel.Warning], "Failed to write into log ", name);
             }
         }
         
@@ -137,31 +115,21 @@ synchronized class CLogger : ILogger
     */
     void reload()
     {
-        if(!location.exists)
+        if(!name.exists)
         {
             initialize();
         }
     }
     
     /**
-    *   Creates log at $(B dir)/$(B name). Tries to create $(B dir)
+    *   Creates log at $(B dir)/$(B name). Tries to create parent directory
     *   and all sub directories.
     *
-    *   Note: Can throw if there is a problem with access permitions.
-    */    
-    this(string path) @trusted
+    *   Note: Can throw if there is a problem with access permissions.
+    */ 
+    this(string name) @trusted
     {
-        mName = path.baseName;
-        
-        mLocation = path;
-        
-        auto dir = path.dirName;
-        
-        if (!dir.exists)
-        {
-        	dir.mkdirRecurse;
-    	}  
-             
+        mName = name;
         initialize();
     }
     
@@ -169,21 +137,25 @@ synchronized class CLogger : ILogger
     *   Tries to create log file at $(B location).
     */
     protected void initialize() @trusted
-    { 
+    {
+        auto dir = name.dirName;
         try
-        {        
-            mLogFile = new std.stream.File(location, FileMode.OutNew);
+        {
+            if (!dir.exists)
+            {
+                dir.mkdirRecurse;
+            }
+            mLogFile = new std.stream.File(name, FileMode.OutNew);
         } 
         catch(OpenException e)
         {
-            throw new Exception(text("Failed to create log with name ", mName, " and location ", mLocation, ". Details: ", e.msg));
+            throw new Exception(text("Failed to create log at '", name, "'. Details: ", e.msg));
         }
     }
     
     protected this()
     {
         mName = "";
-        mLocation = "";
         mMinOutputLevel = LoggingLevel.Notice;
     }
     
@@ -221,7 +193,6 @@ synchronized class CLogger : ILogger
     private
     {
         immutable(string) mName;
-        immutable(string) mLocation;
         __gshared std.stream.File mLogFile;
         shared LoggingLevel mMinOutputLevel;
 
