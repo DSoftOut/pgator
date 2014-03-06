@@ -220,6 +220,11 @@ interface IPGconn
     void finish() nothrow;
     
     /**
+    *   Prototype: PQflush
+    */
+    bool flush() nothrow const;
+    
+    /**
     *   Prototype: PQresetStart
     *   Throws: PGReconnectException
     */

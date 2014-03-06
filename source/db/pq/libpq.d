@@ -273,6 +273,20 @@ synchronized class CPGconn : IPGconn
     }
     
     /**
+    *   Prototype: PQflush
+    */
+    bool flush() nothrow const
+    in
+    {
+        assert(conn !is null, "PGconn was finished!");
+        assert(PQfinish !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return PQflush(conn) != 0;
+    }
+    
+    /**
     *   Prototype: PQresetStart
     *   Throws: PGReconnectException
     */
