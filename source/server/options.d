@@ -2,150 +2,106 @@
 /**
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
-*
+*          NCrashed <ncrashed@gmail.com>
 */
 module server.options;
 
 import std.path;
+import std.array;
 import std.getopt;
 import std.range;
 
 import server.config;
-
 import stdlog;
-
 import util;
 
-class Options
+immutable class Options
 {
 	this(string[] args)
-	{
-		this.args = args;
-
-		parse();
-	}
-
-	string[] configPaths() @property
 	{	
-		if (m_configDir)
-		{
-			return [buildNormalizedPath(m_configDir, configName)];
-		}
-		else
-		{
-			string[] arr = new string[0];
-
-			foreach(dir; CONF_DIRS)
-			{
-				arr ~=buildNormalizedPath(dir, configName);
-			}
-
-			return arr;
-		}
+	    bool pDaemon, pHelp;
+	    string pConfigName, pGenPath;
+	    
+        getopt(args, std.getopt.config.passThrough,
+                         "daemon",     &pDaemon,
+                         "help|h",     &pHelp,
+                         "config",     &pConfigName,
+                         "genConfig",  &pGenPath);
+        
+        mDaemon     = pDaemon;
+        mHelp       = pHelp;
+        mConfigName = pConfigName;
+        mGenPath    = pGenPath;
 	}
-
+	
+	this(bool daemon, bool help, string configName, string genPath)
+	{
+	    mDaemon     = daemon;
+	    mHelp       = help;
+	    mConfigName = configName;
+	    mGenPath    = genPath;
+	}
+	
+	InputRange!string configPaths() @property
+	{	
+	    auto builder = appender!(string[]);
+	    builder.put(buildPath("~/.config/rpc-sql-proxy", DEF_CONF_NAME).expandTilde);
+	    
+	    version(Posix)
+	    {
+	        builder.put(buildPath("/etc", DEF_CONF_NAME));
+	    }
+	    version(Windows)
+	    {
+	        builder.put(buildPath(".", DEF_CONF_NAME));
+	    }
+	    
+		return builder.data.inputRangeObject;
+	}
+	
 	string configName() @property
 	{
-		if (m_configName)
-		{
-			return m_configName;
-		}
-		else
-		{
-			return DEF_CONF_NAME;
-		}
+		return buildNormalizedPath(mConfigName);
 	}
 
-	string logPath() @property
+	string genConfigPath() @property
 	{
-		return buildNormalizedPath(logDir, logName);
+	    return buildNormalizedPath(mGenPath);
 	}
-
-	string logDir() @property
+	
+	bool daemon() @property
 	{
-		if (m_logDir)
-		{
-			return m_logDir;
-		}
-		else
-		{
-			return DEF_LOG_DIR;
-		}
+	    return mDaemon;
 	}
-
-	string logName() @property
+	
+	bool help() @property
 	{
-		if (m_logName)
-		{
-			return m_logName;
-		}
-		else
-		{
-			return DEF_LOG_NAME;
-		}
+	    return mHelp;
 	}
-
-	bool daemon;
-
-	bool help;
-
-	string genPath = null;
-
-	enum helpMsg = "Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
-	rpc-proxy-server [arguments]
-	arguments =
-		--daemon - run in daemon mode (detached from tty).
-			Linux only.
-		
-		--logDir=<string> - specifies logs dir.
-			Default is '/var/log/rpc-sql-proxy'.
-		
-		--logName=<string> - specifies logname in log directory.
-		
-		--configDir=<string> - specifies config directory.
-		
-		--configName=<string> - specifies config file name in
-			config directory.	    	
-		
-		--genConfig=<path> generate default config at path		    
-		
-		--help - prints this message";
-
-	private:
-
-	void parse()
+	
+	immutable(Options) updateConfigPath(string path)
 	{
-		getopt(args, std.getopt.config.passThrough,
-
-						 "daemon", &daemon,
-
-						 "logDir", &m_logDir,
-
-					 	 "logName", &m_logName,
-
-					 	 "help|h", &help,
-
-					 	 "configDir", &m_configDir,
-
-					 	 "configName", &m_configName,
-
-					 	 "genConfig", &genPath);
-
-
+	    return new immutable Options(daemon, help, path, genConfigPath);
 	}
-
-	bool verbose;
-
-	bool quiet;
-
-	string m_logName = null;
-
-	string m_logDir = null;
-
-	string m_configName = null;
-
-	string m_configDir = null;
-
-	string[] args;
-
+	
+	private
+	{
+        enum helpMsg = "Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.\n\n"
+        "   rpc-proxy-server [arguments]\n"
+        "   arguments =\n"
+        "    --daemon - run in daemon mode (detached from tty).\n"
+        "        Linux only.\n\n"
+        "    --config=<string> - specifies config file name in\n"
+        "        config directory.\n\n"
+        "   --genConfig=<path> generate default config at the path\n\n"           
+        "   --help - prints this message";
+    	
+    	enum DEF_CONF_NAME = APPNAME~".conf";
+    	
+    	bool mDaemon;
+    	bool mHelp;
+    
+    	string mConfigName;
+    	string mGenPath;
+	}
 }

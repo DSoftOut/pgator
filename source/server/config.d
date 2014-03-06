@@ -14,95 +14,88 @@ import std.exception;
 import std.stdio;
 import std.path;
 import std.file;
+import std.range;
+import std.typecons;
+import std.conv;
 
 import vibe.data.json;
 import vibe.core.log;
 
 import util;
 
-enum DEF_CONF_NAME = APPNAME ~ ".conf";
-
-version (linux)
-{
-	string[] CONF_DIRS() @property
-	{
-		return [CONF_HOME, ETC];
-	}
-
-	private:
-
-	enum ETC = "/etc/" ~ APPNAME;
-
-	enum HOME = "~/.config/" ~ APPNAME;
-
-	string CONF_HOME() @property
-	{
-		return HOME.expandTilde;
-	}
-}
-else
-{
-	string[] CONF_DIRS() @property
-	{
-		return ["."];
-	}
-}
-
 struct AppConfig
 {
 	@required
 	ushort port;
-
+	
 	@required
 	uint maxConn;
-
+	
 	@required
 	SqlConfig[] sqlServers;
-
+	
 	@required
 	string[] sqlAuth;
-
+	
 	@required
 	uint sqlTimeout; //ms
-
+	
 	@required
 	string sqlJsonTable;
-
+	
 	@possible
-	string[] bindAddresses = null; //["127.0.0.1"];
-
+	string[] bindAddresses = null;
+	
 	@possible
 	string hostname = null;
-
+	
 	@possible
 	int sqlReconnectTime = -1; //ms
-
+	
 	@possible
 	string vibelog = "http.txt";
-
+	
 	@required
 	string logname = "log.txt";
-
+	
 	this(Json json)
 	{
-
-		this = tryEx!(InvalidConfig, deserializeFromJson!AppConfig)(json);
+        try
+        {
+            this = deserializeFromJson!AppConfig(json);
+        }
+        catch(Exception e)
+        {
+            throw new InvalidConfig("", e.msg);
+        }
 	}
-
-	this(string path)
+	
+	this(string path) immutable
 	{
-		auto file = File(path, "r");
-
-		string str;
-
-		foreach(line; file.byLine)
-		{
-			str ~= line;
-		}
-
+	    auto str = File(path, "r").byLine.join.idup;
 		auto json = parseJson(str);
 
-		this(json); 
+		AppConfig conf;
+		try
+		{
+		    conf = deserializeFromJson!AppConfig(json);
+		}
+		catch(Exception e)
+		{
+    		throw new InvalidConfig(path, e.msg);
+		}
+		
+		port             = conf.port;
+		maxConn          = conf.maxConn;
+		sqlServers       = conf.sqlServers.idup;
+		sqlAuth          = conf.sqlAuth.idup;
+		sqlTimeout       = conf.sqlTimeout;
+		sqlJsonTable     = conf.sqlJsonTable;
+		bindAddresses    = conf.bindAddresses.idup;
+		hostname         = conf.hostname;
+		sqlReconnectTime = conf.sqlReconnectTime;
+		vibelog          = conf.vibelog;
+		logname          = conf.logname;
 	}
 }
 
@@ -110,28 +103,81 @@ struct SqlConfig
 {
 	@possible
 	string name = null;
-
+	
 	@required
 	size_t maxConn;
-
+	
 	@required
 	string connString;
 }
 
-class InvalidConfig:Exception
+class InvalidConfig : Exception
 {
-	@safe pure nothrow this(string msg = null, string file = __FILE__, size_t line = __LINE__)
+    private string mConfPath;
+    
+	@safe pure nothrow this(string confPath, string msg, string file = __FILE__, size_t line = __LINE__)
 	{
+	    mConfPath = confPath;
 		super(msg, file, line);
+	}
+	
+	string confPath() @property
+	{
+	    return mConfPath;
 	}
 }
 
+class NoConfigLoaded : Exception
+{
+    private string[] mConfPaths;
+    
+    @safe pure nothrow this(string[] confPaths, string file = __FILE__, size_t line = __LINE__)
+    {
+        mConfPaths = confPaths;
+        
+        string msg;
+        {
+            scope(failure) msg = "<Internal error while collecting error message, report this bug!>";
+            msg = text("Failed to load configuration file from one of following paths: ", confPaths);
+        }
+        super(msg, file, line);
+    }
+    
+    string[] confPaths() @property
+    {
+        return mConfPaths;
+    }
+}
+
+alias Tuple!(immutable AppConfig, "config", string, "path") LoadedConfig;
+
+LoadedConfig tryConfigPaths(R)(R paths)
+    if(isInputRange!R && is(ElementType!R == string))
+{
+    foreach(path; paths)
+    {
+        try
+        {
+            return LoadedConfig(immutable AppConfig(path), path);
+        }
+        catch(InvalidConfig e)
+        {
+            throw e;
+        }
+        catch(Exception e)
+        {
+            continue;
+        }
+    }
+    
+    throw new NoConfigLoaded(paths.array);
+}
+    
 /**
 *   Returns config example to be edited by end user.
 *   
-*   If the application cannot find configuration file, it
-*   terminates and ask an user to edit the default configuration
-*   file that is written to the specified place.
+*   This configuration is generated only if explicit 
+*   key is passed to the application.
 */
 AppConfig defaultConfig()
 {
@@ -148,65 +194,34 @@ AppConfig defaultConfig()
     return ret;
 }
 
-bool writeConfig(AppConfig appConfig, string name, string dir)
+//bool writeConfig(AppConfig appConfig, string name)
+//{
+//    return writeJson(vibe.data.json.serializeToJson(appConfig), name);
+//}
+
+bool writeJson(Json json, string name)
 {
-	scope(failure)
-	{
-		return false;
-	}
-
-	if (!dir.exists)
-	{
-		dir.mkdirRecurse;
-	}
-
-	string fullPath = buildNormalizedPath(dir, name);
-
-	auto file = new File(fullPath, "w");
-
-	scope(exit) file.close();
-
+    scope(failure) return false;
+    
+    auto dir = name.dirName;
+    if (!dir.exists)
+    {
+        dir.mkdirRecurse;
+    }
+  
+    auto file = new File(name, "w");
+    scope(exit) file.close();
+          
     auto builder = appender!string;
-    
-    writePrettyJsonString(builder, vibe.data.json.serializeToJson(appConfig), 0);
-    
-    file.writeln(builder.data);
-    
-    return true;
-
-}
-
-bool writeJsonConfig(Json json, string name, string dir)
-{
-	scope(failure)
-	{
-		return false;
-	}
-
-	if (!dir.exists)
-	{
-		dir.mkdirRecurse;
-	}
-
-	string fullPath = buildNormalizedPath(dir, name);
-
-	auto file = new File(fullPath, "w");
-
-	scope(exit) file.close();
-
-    auto builder = appender!string;
-    
     writePrettyJsonString(builder, json, 0);
-    
     file.writeln(builder.data);
     
     return true;
-
 }
 
 void genConfig(string path)
 {
-	if (!writeJsonConfig(defaultConfig.serializeRequiredToJson, path, ""))
+	if (!writeJson(defaultConfig.serializeRequiredToJson, path))
 	{
 		std.stdio.writeln("Can't generate config at ", path);
 	}
@@ -255,9 +270,9 @@ version(unittest)
 unittest
 {
 	auto config1 = AppConfig(parseJsonString(configExample));
-
+	
 	AppConfig config2;
-
+	
 	config2.port = cast(ushort) 8888;
 	config2.bindAddresses = ["::", "0.0.0.0"];
 	config2.hostname = "";
@@ -268,6 +283,6 @@ unittest
 	config2.sqlReconnectTime = 150;
 	config2.sqlTimeout = 100;
 	config2.sqlServers = [SqlConfig("sql1", cast(size_t)1,""), SqlConfig("sql2", cast(size_t)2, "",)];
-
+	
 	assert(config1 == config2, "Config unittest failed");
 }

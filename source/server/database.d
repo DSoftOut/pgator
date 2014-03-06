@@ -42,16 +42,15 @@ import util;
 */
 shared class Database
 {
-
-	this(shared ILogger logger, shared AppConfig appConfig)
+	this(shared ILogger logger, immutable AppConfig appConfig)
 	{
 		this.logger = logger;
-
+		
 		this.appConfig = appConfig;
-
+		
 		init();
 	}
-
+	
 	/// configures async pool
 	// called on every start / restart
 	void setupPool()
@@ -59,26 +58,22 @@ shared class Database
 		foreach(server; appConfig.sqlServers)
 		{
 			pool.addServer(server.connString, server.maxConn);
-
+			
 			logger.logInfo("Connecting to " ~ server.name);
 		}
 	}
-
+	
 	/// allocate shared cache
 	void createCache()
 	{
 		cache = new shared Cache(table); 
 	}
-
+	
 	/**
 	* Loads main table from database
 	*
 	* Throws:
 	* 	on $(B ConnTimeoutException) tries to reconnect
-	*
-	* Authors: 
-	*	Zaramzan <shamyan.roman@gmail.com>
-	* 	Ncrashed <ncrashed@gmail.com>
 	*/
 	void loadJsonSqlTable()
 	{
@@ -102,15 +97,15 @@ shared class Database
 	        }
 	        return result.map!(a => Bson(a)).array;
 	    }
-
+	    
 		string queryStr = "SELECT * FROM "~appConfig.sqlJsonTable;
-
+		
 		shared SqlJsonTable sqlTable = new shared SqlJsonTable();
-
+		
 		void load()
 		{
 			auto arri = pool.execTransaction([queryStr]);
-
+			
 			foreach(ibson; arri)
 			{			
 				foreach(v; convertRowEchelon(ibson))
@@ -118,14 +113,14 @@ shared class Database
 					sqlTable.add(deserializeFromJson!Entry(v.toJson));
 				}
 			}
-
+			
 			table = sqlTable;
-
+			
 			table.makeDropMap();
-
+			
 			logger.logInfo("Table loaded");
 		}
-
+		
 		try
 		{
 			load();
@@ -133,20 +128,20 @@ shared class Database
 		catch(ConnTimeoutException ex)
 		{
 		    logger.logError("There is no free connections in the pool, retry over 1 sec...");
-
+		    
 		    Thread.sleep(1.seconds);
-
+		    
 		    load();
 		}
 	}
-
-
+	
+	
 	/// finalize async db.pool
 	void finalizePool()
 	{
 		pool.finalize();
 	}
-
+	
 	/**
 	* Queries parsed request from async pool <br>
 	*
@@ -155,18 +150,18 @@ shared class Database
 	RpcResponse query(ref RpcRequest req)
 	{	
 		RpcResponse res;
-
+		
 		if (cache.get(req, res))
 		{
 			logger.logInfo("Found in cache");
-
+			
 			res.id = req.id;
-
+			
 			return res;
 		}
-
+		
 		Entry entry;
-
+			
 		if (!table.methodFound(req.method, entry))
 		{
 			throw new RpcMethodNotFound();
@@ -177,19 +172,19 @@ shared class Database
 			{
 				throw new RpcInvalidParams();
 			}
-
+						
 			logger.logInfo("Querying pool");
-
+			
 			try
 			{			
 				auto irange = pool.execTransaction(entry.sql_queries, req.params, req.auth);
-
+				
 				auto builder = appender!(Bson[]);
 				foreach(ibson; irange)
 				{
 				    builder.put(Bson.fromJson(ibson.toJson));
 				}
-
+				
 				RpcResult result = RpcResult(Bson(builder.data));
 				res = RpcResponse(req.id, result);
 			}
@@ -203,17 +198,17 @@ shared class Database
 			}
 
 			shared RpcResponse cacheRes = res.toShared();
-
+			
 			if (table.need_cache(req.method))
 			{
 				logger.logInfo("Adding to cache");
 				cache.add(req, cacheRes);
 			}
 		}
-
+		
 		return res;
 	}
-
+	
 	/**
 	* Drop caches if needed
 	*/
@@ -225,9 +220,9 @@ shared class Database
 			cache.reset(meth);
 		}
 	}
-
+	
 	private:
-
+	
 	/**
 	* Initializes database resources
 	*
@@ -236,9 +231,9 @@ shared class Database
 	void init()
 	{
 		Duration timeout = dur!"msecs"(appConfig.sqlTimeout);
-
+		
 		Duration reTime;
-
+		
 		if (appConfig.sqlReconnectTime > 0)
 		{
 			reTime = dur!"msecs"(appConfig.sqlReconnectTime);
@@ -249,17 +244,17 @@ shared class Database
 		}
 
 		auto provider = new shared PQConnProvider(logger, new PostgreSQL);
-
+		
 		pool = new shared AsyncPool(logger, provider, reTime, timeout);
 	}
-
+	
 	IConnectionPool pool;
-
+	
 	SqlJsonTable table;
-
+	
 	Cache cache;
-
-	AppConfig appConfig;
-
+	
+	immutable AppConfig appConfig;
+	
 	ILogger logger;
 }
