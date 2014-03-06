@@ -2,9 +2,7 @@
 /**
 * Contains database using logic
 *
-*
 * Authors: Zaramzan <shamyan.roman@gmail.com>
-*        , NCrashed <ncrashed@gmail.com>
 */
 module server.database;
 
@@ -76,10 +74,6 @@ shared class Database
 	*
 	* Throws:
 	* 	on $(B ConnTimeoutException) tries to reconnect
-	*
-	* Authors: 
-	*	Zaramzan <shamyan.roman@gmail.com>
-	* 	Ncrashed <ncrashed@gmail.com>
 	*/
 	void loadJsonSqlTable()
 	{

@@ -251,7 +251,7 @@ unittest
     logger.log("Fatal msg!", LoggingLevel.Fatal);
     logger.close();
 
-    auto f = new std.stdio.File(logger.location, "r");
+    auto f = new std.stdio.File(logger.name, "r");
     // Delete date string before cheking string
     assert(replace(f.readln()[0..$-1], regex(r"[\[][\p{InBasicLatin}]*[\]][:]"), "") == logsStyles[LoggingLevel.Notice]~"Notice msg!", "Log notice testing fail!");
     assert(replace(f.readln()[0..$-1], regex(r"[\[][\p{InBasicLatin}]*[\]][:]"), "") == logsStyles[LoggingLevel.Warning]~"Warning msg!", "Log warning testing fail!");
@@ -273,5 +273,5 @@ unittest
     }
     assert(ni == n, "Concurrent logging test is failed!");
     
-    remove(logger.location);
+    remove(logger.name);
 }

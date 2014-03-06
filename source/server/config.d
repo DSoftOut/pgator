@@ -7,7 +7,6 @@
 *
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
-*          NCrashed <ncrashed@gmail.com>
 */
 module server.config;
 
