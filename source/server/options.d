@@ -92,25 +92,25 @@ immutable class Options
 	}
 	
 	/// Configuration full file name
-	string configName() @property
+	string configName() @property pure nothrow @safe
 	{
 		return buildNormalizedPath(mConfigName);
 	}
 	
 	/// Path where to generate configuration
-	string genConfigPath() @property
+	string genConfigPath() @property pure nothrow @safe
 	{
 	    return buildNormalizedPath(mGenPath);
 	}
 	
 	/// Is application should run in daemon mode
-	bool daemon() @property
+	bool daemon() @property pure nothrow @safe
 	{
 	    return mDaemon;
 	}
 	
 	/// Is application should show help message and exit
-	bool help() @property
+	bool help() @property pure nothrow @safe
 	{
 	    return mHelp;
 	}

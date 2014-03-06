@@ -215,7 +215,7 @@ else
             auto logger = new shared CLogger(loadedConfig.config.logname);
             auto app = new shared Application(logger, loadedConfig.options, loadedConfig.config);
             
-            enum mainFunc = (args)
+            enum mainFunc = (string[] args)
             {
                 int res;
                 do
@@ -235,10 +235,10 @@ else
             };
                     
             if(options.daemon) 
-                return runDaemon(logger, mainFunc, args, 
+                return runDaemon(logger, mainFunc, args, termFunc,
                     (){app.finalize;}, (int) {app.logger.reload;});
             else 
-                return runTerminal(logger, mainFunc, args, 
+                return runTerminal(logger, mainFunc, args, termFunc,
                     (){app.finalize;}, (int) {app.logger.reload;});
 	    }
 	    catch(InvalidConfig e)

@@ -22,6 +22,11 @@ import vibe.core.log;
 
 import util;
 
+/**
+* Represent configuration file.
+*
+* Authors: Zaramzan <shamyan.roman@gmail.com>
+*/
 struct AppConfig
 {
 	@required
@@ -60,7 +65,8 @@ struct AppConfig
     /**	
     *   Deserializing config from provided $(B json) object.
     *
-    *   Throws: InvalidConfig (without info about config file name)
+    *   Throws: InvalidConfig if json is incorrect (without info 
+    *           about config file name)
     *
     *   Authors: Zaramzan <shamyan.roman@gmail.com>
     *            NCrashed <ncrashed@gmail.com>
@@ -114,6 +120,7 @@ struct AppConfig
 	}
 }
 
+/// Describes basic sql info in AppConfig
 struct SqlConfig
 {
 	@possible
@@ -127,8 +134,8 @@ struct SqlConfig
 }
 
 /** 
-*   The exception is thrown when configuration parsing error occurs.
-*   Also encapsulates config file name.
+*   The exception is thrown when configuration parsing error occurs
+*   (AppConfig constructor). Also encapsulates config file name.
 *
 *   Throws: InvalidConfig
 *
@@ -198,7 +205,11 @@ alias Tuple!(immutable AppConfig, "config", string, "path") LoadedConfig;
 *   If functions go out of paths and none of them can be opened, then $(B NoConfigLoaded)
 *   exception is thrown.
 *   
+*   Throws: NoConfigLoaded if can't load configuration file.
+*           InvalidConfig if configuration file is invalid (first successfully opened)
+*
 *   Authors: NCrashed <ncrashed@gmail.com>
+*            Zaramzan <shamyan.roman@gmail.com>
 */
 LoadedConfig tryConfigPaths(R)(R paths)
     if(isInputRange!R && is(ElementType!R == string))
@@ -245,6 +256,19 @@ AppConfig defaultConfig()
     return ret;
 }
 
+
+/**
+*   Writes configuration $(B appConfig) to file path $(B name).
+*   It is a wrapper function around $(B writeJson). 
+*
+*   Authors: NCrashed <ncrashed@gmail.com>
+*            Zaramzan <shamyan.roman@gmail.com>
+*/
+bool writeConfig(AppConfig appConfig, string name)
+{
+    return writeJson(vibe.data.json.serializeToJson(appConfig), name);
+}
+
 /**
 *   Writes down $(B json) to provided file $(B name).
 *
@@ -272,9 +296,10 @@ bool writeJson(Json json, string name)
 }
 
 /**
-*   Generates and write down configuration to $(B path).
+*   Generates and write down minimal configuration to $(B path).
 *
 *   Authors: NCrashed <ncrashed@gmail.com>
+*            Zaramzan <shamyan.roman@gmail.com>
 */
 void genConfig(string path)
 {

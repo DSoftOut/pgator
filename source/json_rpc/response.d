@@ -28,6 +28,8 @@ import json_rpc.error;
 *  auto res2 = RpcResponse(Json(null), result);
 *  aut0 res3 = RpcResponse("mycustomidsystem", result);
 * ------
+* 
+* Authors: Zaramzan <shamyan.roman@gmail.com>
 */
 struct RpcResponse
 {	
@@ -115,6 +117,8 @@ struct RpcResponse
 * ------
 *  auto res = RpcResult(res);
 * ------ 
+* 
+* Authors: Zaramzan <shamyan.roman@gmail.com>
 */
 struct RpcResult
 {

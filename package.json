@@ -4,7 +4,7 @@
 	"copyright": "Copyright © 2014, DSoftOut",
 	"authors": [
 		 "Anton Gushcha (NCrashed <ncrashed@gmail.com>)"
-		,"Shamyan Roman (Zaramzan)"
+		,"Shamyan Roman (Zaramzan <shamyan.roman@gmail.com>)"
 		],
 	"targetPath": "bin",
 	"versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],

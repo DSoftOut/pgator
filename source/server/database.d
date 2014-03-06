@@ -2,9 +2,7 @@
 /**
 * Contains database using logic
 *
-*
 * Authors: Zaramzan <shamyan.roman@gmail.com>
-*      
 */
 module server.database;
 
@@ -45,8 +43,7 @@ import util;
 shared class Database
 {
     /**
-    *   Database dependencies: logger and configuration.
-    *   
+    *   Construct object from ILogger and configuration file.   
     */
 	this(shared ILogger logger, immutable AppConfig appConfig)
 	{
@@ -58,8 +55,7 @@ shared class Database
 	}
 	
 	/// configures async pool
-	// called on every start / restart
-	void setupPool()
+	void setupPool() // called on every start / restart
 	{		
 		foreach(server; appConfig.sqlServers)
 		{
@@ -79,10 +75,6 @@ shared class Database
 	*
 	* Throws:
 	* 	on $(B ConnTimeoutException) tries to reconnect
-	*
-	* Authors: 
-	*	Zaramzan <shamyan.roman@gmail.com>
-	* 	Ncrashed <ncrashed@gmail.com>
 	*/
 	void loadJsonSqlTable()
 	{
@@ -235,8 +227,7 @@ shared class Database
 	* Initializes database resources
 	*
 	*/
-	//called once
-	void init()
+	void init() //called once
 	{
 		Duration timeout = dur!"msecs"(appConfig.sqlTimeout);
 		
