@@ -18,7 +18,11 @@ import vibe.data.bson;
 
 import util;
 
-/// contains JSON-RPC 2.0 error codes
+/**
+* Contains JSON-RPC 2.0 error codes
+* 
+* Authors: Zaramzan <shamyan.roman@gmail.com>
+*/
 enum RPC_ERROR_CODE:int
 {
 	NONE,
@@ -55,6 +59,8 @@ enum RPC_VERSION = "2.0";
 *  //toJson
 *  err2.toJson(); 
 * ------ 
+* 
+* Authors: Zaramzan <shamyan.roman@gmail.com>
 */
 struct RpcError
 {

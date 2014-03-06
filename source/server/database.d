@@ -42,6 +42,9 @@ import util;
 */
 shared class Database
 {
+	/**
+	* Construct object from ILogger and configuration file
+	*/
 	this(shared ILogger logger, immutable AppConfig appConfig)
 	{
 		this.logger = logger;

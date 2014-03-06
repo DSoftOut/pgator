@@ -31,6 +31,7 @@ import json_rpc.error;
 * writefln("id=%s method=%s params:%s", req.id, req.method, req.params);
 * ------
 * 
+* Authors: Zaramzan <shamyan.roman@gmail.com>
 */
 struct RpcRequest
 {	

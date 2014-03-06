@@ -23,6 +23,11 @@ import vibe.core.log;
 
 import util;
 
+/**
+* Represent configuration file.
+*
+* Authors: Zaramzan <shamyan.roman@gmail.com>
+*/
 struct AppConfig
 {
 	@required
@@ -58,6 +63,12 @@ struct AppConfig
 	@required
 	string logname = "log.txt";
 	
+	/**
+	* Construct from Json
+	*
+	* Throws:
+	*	InvalidConfig if json is incorrect
+	*/
 	this(Json json)
 	{
         try
@@ -70,6 +81,9 @@ struct AppConfig
         }
 	}
 	
+	/**
+	* Construct from file
+	*/
 	this(string path) immutable
 	{
 	    auto str = File(path, "r").byLine.join.idup;
@@ -99,6 +113,7 @@ struct AppConfig
 	}
 }
 
+/// Describes basic sql info in AppConfig
 struct SqlConfig
 {
 	@possible
@@ -111,6 +126,7 @@ struct SqlConfig
 	string connString;
 }
 
+/// Thrown by AppConfig ctor
 class InvalidConfig : Exception
 {
     private string mConfPath;
@@ -151,6 +167,12 @@ class NoConfigLoaded : Exception
 
 alias Tuple!(immutable AppConfig, "config", string, "path") LoadedConfig;
 
+/** 
+* Tries to load configuration file
+* 
+* Throws:
+*	NoConfigLoaded if can't load configuration file
+*/
 LoadedConfig tryConfigPaths(R)(R paths)
     if(isInputRange!R && is(ElementType!R == string))
 {
@@ -199,6 +221,7 @@ AppConfig defaultConfig()
 //    return writeJson(vibe.data.json.serializeToJson(appConfig), name);
 //}
 
+/// Writes Json to path
 bool writeJson(Json json, string name)
 {
     scope(failure) return false;
@@ -219,6 +242,7 @@ bool writeJson(Json json, string name)
     return true;
 }
 
+/// Generate minimal configuration file
 void genConfig(string path)
 {
 	if (!writeJson(defaultConfig.serializeRequiredToJson, path))

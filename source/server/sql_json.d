@@ -13,6 +13,11 @@ import std.traits;
 
 import util;
 
+/**
+* Represent sql to json table line from database
+*
+* Authors: Zaramzan <shamyan.roman@gmail.com>
+*/
 struct Entry
 {
 	@required
@@ -48,11 +53,16 @@ struct Entry
 	}
 }
 
-//Will expand
+/**
+* Contains methods descriptions, cache rules, etc
+* 
+* Authors: Zaramzan <shamyan.roman@gmail.com>
+*/
 shared class SqlJsonTable
 {
 	private Entry[string] map;
 	
+	/// Add entry to memory
 	void add(in Entry entry)
 	{
 		shared Entry ent = toShared(entry);
@@ -70,6 +80,9 @@ shared class SqlJsonTable
 		}
 	}
 	
+	/**
+	* Returns: need_cache flag by method
+	*/
 	bool need_cache(string method)
 	{
 		auto p = method in map;
@@ -81,6 +94,9 @@ shared class SqlJsonTable
 		return val.need_cache && val.read_only;
 	}
 	
+	/**
+	* Returns read_only flag by method
+	*/
 	bool read_only(string method)
 	{
 		auto p = method in map;
@@ -92,6 +108,9 @@ shared class SqlJsonTable
 		return val.read_only;
 	}
 	
+	/**
+	* Returns: reset_caches array by method
+	*/
 	string[] reset_caches(string method)
 	{
 		auto p = method in map;
@@ -103,6 +122,9 @@ shared class SqlJsonTable
 		return cast(string[])(val.reset_caches);
 	}
 	
+	/**
+	* Returns: reset_by array by method
+	*/
 	string[] reset_by(string method)
 	{
 		auto p = method in map;
@@ -114,6 +136,9 @@ shared class SqlJsonTable
 		return cast(string[])(val.reset_by);
 	}
 	
+	/**
+	* Returns: array of needed drop methods by this method
+	*/
 	string[] needDrop(string method)
 	{
 		auto p = method in dropMap;
@@ -123,6 +148,9 @@ shared class SqlJsonTable
 		return cast(string[]) *p;
 	}
 	
+	/**
+	* Returns: true if method found, and put entry
+	*/
 	bool methodFound(string method, out Entry entry)
 	{	
 		shared Entry* p;
@@ -139,6 +167,9 @@ shared class SqlJsonTable
 		return false;
 	}
 	
+	/**
+	* Returns entry by method
+	*/
 	Entry getEntry(string method)
 	{
 		auto p = method in map;
@@ -148,11 +179,15 @@ shared class SqlJsonTable
 		return cast(Entry) *p;
 	}
 	
+	/**
+	* Returns: true if method found
+	*/
 	bool methodFound(string method)
 	{	
 		return (method in map) !is null;
 	}
 	
+	/// Make drop map
 	void makeDropMap()
 	{
 		foreach(val; map.byValue())

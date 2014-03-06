@@ -60,8 +60,19 @@ private string getHash(in RpcRequest req)
 	return toHexString(hash).idup;
 }
 
+/**
+* Represent caching system
+*
+* Authors: Zaramzan <shamyan.roman@gmail.com>
+*/
 shared class Cache
 {	
+	/**
+	* Construct caching system
+	*
+	* Params:
+	* 	table = describes methods and caching rules
+	*/
 	this(shared SqlJsonTable table)
 	{
 		this.table = table;
@@ -69,6 +80,9 @@ shared class Cache
 		mutex = new ReadWriteMutex(ReadWriteMutex.Policy.PREFER_READERS);
 	}
 	
+	/**
+	* Drop cache by request
+	*/
 	bool reset(RpcRequest req)
 	{			
 		synchronized (mutex.writer)
@@ -82,6 +96,9 @@ shared class Cache
 		return false;
 	}
 	
+	/**
+	* Drop all method cache
+	*/
 	bool reset(string method)
 	{		
 		synchronized (mutex.writer)
@@ -90,6 +107,9 @@ shared class Cache
 		}
 	}
 	
+	/**
+	* Add cache by request
+	*/
 	void add(in RpcRequest req, shared RpcResponse res)
 	{	
 		synchronized (mutex.writer)
@@ -111,6 +131,16 @@ shared class Cache
 		}
 	}
 	
+	/**
+	* Search cache by request in memory.
+	*
+	* Params:
+	*	req = RPC request
+	*	res = if cache found in memory, res will be assigned
+	*
+	* Returns:
+	*	true, if found in memory, otherwise returns false
+	*/
 	bool get(in RpcRequest req, out RpcResponse res)
 	{
 		synchronized(mutex.reader)

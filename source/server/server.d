@@ -36,10 +36,16 @@ import util;
 import log;
 import stdlog;
 
+/**
+* Main program class
+*
+* Authors: Zaramzan <shamyan.roman@gmail.com>
+*/
 class Application
 {
 	shared public:
 	
+	/// Construct Application from ILogger, Options and AppConfig
 	this(shared ILogger logger, immutable Options options, immutable AppConfig config)
 	{
 		this.mLogger = logger;
@@ -116,6 +122,7 @@ class Application
 		}
 	}
 	
+	/// Return current application logger
 	shared(ILogger) logger()
 	{
 	    return mLogger;
@@ -166,6 +173,7 @@ class Application
 		
 		database.setupPool();
 	}
+	
 	
 	void configure()
 	{	
