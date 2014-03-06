@@ -4,7 +4,7 @@
 *
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
-*        , NCrashed <ncrashed@gmail.com>
+*      
 */
 module server.database;
 
@@ -40,10 +40,14 @@ import util;
 * Represent database layer
 *
 * Authors:
-*	Zaramzan <shamyan.roman@gmail.com>	
+*	  Zaramzan <shamyan.roman@gmail.com>
 */
 shared class Database
 {
+    /**
+    *   Database dependencies: logger and configuration.
+    *   
+    */
 	this(shared ILogger logger, immutable AppConfig appConfig)
 	{
 		this.logger = logger;
@@ -59,9 +63,8 @@ shared class Database
 	{		
 		foreach(server; appConfig.sqlServers)
 		{
-			pool.addServer(server.connString, server.maxConn);
-			
-			logger.logInfo("Connecting to " ~ server.name);
+		    logger.logInfo("Connecting to " ~ server.name);
+			pool.addServer(server.connString, server.maxConn);	
 		}
 	}
 	
@@ -111,7 +114,7 @@ shared class Database
 		void load()
 		{
 			auto arri = pool.execTransaction([queryStr]);
-			
+
 			foreach(ibson; arri)
 			{			
 				foreach(v; convertRowEchelon(ibson))
@@ -119,11 +122,10 @@ shared class Database
 					sqlTable.add(deserializeFromJson!Entry(v.toJson));
 				}
 			}
-			
+
 			table = sqlTable;
-			
 			table.makeDropMap();
-			
+
 			logger.logInfo("Table loaded");
 		}
 		

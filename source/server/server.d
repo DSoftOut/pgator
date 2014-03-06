@@ -182,11 +182,9 @@ class Application
 			
 			internalError = true;
 		}
-		
+
 		database.createCache();
-		
 		setupSettings();
-		
 		setupRouter();
 	}
 	

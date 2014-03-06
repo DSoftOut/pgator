@@ -1,8 +1,9 @@
 // Written in D programming language
 /**
+*   Module describes application startup options.
 *
-* Authors: Zaramzan <shamyan.roman@gmail.com>
-*          NCrashed <ncrashed@gmail.com>
+*   Authors: Zaramzan <shamyan.roman@gmail.com>
+*            NCrashed <ncrashed@gmail.com>
 */
 module server.options;
 
@@ -15,8 +16,24 @@ import server.config;
 import stdlog;
 import util;
 
+/**
+*   Application startup options. The main purpose is
+*   to parse and store options about daemon mode,
+*   configuration file path and some other options that
+*   needed in application startup.
+*
+*   As the class is immutable, it can be passed between
+*   threads safely.
+*/
 immutable class Options
 {
+    /**
+    *   Application $(B args) arguments parsing.
+    *   
+    *   Options are: daemon or terminal mode, help message
+    *   request, configuration file path and request for
+    *   default configuration file generation.
+    */
 	this(string[] args)
 	{	
 	    bool pDaemon, pHelp;
@@ -34,7 +51,15 @@ immutable class Options
         mGenPath    = pGenPath;
 	}
 	
-	this(bool daemon, bool help, string configName, string genPath)
+	/**
+	*  Verbose creation from native D types.
+	*  Params:
+	*  daemon      = is program should start in daemon mode
+	*  help        = is program should show help message and exit
+	*  configName  = configuration file name
+	*  genPath     = is program should generate config at specified path and exit
+	*/
+	this(bool daemon, bool help, string configName, string genPath) pure nothrow
 	{
 	    mDaemon     = daemon;
 	    mHelp       = help;
@@ -42,6 +67,13 @@ immutable class Options
 	    mGenPath    = genPath;
 	}
 	
+	/**
+	*  Returns all paths where application should try to find
+	*  configuration file.
+	*
+	*  Note: Application should use this when and only when
+	*        configName is not set.
+	*/
 	InputRange!string configPaths() @property
 	{	
 	    auto builder = appender!(string[]);
@@ -59,43 +91,51 @@ immutable class Options
 		return builder.data.inputRangeObject;
 	}
 	
+	/// Configuration full file name
 	string configName() @property
 	{
 		return buildNormalizedPath(mConfigName);
 	}
-
+	
+	/// Path where to generate configuration
 	string genConfigPath() @property
 	{
 	    return buildNormalizedPath(mGenPath);
 	}
 	
+	/// Is application should run in daemon mode
 	bool daemon() @property
 	{
 	    return mDaemon;
 	}
 	
+	/// Is application should show help message and exit
 	bool help() @property
 	{
 	    return mHelp;
 	}
 	
-	immutable(Options) updateConfigPath(string path)
+	/// Application help message
+    enum helpMsg = "Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.\n\n"
+    "   rpc-proxy-server [arguments]\n"
+    "   arguments =\n"
+    "    --daemon - run in daemon mode (detached from tty).\n"
+    "        Linux only.\n\n"
+    "    --config=<string> - specifies config file name in\n"
+    "        config directory.\n\n"
+    "   --genConfig=<path> generate default config at the path\n\n"           
+    "   --help - prints this message";
+    
+    /**
+    *   Creates new options with updated configuration $(B path).
+    */
+	immutable(Options) updateConfigPath(string path) pure nothrow
 	{
 	    return new immutable Options(daemon, help, path, genConfigPath);
 	}
 	
 	private
 	{
-        enum helpMsg = "Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.\n\n"
-        "   rpc-proxy-server [arguments]\n"
-        "   arguments =\n"
-        "    --daemon - run in daemon mode (detached from tty).\n"
-        "        Linux only.\n\n"
-        "    --config=<string> - specifies config file name in\n"
-        "        config directory.\n\n"
-        "   --genConfig=<path> generate default config at the path\n\n"           
-        "   --help - prints this message";
-    	
     	enum DEF_CONF_NAME = APPNAME~".conf";
     	
     	bool mDaemon;

@@ -1,4 +1,3 @@
-
 // Written in D programming language
 /**
 * Config reading system.
@@ -7,7 +6,6 @@
 *
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
-*          NCrashed <ncrashed@gmail.com>
 */
 module server.config;
 
@@ -54,11 +52,19 @@ struct AppConfig
 	int sqlReconnectTime = -1; //ms
 	
 	@possible
-	string vibelog = "http.txt";
+	string vibelog = "http.log";
 	
 	@required
-	string logname = "log.txt";
+	string logname = "/var/log/"~APPNAME~"/"~APPNAME~".txt";
 	
+    /**	
+    *   Deserializing config from provided $(B json) object.
+    *
+    *   Throws: InvalidConfig (without info about config file name)
+    *
+    *   Authors: Zaramzan <shamyan.roman@gmail.com>
+    *            NCrashed <ncrashed@gmail.com>
+    */
 	this(Json json)
 	{
         try
@@ -71,6 +77,14 @@ struct AppConfig
         }
 	}
 	
+    /** 
+    *   Parsing config from file $(B path).
+    *
+    *   Throws: InvalidConfig
+    *
+    *   Authors: Zaramzan <shamyan.roman@gmail.com>
+    *            NCrashed <ncrashed@gmail.com>
+    */
 	this(string path) immutable
 	{
 	    auto str = File(path, "r").byLine.join.idup;
@@ -112,6 +126,15 @@ struct SqlConfig
 	string connString;
 }
 
+/** 
+*   The exception is thrown when configuration parsing error occurs.
+*   Also encapsulates config file name.
+*
+*   Throws: InvalidConfig
+*
+*   Authors: Zaramzan <shamyan.roman@gmail.com>
+*            NCrashed <ncrashed@gmail.com>
+*/
 class InvalidConfig : Exception
 {
     private string mConfPath;
@@ -128,6 +151,14 @@ class InvalidConfig : Exception
 	}
 }
 
+/** 
+*   The exception is thrown by $(B tryConfigPaths) is called and
+*   all config file alternatives are failed to be loaded.
+*
+*   Also encapsulates a set of tried paths.
+*
+*   Authors: NCrashed <ncrashed@gmail.com>
+*/
 class NoConfigLoaded : Exception
 {
     private string[] mConfPaths;
@@ -150,8 +181,25 @@ class NoConfigLoaded : Exception
     }
 }
 
+/**
+*   Return value from $(B tryConfigPaths). Handles loaded config
+*   and exact file $(B path).
+*
+*   Authors: NCrashed <ncrashed@gmail.com>
+*/
 alias Tuple!(immutable AppConfig, "config", string, "path") LoadedConfig;
 
+/**
+*   Takes range of paths and one at a time tries to load config from each one.
+*   If the path doesn't exist, then the next candidate is checked. If the file
+*   exists, but parsing or deserializing are failed, $(B InvalidConfig) exception
+*   is thrown.
+*
+*   If functions go out of paths and none of them can be opened, then $(B NoConfigLoaded)
+*   exception is thrown.
+*   
+*   Authors: NCrashed <ncrashed@gmail.com>
+*/
 LoadedConfig tryConfigPaths(R)(R paths)
     if(isInputRange!R && is(ElementType!R == string))
 {
@@ -179,6 +227,8 @@ LoadedConfig tryConfigPaths(R)(R paths)
 *   
 *   This configuration is generated only if explicit 
 *   key is passed to the application.
+*
+*   Authors: NCrashed <ncrashed@gmail.com>
 */
 AppConfig defaultConfig()
 {
@@ -191,15 +241,16 @@ AppConfig defaultConfig()
     ret.sqlReconnectTime = 5000;
     ret.sqlJsonTable = "public.json_rpc";
     ret.bindAddresses = ["127.0.0.1"];
-    ret.logname = "log.txt";
+    ret.logname = "/var/log/"~APPNAME~"/"~APPNAME~".txt";
     return ret;
 }
 
-//bool writeConfig(AppConfig appConfig, string name)
-//{
-//    return writeJson(vibe.data.json.serializeToJson(appConfig), name);
-//}
-
+/**
+*   Writes down $(B json) to provided file $(B name).
+*
+*   Authors: NCrashed <ncrashed@gmail.com>
+*            Zaramzan <shamyan.roman@gmail.com>
+*/
 bool writeJson(Json json, string name)
 {
     scope(failure) return false;
@@ -220,6 +271,11 @@ bool writeJson(Json json, string name)
     return true;
 }
 
+/**
+*   Generates and write down configuration to $(B path).
+*
+*   Authors: NCrashed <ncrashed@gmail.com>
+*/
 void genConfig(string path)
 {
 	if (!writeJson(defaultConfig.serializeRequiredToJson, path))
