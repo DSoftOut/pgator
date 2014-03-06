@@ -200,9 +200,9 @@ class AsyncPool : IConnectionPool
     bool isTransactionReady(immutable ITransaction transaction) shared
     {
         scope(failure) return true;
-        
+
         if(processingTransactions[].find(cast(shared)transaction).empty)
-            return true;
+            return true; 
             
         fetchResponds();
 
@@ -672,13 +672,18 @@ class AsyncPool : IConnectionPool
                    }
                }
                
-               scope(exit)
+               // also compiler don't allow to put this in scope(exit)
+               foreach(conn; list)
                {
-                   foreach(conn; list)
+                   try
                    {
                        conn.disconnect();
+                   } 
+                   catch(Throwable e)
+                   {
+                       
                    }
-               } 
+               }
                
                exitTid.send(true);
                logger.logInfo("Free connections thread exited!");
