@@ -137,14 +137,7 @@ shared class Cache
 	{
 		synchronized(mutex.writer)
 		{
-			ulong size;
-			
-			foreach(key; cache.byKey())
-			{
-				size += cache[key].length * RpcResponse.sizeof;
-			}
-			
-			return size > MAX_CACHE_SIZE;
+			return cache.sizeof > MAX_CACHE_SIZE;
 		}
 	}
 	 
