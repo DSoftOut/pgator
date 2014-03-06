@@ -123,9 +123,8 @@ class Application
 	
 	shared private:
 	
-	/// initialize resources
-	// called once
-	void init()
+	/// initialize resources 
+	void init() // called once
 	{
 		settings = new HTTPServerSettings;
 		

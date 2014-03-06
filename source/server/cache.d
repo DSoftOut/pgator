@@ -92,10 +92,10 @@ shared class Cache
 	
 	void add(in RpcRequest req, shared RpcResponse res)
 	{	
-		if (ifMaxSize) return;
-		
 		synchronized (mutex.writer)
 		{
+			if (ifMaxSize) return;
+			
 			if ((req.method in cache) is null)
 			{
 				shared stash aa;
@@ -135,10 +135,7 @@ shared class Cache
 	
 	private bool ifMaxSize()
 	{
-		synchronized(mutex.writer)
-		{
-			return cache.sizeof > MAX_CACHE_SIZE;
-		}
+		return cache.sizeof > MAX_CACHE_SIZE;
 	}
 	 
 	private CacheType cache;

@@ -52,8 +52,7 @@ shared class Database
 	}
 	
 	/// configures async pool
-	// called on every start / restart
-	void setupPool()
+	void setupPool() // called on every start / restart
 	{		
 		foreach(server; appConfig.sqlServers)
 		{
@@ -227,8 +226,7 @@ shared class Database
 	* Initializes database resources
 	*
 	*/
-	//called once
-	void init()
+	void init() //called once
 	{
 		Duration timeout = dur!"msecs"(appConfig.sqlTimeout);
 		
