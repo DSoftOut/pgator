@@ -15,6 +15,7 @@ import server.config;
 import stdlog;
 import util;
 
+/// Represent options from command line
 immutable class Options
 {
 	this(string[] args)

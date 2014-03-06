@@ -253,7 +253,11 @@ class RequiredJsonObject:Exception
 	}
 }
 
-/// tries to call function. On exception throws Ex, otherwise return func() result
+/**
+* Tries to call function. On exception throws Ex, otherwise return func() result
+*
+* Authors: Zaramzan <shamyan.roman@gmail.com>
+*/
 template tryEx(Ex, alias func)
 {
 	static assert(isSomeFunction!func, "func must be some function");
@@ -279,7 +283,11 @@ template tryEx(Ex, alias func)
 	alias foo!P tryEx;
 }
 
-/// tries to evaluate par. On exception throws Ex, otherwise return par
+/**
+* Tries to evaluate par. On exception throws Ex, otherwise return par
+*
+* Authors: Zaramzan <shamyan.roman@gmail.com>
+*/
 T tryEx(Ex, T)(lazy T par)
 {
 	static assert(is(Ex:Exception), "Ex must be Exception");
