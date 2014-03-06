@@ -49,7 +49,7 @@ synchronized class PQConnection : IConnection
             logger.logError(text("Failed to connect to SQL server, reason:", e.msg));
             throw new ConnectException(server, e.msg);
         }
-    }import std.container;
+    }
     
     /**
     *   Tries to establish connection with a SQL server described
@@ -234,6 +234,7 @@ synchronized class PQConnection : IConnection
     body
     {
         conn.finish;
+        conn = null;
     }
     
     /**
