@@ -167,113 +167,64 @@ else version(RpcClient)
 }
 else
 {
-    import std.stdio;
-    import std.typecons;
-    import std.concurrency;
-	import core.time;
+	import std.stdio;
+	import std.getopt;
+	import std.functional;
+
 	import server.server;
 	import server.options;
 	import server.config;
-	
+
 	import daemon;
 	import terminal;
-	
-	alias Tuple!(immutable AppConfig, "config", immutable Options, "options") LoadedConfig;
-	
-	LoadedConfig loadConfig(immutable Options options)
-	{
-        if(options.configName != "")
-        {
-            return LoadedConfig(immutable AppConfig(options.configName), options);
-        }
-        else
-        {
-            auto res = tryConfigPaths(options.configPaths); 
-            return LoadedConfig(res.config, options.updateConfigPath(res.path));
-        }
-	}
-	
+
 	int main(string[] args)
 	{	
-		auto options = new immutable Options(args);
-		
+		Options options = new Options(args);
+
 		if (options.help)
 		{
 			writeln(options.helpMsg);
 			return 0;
 		}
-		
-		if (options.genConfigPath != "")
+
+		if (options.genPath)
 		{
-			genConfig(options.genConfigPath);
+			genConfig(options.genPath);
+
 			return 0;
 		}
-		
+
+		shared ILogger logger;
+
 		try
 		{
-		    auto loadedConfig = loadConfig(options);
-            auto logger = new shared CLogger(loadedConfig.config.logname);
-            auto app = new shared Application(logger, loadedConfig.options, loadedConfig.config);
-            
-            if(options.daemon) 
-                return runDaemon(logger, 
-                    (args)
-                    {
-                        int res;
-                        do
-                        {
-                            res = app.run;
-                            writeln("!!!!!!!!!!!!!!!");
-                        } while(receiveTimeout(dur!"msecs"(100), 
-                                (shared Application newApp) {app = newApp;}));
-                        
-                        return res;
-                    }
-                    , args, 
-                    ()
-                    {
-                        app.finalize;
-                        auto newApp = app.restart;
-                        send(thisTid, newApp);
-                    }
-                    , (){app.finalize;}, (int) {app.logger.reload;});
-            else 
-                return runTerminal(logger, 
-                    (args)
-                    {
-                        int res;
-                        do
-                        {
-                            res = app.run;
-                            writeln("!!!!!!!!!!!!!!!");
-                        } while(receiveTimeout(dur!"msecs"(100), 
-                                (shared Application newApp) {app = newApp;}));
-                        
-                        return res;
-                    }
-                    , args, 
-                    ()
-                    {
-                        app.finalize;
-                        auto newApp = app.restart;
-                        send(thisTid, newApp);
-                    }
-                    , (){app.finalize;}, (int) {app.logger.reload;});
-	    }
-	    catch(InvalidConfig e)
-        {
-            writeln("Configuration file at '", e.confPath, "' is invalid! ", e.msg);
-            return 1;
-        }
-        catch(NoConfigLoaded e)
-        {
-            writeln(e.msg);
-            return 1;
-        }
-        catch(Exception e)
-        {
-            writeln("Failed to load configuration file at '", options.configName, "'! Details: ", e.msg);
-            return 1;
-        }
+			 logger = new shared CLogger(options.logPath);
+		}
+		catch (Exception e)
+		{
+			writeln("Can't create log at "~options.logPath);
+			return 0;
+		}
+
+		shared Application app = new shared Application(logger, options);
+
+		if(options.daemon) 
+			return runDaemon(logger, &curry!(progMain, app), args, 
+				(){app.restart;}, (){app.finalize;}, (int) {app.logger.reload;});
+		else 
+			return runTerminal(logger, &curry!(progMain, app), args, 
+				(){app.restart;}, (){app.finalize;}, (int) {app.logger.reload;});
+	}
+
+
+	int progMain(shared Application app, string[] args)
+	{
+		import core.time;
+		import core.thread;
+
+		app.run();
+
+		return 0;
 	}
 }
