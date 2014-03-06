@@ -215,50 +215,31 @@ else
             auto logger = new shared CLogger(loadedConfig.config.logname);
             auto app = new shared Application(logger, loadedConfig.options, loadedConfig.config);
             
+            enum mainFunc = (args)
+            {
+                int res;
+                do
+                {
+                    res = app.run;
+                } while(receiveTimeout(dur!"msecs"(100), 
+                        (shared Application newApp) {app = newApp;}));
+                
+                return res;
+            };
+            
+            enum termFunc = ()
+            {
+                app.finalize;
+                auto newApp = app.restart;
+                send(thisTid, newApp);
+            };
+                    
             if(options.daemon) 
-                return runDaemon(logger, 
-                    (args)
-                    {
-                        int res;
-                        do
-                        {
-                            res = app.run;
-                            writeln("!!!!!!!!!!!!!!!");
-                        } while(receiveTimeout(dur!"msecs"(100), 
-                                (shared Application newApp) {app = newApp;}));
-                        
-                        return res;
-                    }
-                    , args, 
-                    ()
-                    {
-                        app.finalize;
-                        auto newApp = app.restart;
-                        send(thisTid, newApp);
-                    }
-                    , (){app.finalize;}, (int) {app.logger.reload;});
+                return runDaemon(logger, mainFunc, args, 
+                    (){app.finalize;}, (int) {app.logger.reload;});
             else 
-                return runTerminal(logger, 
-                    (args)
-                    {
-                        int res;
-                        do
-                        {
-                            res = app.run;
-                            writeln("!!!!!!!!!!!!!!!");
-                        } while(receiveTimeout(dur!"msecs"(100), 
-                                (shared Application newApp) {app = newApp;}));
-                        
-                        return res;
-                    }
-                    , args, 
-                    ()
-                    {
-                        app.finalize;
-                        auto newApp = app.restart;
-                        send(thisTid, newApp);
-                    }
-                    , (){app.finalize;}, (int) {app.logger.reload;});
+                return runTerminal(logger, mainFunc, args, 
+                    (){app.finalize;}, (int) {app.logger.reload;});
 	    }
 	    catch(InvalidConfig e)
         {
