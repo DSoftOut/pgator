@@ -59,12 +59,14 @@ SysTime convert(PQType type)(ubyte[] val)
 version(Have_Int64_TimeStamp)
 {
     private alias long TimeADT;
+    private alias long TimeOffset;
 }
 else
 {
     import std.math;
     
     private alias double TimeADT;
+    private alias double TimeOffset;
     
     void TMODULO(ref double t, ref int q, double u)
     {
@@ -181,21 +183,49 @@ PGTimeWithZone convert(PQType type)(ubyte[] val)
     return PGTimeWithZone(time2tm(val.read!TimeADT), new immutable SimpleTimeZone(-val.read!int.dur!"seconds"));
 }
 
-SysTime convert(PQType type)(ubyte[] val)
-    if(type == PQType.TimeInterval)
+/**
+*   PostgreSQL time interval isn't same with D std.datetime one.
+*   It is simple Duration.
+*
+*   Consists of: microseconds $(B time), $(B day) count and $(B month) count.
+*   Libpq uses different represantation for $(B time), but i store only 
+*   in usecs format.
+*/
+private struct TimeInterval
 {
-    assert(false);
+    // in microseconds
+    long        time;           /* all time units other than days, months and
+                                 * years */
+    int         day;            /* days, after time for alignment */
+    int         month;          /* months and years, after time for alignment */
+    
+    this(ubyte[] arr)
+    {
+        assert(arr.length == TimeOffset.sizeof + 2*int.sizeof);
+        version(Have_Int64_TimeStamp)
+        {
+            time  = arr.read!long;
+        }
+        else
+        {
+            time  = cast(long)(arr.read!double * 10e6);
+        }
+        
+        day   = arr.read!int;
+        month = arr.read!int;
+    }
 }
 
-Interval convert(PQType type)(ubyte[] val)
+TimeInterval convert(PQType type)(ubyte[] val)
+    if(type == PQType.TimeInterval)
+{
+    return TimeInterval(val);
+}
+
+SysTime convert(PQType type)(ubyte[] val)
     if(type == PQType.Interval)
 {
-    assert(val.length == 12);
-    Interval interval;
-    interval.status = val.read!uint;
-    interval.data[0] = SysTime(val.read!uint);
-    interval.data[1] = SysTime(val.read!uint);
-    return interval;
+    assert(false);
 }
 
 SysTime convert(PQType type)(ubyte[] val)
@@ -338,10 +368,38 @@ version(IntegrationTest2)
         logger.logInfo("Testing Interval...");
     }
     
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.TimeInterval)
     {
-        logger.logInfo("Testing TimeInterval...");
+        strictLogger.logInfo("Testing TimeInterval...");
+        scope(failure) 
+        {
+            version(Have_Int64_TimeStamp) string s = "with Have_Int64_TimeStamp";
+            else string s = "without Have_Int64_TimeStamp";
+            
+            strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
+            strictLogger.logInfo("============================================");
+        }
+        
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
+        
+        auto res = queryValue(logger, pool, "'1-2'::interval").deserializeBson!TimeInterval;
+        assert(res.time == 0 && res.day == 0 && res.month == 14);
+        
+        res = queryValue(logger, pool, "'3 4:05:06'::interval").deserializeBson!TimeInterval;
+        assert(res.time.dur!"usecs" == 4.dur!"hours" + 5.dur!"minutes" + 6.dur!"seconds" && res.day == 3 && res.month == 0);
+        
+        res = queryValue(logger, pool, "'1 year 2 months 3 days 4 hours 5 minutes 6 seconds'::interval").deserializeBson!TimeInterval;
+        assert(res.time.dur!"usecs" == 4.dur!"hours" + 5.dur!"minutes" + 6.dur!"seconds" && res.day == 3 && res.month == 14);
+        
+        res = queryValue(logger, pool, "'P1Y2M3DT4H5M6S'::interval").deserializeBson!TimeInterval;
+        assert(res.time.dur!"usecs" == 4.dur!"hours" + 5.dur!"minutes" + 6.dur!"seconds" && res.day == 3 && res.month == 14);
+        
+        res = queryValue(logger, pool, "'P0001-02-03T04:05:06'::interval").deserializeBson!TimeInterval;
+        assert(res.time.dur!"usecs" == 4.dur!"hours" + 5.dur!"minutes" + 6.dur!"seconds" && res.day == 3 && res.month == 14);
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
