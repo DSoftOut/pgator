@@ -153,7 +153,7 @@ shared class Database
 		
 		if (cache.get(req, res))
 		{
-			logger.logInfo("Found in cache");
+			logger.logDebug("Found in cache");
 			
 			res.id = req.id;
 			
@@ -173,7 +173,7 @@ shared class Database
 				throw new RpcInvalidParams();
 			}
 						
-			logger.logInfo("Querying pool");
+			logger.logDebug("Querying pool");
 			
 			try
 			{			
@@ -201,7 +201,7 @@ shared class Database
 			
 			if (table.need_cache(req.method))
 			{
-				logger.logInfo("Adding to cache");
+				logger.logDebug("Adding to cache");
 				cache.add(req, cacheRes);
 			}
 		}
@@ -216,7 +216,7 @@ shared class Database
 	{
 		foreach(meth; table.needDrop(method))
 		{
-			logger.logInfo("Reseting method: "~meth);
+			logger.logDebug("Reseting method: "~meth);
 			cache.reset(meth);
 		}
 	}
