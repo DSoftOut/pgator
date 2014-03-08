@@ -21,7 +21,7 @@ synchronized class CPGresult : IPGresult
 {
     this(PGresult* result) nothrow
     {
-        this.result = cast(shared)result;
+        results[this] = result;
     }
     
     /**
@@ -30,12 +30,12 @@ synchronized class CPGresult : IPGresult
     ExecStatusType resultStatus() nothrow const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQresultStatus !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        return PQresultStatus(cast(PGresult*)result);
+        return PQresultStatus(results[this]);
     }
     
     /**
@@ -46,13 +46,13 @@ synchronized class CPGresult : IPGresult
     string resStatus() nothrow const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQresultStatus !is null, "DerelictPQ isn't loaded!");
         assert(PQresStatus !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        return fromStringz(PQresStatus(PQresultStatus(cast(PGresult*)result)));
+        return fromStringz(PQresStatus(PQresultStatus(results[this])));
     }
     
     /**
@@ -61,12 +61,12 @@ synchronized class CPGresult : IPGresult
     string resultErrorMessage() nothrow const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQresultErrorMessage !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        return fromStringz(PQresultErrorMessage(cast(PGresult*)result));
+        return fromStringz(PQresultErrorMessage(results[this]));
     }
     
     /**
@@ -75,13 +75,13 @@ synchronized class CPGresult : IPGresult
     void clear() nothrow
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQclear !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        PQclear(cast(PGresult*)result);
-        result = null;
+        PQclear(results[this]);
+        results.remove(this);
     }
     
     /**
@@ -90,12 +90,12 @@ synchronized class CPGresult : IPGresult
     size_t ntuples() nothrow const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQntuples !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        return cast(size_t)PQntuples(cast(PGresult*)result);
+        return cast(size_t)PQntuples(results[this]);
     }
     
     /**
@@ -104,12 +104,12 @@ synchronized class CPGresult : IPGresult
     size_t nfields() nothrow const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQnfields !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        return cast(size_t)PQnfields(cast(PGresult*)result);
+        return cast(size_t)PQnfields(results[this]);
     }
     
     /**
@@ -118,12 +118,12 @@ synchronized class CPGresult : IPGresult
     string fname(size_t colNumber) const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQfname !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        return enforceEx!RangeError(fromStringz(PQfname(cast(PGresult*)result, cast(uint)colNumber)));
+        return enforceEx!RangeError(fromStringz(PQfname(results[this], cast(uint)colNumber)));
     }
     
     /**
@@ -132,12 +132,12 @@ synchronized class CPGresult : IPGresult
     bool isBinary(size_t colNumber) const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQfformat !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        return PQfformat(cast(PGresult*)result, cast(uint)colNumber) == 1;
+        return PQfformat(results[this], cast(uint)colNumber) == 1;
     }
     
     /**
@@ -146,13 +146,13 @@ synchronized class CPGresult : IPGresult
     string asString(size_t rowNumber, size_t colNumber) const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQgetvalue !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
         import std.stdio; writeln(getLength(rowNumber, colNumber));
-        return fromStringz(cast(immutable(char)*)PQgetvalue(cast(PGresult*)result, cast(uint)rowNumber, cast(uint)colNumber));
+        return fromStringz(cast(immutable(char)*)PQgetvalue(results[this], cast(uint)rowNumber, cast(uint)colNumber));
     }
     
     /**
@@ -161,14 +161,14 @@ synchronized class CPGresult : IPGresult
     ubyte[] asBytes(size_t rowNumber, size_t colNumber) const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQgetvalue !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
         auto l = getLength(rowNumber, colNumber);
         auto res = new ubyte[l];
-        auto bytes = PQgetvalue(cast(PGresult*)result, cast(uint)rowNumber, cast(uint)colNumber);
+        auto bytes = PQgetvalue(results[this], cast(uint)rowNumber, cast(uint)colNumber);
         foreach(i; 0..l)
             res[i] = bytes[i];
         return res;
@@ -180,12 +180,12 @@ synchronized class CPGresult : IPGresult
     bool getisnull(size_t rowNumber, size_t colNumber) const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQgetisnull !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        return PQgetisnull(cast(PGresult*)result, cast(uint)rowNumber, cast(uint)colNumber) != 0;
+        return PQgetisnull(results[this], cast(uint)rowNumber, cast(uint)colNumber) != 0;
     }
     
     /**
@@ -194,12 +194,12 @@ synchronized class CPGresult : IPGresult
     size_t getLength(size_t rowNumber, size_t colNumber) const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQgetisnull !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        return cast(size_t)PQgetlength(cast(PGresult*)result, cast(uint)rowNumber, cast(uint)colNumber);
+        return cast(size_t)PQgetlength(results[this], cast(uint)rowNumber, cast(uint)colNumber);
     }
     
     /**
@@ -208,15 +208,15 @@ synchronized class CPGresult : IPGresult
     PQType ftype(size_t colNumber) const
     in
     {
-        assert(result !is null, "PGconn was finished!");
+        assert(this in results, "PGconn was finished!");
         assert(PQftype !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        return cast(PQType)PQftype(cast(PGresult*)result, cast(uint)colNumber);
+        return cast(PQType)PQftype(results[this], cast(uint)colNumber);
     }
     
-    private shared PGresult* result;
+    private __gshared PGresult*[shared const CPGresult] results;
 }
 
 synchronized class CPGconn : IPGconn
