@@ -47,7 +47,7 @@ synchronized class PQConnection : IConnection
         } catch(PGException e)
         {
             logger.logError(text("Failed to connect to SQL server, reason:", e.msg));
-            throw new ConnectException(server, e.msg);
+            throw new shared ConnectException(server, e.msg);
         }
     }
     
@@ -71,7 +71,7 @@ synchronized class PQConnection : IConnection
         } catch(PGReconnectException e)
         {
             logger.logError(text("Failed to reconnect to SQL server, reason:", e.msg));
-            throw new ConnectException(server, e.msg);
+            throw new shared ConnectException(server, e.msg);
         }
     }
     
@@ -102,12 +102,12 @@ synchronized class PQConnection : IConnection
                     }
                     case(ConnStatusType.CONNECTION_NEEDED):
                     {
-                        savedException = new ConnectException(server, "Connection wasn't tried to be established!");
+                        savedException = new shared ConnectException(server, "Connection wasn't tried to be established!");
                         return ConnectionStatus.Error;
                     }
                     case(ConnStatusType.CONNECTION_BAD):
                     {
-                        savedException = new ConnectException(server, conn.errorMessage);
+                        savedException = new shared ConnectException(server, conn.errorMessage);
                         return ConnectionStatus.Error;
                     }
                     default:
@@ -118,7 +118,7 @@ synchronized class PQConnection : IConnection
             }
             case PostgresPollingStatusType.PGRES_POLLING_FAILED:
             {
-                savedException = new ConnectException(server, conn.errorMessage);
+                savedException = new shared ConnectException(server, conn.errorMessage);
                 return ConnectionStatus.Error;
             }
             default:
@@ -171,7 +171,7 @@ synchronized class PQConnection : IConnection
         try conn.consumeInput();
         catch (Exception e) // PGQueryException
         {
-            savedQueryException = new QueryException(e.msg);
+            savedQueryException = new shared QueryException(e.msg);
             while(conn.getResult !is null) {}
             return QueringStatus.Error;
         }
@@ -233,6 +233,7 @@ synchronized class PQConnection : IConnection
     }
     body
     {
+        scope(failure) {}
         conn.finish;
         conn = null;
     }
@@ -271,8 +272,8 @@ synchronized class PQConnection : IConnection
         shared ILogger logger;
         shared IPostgreSQL api;
         shared IPGconn conn;
-        __gshared ConnectException savedException;
-        __gshared QueryException   savedQueryException;
+        shared ConnectException savedException;
+        shared QueryException   savedQueryException;
     }
     mixin Mockable!IConnection;
 }

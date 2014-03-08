@@ -25,7 +25,7 @@ else version(IntegrationTest1)
     {
         string connString;
         string logName = "test.log";
-        uint connCount = 100;
+        uint connCount = 50;
         getopt(args
             , "conn",  &connString
             , "log",   &logName
@@ -82,7 +82,7 @@ else version(IntegrationTest2)
     {
         string connString;
         string logName = "test.log";
-        uint connCount = 100;
+        uint connCount = 50;
         getopt(args
             , "conn",  &connString
             , "log",   &logName

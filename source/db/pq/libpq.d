@@ -21,7 +21,7 @@ synchronized class CPGresult : IPGresult
 {
     this(PGresult* result) nothrow
     {
-        this.result = result;
+        this.result = cast(shared)result;
     }
     
     /**
@@ -35,7 +35,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return PQresultStatus(result);
+        return PQresultStatus(cast(PGresult*)result);
     }
     
     /**
@@ -52,7 +52,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return fromStringz(PQresStatus(PQresultStatus(result)));
+        return fromStringz(PQresStatus(PQresultStatus(cast(PGresult*)result)));
     }
     
     /**
@@ -66,7 +66,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return fromStringz(PQresultErrorMessage(result));
+        return fromStringz(PQresultErrorMessage(cast(PGresult*)result));
     }
     
     /**
@@ -80,7 +80,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        PQclear(result);
+        PQclear(cast(PGresult*)result);
         result = null;
     }
     
@@ -95,7 +95,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return cast(size_t)PQntuples(result);
+        return cast(size_t)PQntuples(cast(PGresult*)result);
     }
     
     /**
@@ -109,7 +109,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return cast(size_t)PQnfields(result);
+        return cast(size_t)PQnfields(cast(PGresult*)result);
     }
     
     /**
@@ -123,7 +123,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return enforceEx!RangeError(fromStringz(PQfname(result, cast(uint)colNumber)));
+        return enforceEx!RangeError(fromStringz(PQfname(cast(PGresult*)result, cast(uint)colNumber)));
     }
     
     /**
@@ -137,7 +137,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return PQfformat(result, cast(uint)colNumber) == 1;
+        return PQfformat(cast(PGresult*)result, cast(uint)colNumber) == 1;
     }
     
     /**
@@ -152,7 +152,7 @@ synchronized class CPGresult : IPGresult
     body
     {
         import std.stdio; writeln(getLength(rowNumber, colNumber));
-        return fromStringz(cast(immutable(char)*)PQgetvalue(result, cast(uint)rowNumber, cast(uint)colNumber));
+        return fromStringz(cast(immutable(char)*)PQgetvalue(cast(PGresult*)result, cast(uint)rowNumber, cast(uint)colNumber));
     }
     
     /**
@@ -168,7 +168,7 @@ synchronized class CPGresult : IPGresult
     {
         auto l = getLength(rowNumber, colNumber);
         auto res = new ubyte[l];
-        auto bytes = PQgetvalue(result, cast(uint)rowNumber, cast(uint)colNumber);
+        auto bytes = PQgetvalue(cast(PGresult*)result, cast(uint)rowNumber, cast(uint)colNumber);
         foreach(i; 0..l)
             res[i] = bytes[i];
         return res;
@@ -185,7 +185,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return PQgetisnull(result, cast(uint)rowNumber, cast(uint)colNumber) != 0;
+        return PQgetisnull(cast(PGresult*)result, cast(uint)rowNumber, cast(uint)colNumber) != 0;
     }
     
     /**
@@ -199,7 +199,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return cast(size_t)PQgetlength(result, cast(uint)rowNumber, cast(uint)colNumber);
+        return cast(size_t)PQgetlength(cast(PGresult*)result, cast(uint)rowNumber, cast(uint)colNumber);
     }
     
     /**
@@ -213,17 +213,17 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return cast(PQType)PQftype(result, cast(uint)colNumber);
+        return cast(PQType)PQftype(cast(PGresult*)result, cast(uint)colNumber);
     }
     
-    private __gshared PGresult* result;
+    private shared PGresult* result;
 }
 
 synchronized class CPGconn : IPGconn
 {
     this(PGconn* conn) nothrow
     {
-        this.conn = conn;
+        this.conn = cast(shared)conn;
     }
     
     /**
@@ -237,7 +237,7 @@ synchronized class CPGconn : IPGconn
     }
     body
     {
-        return PQconnectPoll(conn);
+        return PQconnectPoll(cast(PGconn*)conn);
     }
     
     /**
@@ -251,7 +251,7 @@ synchronized class CPGconn : IPGconn
     }
     body
     {
-        return PQstatus(conn);
+        return PQstatus(cast(PGconn*)conn);
     }
     
     /**
@@ -267,7 +267,9 @@ synchronized class CPGconn : IPGconn
     }
     body
     {
-        PQfinish(conn);
+        scope(failure) {}
+
+        PQfinish(cast(PGconn*)conn);
         conn = null;
     }
     
@@ -282,7 +284,7 @@ synchronized class CPGconn : IPGconn
     }
     body
     {
-        return PQflush(conn) != 0;
+        return PQflush(cast(PGconn*)conn) != 0;
     }
     
     /**
@@ -297,7 +299,7 @@ synchronized class CPGconn : IPGconn
     }
     body
     {
-        auto res = PQresetStart(conn);
+        auto res = PQresetStart(cast(PGconn*)conn);
         if(res == 1)
             throw new PGReconnectException(errorMessage);
     }
@@ -313,7 +315,7 @@ synchronized class CPGconn : IPGconn
     }
     body
     {
-        return PQresetPoll(conn);
+        return PQresetPoll(cast(PGconn*)conn);
     }
     
     /**
@@ -328,7 +330,7 @@ synchronized class CPGconn : IPGconn
     body
     {
         scope(failure) return "";
-        return fromStringz(PQhost(cast()conn));
+        return fromStringz(PQhost(cast(PGconn*)conn));
     }    
 
     /**
@@ -343,7 +345,7 @@ synchronized class CPGconn : IPGconn
     body
     {
         scope(failure) return "";
-        return fromStringz(PQdb(cast()conn));
+        return fromStringz(PQdb(cast(PGconn*)conn));
     }     
 
     /**
@@ -358,7 +360,7 @@ synchronized class CPGconn : IPGconn
     body
     {
         scope(failure) return "";
-        return fromStringz(PQuser(cast()conn));
+        return fromStringz(PQuser(cast(PGconn*)conn));
     } 
     
     /**
@@ -373,7 +375,7 @@ synchronized class CPGconn : IPGconn
     body
     {
         scope(failure) return "";
-        return fromStringz(PQport(cast()conn));
+        return fromStringz(PQport(cast(PGconn*)conn));
     } 
     
     /**
@@ -388,7 +390,7 @@ synchronized class CPGconn : IPGconn
     body
     {
         scope(failure) return "";
-        return fromStringz(PQerrorMessage(cast()conn));
+        return fromStringz(PQerrorMessage(cast(PGconn*)conn));
     }
     
     /**
@@ -413,7 +415,7 @@ synchronized class CPGconn : IPGconn
             return cast(const(ubyte)**)ptrs.ptr;
         }
         // type error in bindings int -> size_t, const(char)* -> const(char*), const(ubyte)** -> const(ubyte**)
-        auto res = PQsendQueryParams(conn, command.toStringz, cast(int)paramValues.length, null
+        auto res = PQsendQueryParams(cast(PGconn*)conn, command.toStringz, cast(int)paramValues.length, null
             , toPlainArray(paramValues), null, null, 1);
         if (res == 0)
         {
@@ -433,7 +435,7 @@ synchronized class CPGconn : IPGconn
     }
     body
     {
-        auto res = PQsendQuery(conn, command.toStringz);
+        auto res = PQsendQuery(cast(PGconn*)conn, command.toStringz);
         if (res == 0)
         {
             throw new PGQueryException(errorMessage);
@@ -452,7 +454,6 @@ synchronized class CPGconn : IPGconn
     {
         try
         {
-            std.stdio.writeln(escapeParams(command, paramValues));
             sendQuery(escapeParams(command, paramValues));
         }
         catch(PGEscapeException e)
@@ -477,7 +478,7 @@ synchronized class CPGconn : IPGconn
     }
     body
     {
-        auto res = PQgetResult(conn);
+        auto res = PQgetResult(cast(PGconn*)conn);
         if(res is null) return null;
         return new shared CPGresult(res);
     }
@@ -489,12 +490,12 @@ synchronized class CPGconn : IPGconn
     void consumeInput()
     in
     {
-        assert(conn !is null, "PGconn was finished!");
+        assert(cast()conn !is null, "PGconn was finished!");
         assert(PQconsumeInput !is null, "DerelictPQ isn't loaded!");
     }
     body
     {
-        auto res = PQconsumeInput(conn);
+        auto res = PQconsumeInput(cast(PGconn*)conn);
         if(res == 0) 
             throw new PGQueryException(errorMessage);
     }
@@ -510,7 +511,7 @@ synchronized class CPGconn : IPGconn
     }
     body
     {
-        return PQisBusy(conn) > 0;
+        return PQisBusy(cast(PGconn*)conn) > 0;
     }
     
     /**
@@ -525,7 +526,7 @@ synchronized class CPGconn : IPGconn
     }
     body
     {
-        auto res = PQescapeLiteral(conn, msg.toStringz, msg.length);
+        auto res = PQescapeLiteral(cast(PGconn*)conn, msg.toStringz, msg.length);
         if(res is null) throw new PGEscapeException(errorMessage);
         return fromStringz(res);
     }
@@ -544,7 +545,7 @@ synchronized class CPGconn : IPGconn
         return query;
     }
     
-    private __gshared PGconn* conn;
+    private shared PGconn* conn;
 }
 
 synchronized class PostgreSQL : IPostgreSQL
