@@ -16,7 +16,7 @@ class ConnectException : Exception
 {
     string server;
     
-    @safe pure nothrow this(string server, string msg, string file = __FILE__, size_t line = __LINE__) shared
+    @safe pure nothrow this(string server, string msg, string file = __FILE__, size_t line = __LINE__)
     {
         this.server = server;
         super("Failed to connect to SQL server "~server~", reason: " ~ msg, file, line); 
@@ -29,7 +29,7 @@ class ConnectException : Exception
 */
 class ReconnectException : ConnectException
 {
-    @safe pure nothrow this(string server, string file = __FILE__, size_t line = __LINE__) shared
+    @safe pure nothrow this(string server, string file = __FILE__, size_t line = __LINE__)
     {
         super(server, "Connection reconnect method is called, but there wasn't any call of "
                       "connect method to grab connection string from", file, line);
@@ -41,7 +41,7 @@ class ReconnectException : ConnectException
 */
 class QueryException : Exception
 {
-    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__) shared
+    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__)
     {
         super("Query to SQL server is failed, reason: " ~ msg, file, line); 
     }

@@ -47,7 +47,7 @@ synchronized class PQConnection : IConnection
         } catch(PGException e)
         {
             logger.logError(text("Failed to connect to SQL server, reason:", e.msg));
-            throw new shared ConnectException(server, e.msg);
+            throw new ConnectException(server, e.msg);
         }
     }
     
@@ -71,7 +71,7 @@ synchronized class PQConnection : IConnection
         } catch(PGReconnectException e)
         {
             logger.logError(text("Failed to reconnect to SQL server, reason:", e.msg));
-            throw new shared ConnectException(server, e.msg);
+            throw new ConnectException(server, e.msg);
         }
     }
     
@@ -85,7 +85,8 @@ synchronized class PQConnection : IConnection
     }
     body
     {
-        savedException = null;
+        if(this in savedExceptions)
+            savedExceptions.remove(this);
         PostgresPollingStatusType val;
         if(reconnecting) val = conn.resetPoll;
         else val = conn.poll;
@@ -102,12 +103,12 @@ synchronized class PQConnection : IConnection
                     }
                     case(ConnStatusType.CONNECTION_NEEDED):
                     {
-                        savedException = new shared ConnectException(server, "Connection wasn't tried to be established!");
+                        savedExceptions[this] = new ConnectException(server, "Connection wasn't tried to be established!");
                         return ConnectionStatus.Error;
                     }
                     case(ConnStatusType.CONNECTION_BAD):
                     {
-                        savedException = new shared ConnectException(server, conn.errorMessage);
+                        savedExceptions[this] = new ConnectException(server, conn.errorMessage);
                         return ConnectionStatus.Error;
                     }
                     default:
@@ -118,7 +119,7 @@ synchronized class PQConnection : IConnection
             }
             case PostgresPollingStatusType.PGRES_POLLING_FAILED:
             {
-                savedException = new shared ConnectException(server, conn.errorMessage);
+                savedExceptions[this] = new ConnectException(server, conn.errorMessage);
                 return ConnectionStatus.Error;
             }
             default:
@@ -136,7 +137,7 @@ synchronized class PQConnection : IConnection
     */    
     void pollConnectionException()
     {
-        if(savedException !is null) throw savedException;
+        if(this in savedExceptions) throw savedExceptions[this];
     }
     
     /**
@@ -167,11 +168,12 @@ synchronized class PQConnection : IConnection
     }
     body
     {
-        savedQueryException = null;
+        if(this in savedQueryExceptions)
+            savedQueryExceptions.remove(this);
         try conn.consumeInput();
         catch (Exception e) // PGQueryException
         {
-            savedQueryException = new shared QueryException(e.msg);
+            savedQueryExceptions[this] = new QueryException(e.msg);
             while(conn.getResult !is null) {}
             return QueringStatus.Error;
         }
@@ -188,7 +190,7 @@ synchronized class PQConnection : IConnection
     */
     void pollQueryException()
     {
-        if (savedQueryException !is null) throw savedQueryException;
+        if (this in savedQueryExceptions) throw savedQueryExceptions[this];
     }
     
     /**
@@ -236,6 +238,10 @@ synchronized class PQConnection : IConnection
         scope(failure) {}
         conn.finish;
         conn = null;
+        if(this in savedExceptions)
+            savedExceptions.remove(this);
+        if(this in savedQueryExceptions)
+            savedQueryExceptions.remove(this);
     }
     
     /**
@@ -272,8 +278,8 @@ synchronized class PQConnection : IConnection
         shared ILogger logger;
         shared IPostgreSQL api;
         shared IPGconn conn;
-        shared ConnectException savedException;
-        shared QueryException   savedQueryException;
+        __gshared ConnectException[shared PQConnection] savedExceptions;
+        __gshared QueryException[shared PQConnection]   savedQueryExceptions;
     }
     mixin Mockable!IConnection;
 }
