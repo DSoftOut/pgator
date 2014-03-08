@@ -302,7 +302,12 @@ T tryEx(Ex, T)(lazy T par)
 	}
 }
 
-/// cast to shared type T
+/**
+* cast to shared type T
+*
+* Warning:
+*	Don't use this, if you want send object to another thread. It just dirty hack.
+*/
 template toShared(T)
 {
 	private alias Unqual!T P;
