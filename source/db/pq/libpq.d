@@ -14,7 +14,6 @@ import std.exception;
 import std.string;
 import std.regex;
 import std.conv;
-import core.atomic;
 import core.memory;
 import util;
 
@@ -548,16 +547,22 @@ synchronized class CPGconn : IPGconn
     private __gshared PGconn* conn;
 }
 
-class PostgreSQL : IPostgreSQL
+synchronized class PostgreSQL : IPostgreSQL
 {
     this()
     {
         initialize();
     }
     
-    ~this()
+    /**
+    *   Should be called to free libpq resources. The method
+    *   unloads library from application memory.
+    */
+    void finalize() nothrow
     {
-        shutdown();
+        scope(failure) {}
+        GC.collect();
+        DerelictPQ.unload();
     }
     
     /**
@@ -583,9 +588,6 @@ class PostgreSQL : IPostgreSQL
         */
         void initialize()
         {
-            if(refCount > 0) return;
-            scope(success) atomicOp!"+="(refCount, 1);
-             
             try
             {
                 version(linux)
@@ -612,26 +614,5 @@ class PostgreSQL : IPostgreSQL
                 }
             }
         }
-        
-        /**
-        *   Should be called in class destructor. The method
-        *   unloads library from memory.
-        */
-        void shutdown() nothrow
-        {
-            if(refCount <= 0) return;
-            atomicOp!"-="(refCount, 1);
-            
-            if(refCount == 0)
-            {
-                scope(failure) {}
-                GC.collect();
-                DerelictPQ.unload();
-            }
-        }
-    }
-    private
-    {
-        shared uint refCount = 0;
     }
 }

@@ -112,7 +112,7 @@ class Application
 		
 		if (database)
 		{
-			database.finalizePool();
+			database.finalize();
 			logger.logInfo("Connection pool is finalized");
 		}
 		
@@ -224,7 +224,7 @@ class Application
 	{
 		logger.logInfo("Stopping event loop");
 		
-		database.finalizePool();
+		database.finalize();
 		getEventDriver().exitEventLoop();
 		
 		running = false;

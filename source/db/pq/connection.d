@@ -24,7 +24,7 @@ import vibe.data.bson;
 */
 synchronized class PQConnection : IConnection
 {
-    this(shared ILogger logger, IPostgreSQL api)
+    this(shared ILogger logger, shared IPostgreSQL api)
     {
         this.logger = logger;
         this.api = api;
@@ -269,7 +269,7 @@ synchronized class PQConnection : IConnection
     {
         bool reconnecting = false;
         shared ILogger logger;
-        __gshared IPostgreSQL api;
+        shared IPostgreSQL api;
         shared IPGconn conn;
         __gshared ConnectException savedException;
         __gshared QueryException   savedQueryException;
@@ -279,7 +279,7 @@ synchronized class PQConnection : IConnection
 
 synchronized class PQConnProvider : IConnectionProvider
 {
-    this(shared ILogger logger, IPostgreSQL api)
+    this(shared ILogger logger, shared IPostgreSQL api)
     {
         this.logger = logger;
         this.api = api;
@@ -291,5 +291,5 @@ synchronized class PQConnProvider : IConnectionProvider
     }
     
     private shared ILogger logger;
-    private __gshared IPostgreSQL api;
+    private shared IPostgreSQL api;
 }
