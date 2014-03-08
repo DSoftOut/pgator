@@ -132,23 +132,23 @@ interface ILogger
         void reload();
     }
     
-    /**
-    *   Wrapper for handy debug messages.
-    *   Warning: main purpose for debug messages, thus it is not lazy.
-    */
-    final void logDebug(E...)(E args) const @trusted
-    {
-        scope(failure) {}
-        debug
-        {
-            string str = text(args);
-            log(str, LoggingLevel.Debug);
-        }
-    }
-
     // wrappers for easy logging
-    final nothrow synchronized  @trusted
+    final nothrow shared  @trusted
     {
+        /**
+        *   Wrapper for handy debug messages.
+        *   Warning: main purpose for debug messages, thus it is not lazy.
+        */
+        void logDebug(E...)(E args) shared @trusted
+        {
+            scope(failure) {}
+            debug
+            {
+                string str = text(args);
+                log(str, LoggingLevel.Debug);
+            }
+        }
+        
         void logInfo(lazy string message)
         {
             log(message, LoggingLevel.Notice);
