@@ -39,6 +39,10 @@ import stdlog;
 /**
 * Main program class
 *
+* Warning:
+*	Don't create more than 1 object, if you want to use with different $(B HTTPServerSettings), 
+*	$(B URLRouter) beacuse they are __gshared, that means they are static
+*
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 */
 class Application
@@ -365,7 +369,7 @@ class Application
 	
 	bool internalError;
 	
-	__gshared private
+	__gshared private //dirty
 	{	
     	HTTPServerSettings settings;
     	
