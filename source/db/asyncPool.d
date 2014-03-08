@@ -68,8 +68,8 @@ class AsyncPool : IConnectionPool
             {
                 failed = true;
                 logger.logError(e.msg);
-                logger.logInfo(text("Will retry to connect to ", e.server, " over "
-                       , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds."));
+                logger.logDebug("Will retry to connect to ", e.server, " over "
+                       , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds.");
                
                 auto whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
                 failedList.insert(TimedConnListElem(conn, whenRetry));
@@ -498,7 +498,7 @@ class AsyncPool : IConnectionPool
                    tid.send(thisTid, true);
                    if(!receiveTimeout(dur!"seconds"(1), (bool val) {}))
                    {
-                      logger.logInfo(text(name, " thread refused to terminated safely!"));
+                      logger.logDebug(name, " thread refused to terminated safely!");
                    }
                }
                
@@ -569,8 +569,8 @@ class AsyncPool : IConnectionPool
                                conn.reconnect();      
                            } catch(ConnectException e)
                            {
-                               logger.logInfo(text("Connection to server ",e.server," is still failing! Will retry over "
-                                   , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds."));
+                               logger.logDebug("Connection to server ",e.server," is still failing! Will retry over "
+                                   , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds.");
                                elem.duration = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
                                nextList.insert(elem);
                            }
@@ -592,7 +592,7 @@ class AsyncPool : IConnectionPool
                }
                
                exitTid.send(true);
-               logger.logInfo("Closed connections thread exited!");
+               logger.logDebug("Closed connections thread exited!");
            } catch (Throwable th)
            {
                logger.logError("AsyncPool: closed connections thread died!");
@@ -686,7 +686,7 @@ class AsyncPool : IConnectionPool
                }
                
                exitTid.send(true);
-               logger.logInfo("Free connections thread exited!");
+               logger.logDebug("Free connections thread exited!");
            } catch (Throwable th)
            {
                logger.logError("AsyncPool: free connections thread died!");
@@ -742,7 +742,7 @@ class AsyncPool : IConnectionPool
                                catch(ConnectException e)
                                {
                                    logger.logError(e.msg);
-                                   logger.logInfo(text("Will retry to connect to ", e.server, " over "
+                                   logger.logDebug(text("Will retry to connect to ", e.server, " over "
                                        , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds."));
                                    list.removeOne(conn);
                                
@@ -770,7 +770,7 @@ class AsyncPool : IConnectionPool
                }
                
                exitTid.send(true);
-               logger.logInfo("Connecting thread exited!");
+               logger.logDebug("Connecting thread exited!");
            } catch (Throwable th)
            {
                logger.logError("AsyncPool: connecting thread died!");
@@ -1019,7 +1019,7 @@ class AsyncPool : IConnectionPool
                }
     
                exitTid.send(true);
-               logger.logInfo("Quering thread exited!");
+               logger.logDebug("Quering thread exited!");
            } catch (Throwable th)
            {
                logger.logError("AsyncPool: quering thread died!");
