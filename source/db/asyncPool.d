@@ -180,7 +180,7 @@ class AsyncPool : IConnectionPool
     {
         auto conn = fetchFreeConnection();
         auto transaction = new immutable Transaction(commands, params, vars);
-        processingTransactions.insert(cast(shared)transaction); 
+        (cast()processingTransactions).insert(cast(shared)transaction); 
         
         ids.queringCheckerId.send(thisTid, conn, cast(shared)transaction);
         
@@ -201,7 +201,7 @@ class AsyncPool : IConnectionPool
     {
         scope(failure) return true;
 
-        if(processingTransactions[].find(cast(shared)transaction).empty)
+        if((cast()processingTransactions)[].find(cast(shared)transaction).empty)
             return true; 
             
         fetchResponds();
@@ -222,12 +222,15 @@ class AsyncPool : IConnectionPool
     */
     InputRange!(immutable Bson) getTransaction(immutable ITransaction transaction) shared
     {
-        if(processingTransactions[].find(cast(shared)transaction).empty)
+        if((cast()processingTransactions)[].find(cast(shared)transaction).empty)
             throw new UnknownTransactionException();
              
         if(transaction in awaitingResponds) 
         {
-            processingTransactions.removeOne(cast(shared)transaction);
+            auto tempList = (cast()processingTransactions);
+            tempList.removeOne(cast(shared)transaction);
+            processingTransactions = cast(shared)tempList;
+            
             auto respond = awaitingResponds[transaction];
             awaitingResponds.remove(transaction);
             if(respond.failed)
@@ -414,7 +417,7 @@ class AsyncPool : IConnectionPool
     private
     {
        shared ILogger logger;
-       __gshared DList!(shared ITransaction) processingTransactions;
+       shared DList!(shared ITransaction) processingTransactions;
        Respond[immutable ITransaction] awaitingResponds;
        IConnectionProvider provider;
        Duration mReconnectTime;
@@ -453,17 +456,37 @@ class AsyncPool : IConnectionPool
        
        shared struct ThreadIds
        {
-           __gshared Tid closedCheckerId;
-           __gshared Tid freeCheckerId;
-           __gshared Tid connectingCheckerId;
-           __gshared Tid queringCheckerId;
+           immutable Tid mClosedCheckerId;
+           immutable Tid mFreeCheckerId;
+           immutable Tid mConnectingCheckerId;
+           immutable Tid mQueringCheckerId;
+           
+           Tid closedCheckerId()
+           {
+               return cast()mClosedCheckerId;
+           }
+           
+           Tid freeCheckerId()
+           {
+               return cast()mFreeCheckerId;
+           }
+           
+           Tid connectingCheckerId()
+           {
+               return cast()mConnectingCheckerId;
+           }
+           
+           Tid queringCheckerId()
+           {
+               return cast()mQueringCheckerId;
+           }
            
            this(Tid closedCheckerId, Tid freeCheckerId, Tid connectingCheckerId, Tid queringCheckerId)
            {
-               this.closedCheckerId = closedCheckerId;
-               this.freeCheckerId = freeCheckerId;
-               this.connectingCheckerId = connectingCheckerId;
-               this.queringCheckerId = queringCheckerId;
+               this.mClosedCheckerId     = cast(immutable)closedCheckerId;
+               this.mFreeCheckerId       = cast(immutable)freeCheckerId;
+               this.mConnectingCheckerId = cast(immutable)connectingCheckerId;
+               this.mQueringCheckerId    = cast(immutable)queringCheckerId;
            }
            
            void sendTids()
@@ -482,7 +505,7 @@ class AsyncPool : IConnectionPool
                dist.send(queringCheckerId);
            }
            
-           static ThreadIds receive()
+           static shared(ThreadIds) receive()
            {
                auto closedTid = receiveOnly!Tid();
                auto freeTid = receiveOnly!Tid();
@@ -1093,12 +1116,12 @@ version(unittest)
         
         DList!(shared IPGresult) getQueryResult()
         {
-            assert(false, "Not used!"); ///TODO: fix when you are adding query unittests
+            assert(false, "Not used!");
         }
         
         void postQuery(string com, string[] params)
         {
-            assert(false, "Not used!"); ///TODO: fix when you are adding query unittests
+            assert(false, "Not used!");
         }
         
         void disconnect() nothrow

@@ -97,15 +97,9 @@ struct RpcResponse
 	
 	shared(RpcResponse) toShared()
 	{
-		RpcResponse res1;
+		auto res = this;
 		
-		res1.id = this.id;
-		
-		if (f_result) res1.result = this.result;
-		
-		if (f_error) res1.error = this.error;
-		
-		return cast(shared RpcResponse) res1;
+		return cast(shared RpcResponse) res;
 	}
 }
 

@@ -39,6 +39,10 @@ import stdlog;
 /**
 * Main program class
 *
+* Warning:
+*	Don't create more than 1 object, if you want to use with different $(B HTTPServerSettings), 
+*	$(B URLRouter) beacuse they are __gshared, that means they are static
+*
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 */
 class Application
@@ -112,8 +116,8 @@ class Application
 		
 		if (database)
 		{
-			database.finalizePool();
-			logger.logDebug("Connection pool is finalized");
+			database.finalize();
+			logger.logDebug("Database pool is finalized");
 		}
 		
 		if (running)
@@ -145,14 +149,12 @@ class Application
 		settings.errorPageHandler = cast(HTTPServerErrorPageHandler) &errorHandler;
 		
 		settings.options = HTTPServerOption.parseJsonBody;
-		
-		auto appConfig = toUnqual(this.appConfig);
 			
 		if (appConfig.hostname) 
-			settings.hostName = appConfig.hostname;
+			settings.hostName = toUnqual(appConfig.hostname.idup);
 			
 		if (appConfig.bindAddresses)
-			settings.bindAddresses = appConfig.bindAddresses;
+			settings.bindAddresses =cast(string[]) appConfig.bindAddresses.idup;
 		
 		setLogLevel(LogLevel.none);
 		setLogFile(appConfig.vibelog, LogLevel.info);
@@ -230,7 +232,7 @@ class Application
 	{
 		logger.logInfo("Stopping event loop");
 		
-		database.finalizePool();
+		database.finalize();
 		getEventDriver().exitEventLoop();
 		
 		running = false;
@@ -371,10 +373,11 @@ class Application
 	
 	bool internalError;
 	
-	__gshared private
-	{	
-    	HTTPServerSettings settings;
-    	
-    	URLRouter router;
-	}
+}
+
+__gshared private //dirty
+{	
+	HTTPServerSettings settings;
+	
+	URLRouter router;
 }

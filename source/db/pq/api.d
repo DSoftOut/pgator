@@ -319,13 +319,19 @@ interface IPGconn
 *   OOP styled libpq wrapper to automatically handle library loading/unloading and
 *   to provide mockable layer for unittests. 
 */
-interface IPostgreSQL
+shared interface IPostgreSQL
 {
     /**
     *   Prototype: PQconnectStart
     *   Throws: PGMemoryLackException
     */
     shared(IPGconn) startConnect(string conninfo);
+    
+    /**
+    *   Should be called to free libpq resources. The method
+    *   unloads library from application memory.
+    */
+    void finalize() nothrow;
     
     protected
     {
@@ -334,11 +340,5 @@ interface IPostgreSQL
         *   loads library in memory.
         */
         void initialize();
-        
-        /**
-        *   Should be called in class destructor. The method
-        *   unloads library from memory.
-        */
-        void shutdown() nothrow;
     }
 }

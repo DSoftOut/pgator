@@ -136,10 +136,16 @@ shared class Database
 	}
 	
 	
-	/// finalize async db.pool
-	void finalizePool()
+	/// finalize database resources
+	/**
+	*  TODO: docs here
+	*/
+	void finalize()
 	{
-		pool.finalize();
+	    if(pool !is null)
+	        pool.finalize();
+        if(api !is null)
+            api.finalize();
 	}
 	
 	/**
@@ -221,13 +227,11 @@ shared class Database
 		}
 	}
 	
-	private:
-	
 	/**
 	* Initializes database resources
 	*
 	*/
-	void init() //called once
+	private void init() //called once
 	{
 		Duration timeout = dur!"msecs"(appConfig.sqlTimeout);
 		
@@ -242,18 +246,20 @@ shared class Database
 			reTime = timeout;
 		}
 
-		auto provider = new shared PQConnProvider(logger, new PostgreSQL);
+		api = new shared PostgreSQL();
+		auto provider = new shared PQConnProvider(logger, api);
 		
 		pool = new shared AsyncPool(logger, provider, reTime, timeout);
 	}
 	
-	IConnectionPool pool;
-	
-	SqlJsonTable table;
-	
-	Cache cache;
-	
-	immutable AppConfig appConfig;
-	
-	ILogger logger;
+	private
+	{
+	    shared IPostgreSQL api;
+	    shared ILogger logger;
+    	shared IConnectionPool pool;
+    	
+    	SqlJsonTable table;
+    	Cache cache;
+    	immutable AppConfig appConfig;
+	}
 }

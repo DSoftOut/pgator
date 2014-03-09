@@ -24,7 +24,7 @@ import vibe.data.bson;
 */
 synchronized class PQConnection : IConnection
 {
-    this(shared ILogger logger, IPostgreSQL api)
+    this(shared ILogger logger, shared IPostgreSQL api)
     {
         this.logger = logger;
         this.api = api;
@@ -85,7 +85,8 @@ synchronized class PQConnection : IConnection
     }
     body
     {
-        savedException = null;
+        if(this in savedExceptions)
+            savedExceptions.remove(this);
         PostgresPollingStatusType val;
         if(reconnecting) val = conn.resetPoll;
         else val = conn.poll;
@@ -102,12 +103,12 @@ synchronized class PQConnection : IConnection
                     }
                     case(ConnStatusType.CONNECTION_NEEDED):
                     {
-                        savedException = new ConnectException(server, "Connection wasn't tried to be established!");
+                        savedExceptions[this] = new ConnectException(server, "Connection wasn't tried to be established!");
                         return ConnectionStatus.Error;
                     }
                     case(ConnStatusType.CONNECTION_BAD):
                     {
-                        savedException = new ConnectException(server, conn.errorMessage);
+                        savedExceptions[this] = new ConnectException(server, conn.errorMessage);
                         return ConnectionStatus.Error;
                     }
                     default:
@@ -118,7 +119,7 @@ synchronized class PQConnection : IConnection
             }
             case PostgresPollingStatusType.PGRES_POLLING_FAILED:
             {
-                savedException = new ConnectException(server, conn.errorMessage);
+                savedExceptions[this] = new ConnectException(server, conn.errorMessage);
                 return ConnectionStatus.Error;
             }
             default:
@@ -136,7 +137,7 @@ synchronized class PQConnection : IConnection
     */    
     void pollConnectionException()
     {
-        if(savedException !is null) throw savedException;
+        if(this in savedExceptions) throw savedExceptions[this];
     }
     
     /**
@@ -167,11 +168,12 @@ synchronized class PQConnection : IConnection
     }
     body
     {
-        savedQueryException = null;
+        if(this in savedQueryExceptions)
+            savedQueryExceptions.remove(this);
         try conn.consumeInput();
         catch (Exception e) // PGQueryException
         {
-            savedQueryException = new QueryException(e.msg);
+            savedQueryExceptions[this] = new QueryException(e.msg);
             while(conn.getResult !is null) {}
             return QueringStatus.Error;
         }
@@ -188,7 +190,7 @@ synchronized class PQConnection : IConnection
     */
     void pollQueryException()
     {
-        if (savedQueryException !is null) throw savedQueryException;
+        if (this in savedQueryExceptions) throw savedQueryExceptions[this];
     }
     
     /**
@@ -233,8 +235,13 @@ synchronized class PQConnection : IConnection
     }
     body
     {
+        scope(failure) {}
         conn.finish;
         conn = null;
+        if(this in savedExceptions)
+            savedExceptions.remove(this);
+        if(this in savedQueryExceptions)
+            savedQueryExceptions.remove(this);
     }
     
     /**
@@ -269,17 +276,17 @@ synchronized class PQConnection : IConnection
     {
         bool reconnecting = false;
         shared ILogger logger;
-        __gshared IPostgreSQL api;
+        shared IPostgreSQL api;
         shared IPGconn conn;
-        __gshared ConnectException savedException;
-        __gshared QueryException   savedQueryException;
+        __gshared ConnectException[shared PQConnection] savedExceptions;
+        __gshared QueryException[shared PQConnection]   savedQueryExceptions;
     }
     mixin Mockable!IConnection;
 }
 
 synchronized class PQConnProvider : IConnectionProvider
 {
-    this(shared ILogger logger, IPostgreSQL api)
+    this(shared ILogger logger, shared IPostgreSQL api)
     {
         this.logger = logger;
         this.api = api;
@@ -291,5 +298,5 @@ synchronized class PQConnProvider : IConnectionProvider
     }
     
     private shared ILogger logger;
-    private __gshared IPostgreSQL api;
+    private shared IPostgreSQL api;
 }

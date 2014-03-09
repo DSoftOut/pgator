@@ -145,7 +145,7 @@ synchronized class CLogger : ILogger
             {
                 dir.mkdirRecurse;
             }
-            mLogFile = new std.stream.File(name, FileMode.OutNew);
+            mLogFiles[this] = new std.stream.File(name, FileMode.OutNew);
         } 
         catch(OpenException e)
         {
@@ -173,7 +173,7 @@ synchronized class CLogger : ILogger
     */
     void rawInput(string message)  @trusted
     {
-        mLogFile.writeLine(message);
+        mLogFiles[this].writeLine(message);
     }
     
     /**
@@ -193,12 +193,12 @@ synchronized class CLogger : ILogger
     private
     {
         immutable(string) mName;
-        __gshared std.stream.File mLogFile;
+        __gshared std.stream.File[shared CLogger] mLogFiles;
         shared LoggingLevel mMinOutputLevel;
 
         void close()
         {
-            mLogFile.close();
+            mLogFiles[this].close();
         }
     }
 }

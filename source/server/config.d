@@ -245,7 +245,7 @@ AppConfig defaultConfig()
 {
     AppConfig ret;
     ret.port = 8080;
-    ret.maxConn = 100;
+    ret.maxConn = 50;
     ret.sqlServers = [SqlConfig("sql-server-1", 1, "dbname=rpc-proxy user=rpc-proxy password=123456")];
     ret.sqlAuth = ["login", "password"];
     ret.sqlTimeout = 1000;
