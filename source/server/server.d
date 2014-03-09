@@ -105,7 +105,7 @@ class Application
 	void finalize()
 	{
 	    scope(exit) logger.finalize();
-		logger.logInfo("Called finalize");
+		logger.logDebug("Called finalize");
 		
 		scope(failure)
 		{
@@ -117,7 +117,7 @@ class Application
 		if (database)
 		{
 			database.finalize();
-			logger.logInfo("Connection pool is finalized");
+			logger.logDebug("Database pool is finalized");
 		}
 		
 		if (running)
@@ -191,6 +191,8 @@ class Application
 		{
 			logger.logError("Server error: "~e.msg);
 			
+			logger.logDebug("Server error:" ~ to!string(e));
+			
 			internalError = true;
 		}
 
@@ -219,9 +221,13 @@ class Application
 		{
 			logger.logError("Server error: "~e.msg);
 			
+			logger.logDebug("Server error:" ~ to!string(e));
+			
 			finalize();
+			
 			return -1;
 		}
+		
 	}
 	
 	void stopServer()
@@ -345,7 +351,7 @@ class Application
 	{
 		if (info.code == HTTPStatus.badRequest)
 		{
-			RpcResponse rpcRes = RpcResponse(Json(null), RpcError(new RpcParseError(info.message)));
+			RpcResponse rpcRes = RpcResponse(Json(null), RpcError(new RpcParseError()));
 			
 			res.writeBody(rpcRes.toJson.toPrettyString, "application/json");
 		}
