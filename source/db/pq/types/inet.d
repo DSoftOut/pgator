@@ -66,11 +66,26 @@ struct MacAddress
 
 struct PQInetAddress
 {
-    enum Family : ubyte
-    {
-        AFInet = AF_INET,
-        AFInet6 = AF_INET+1,
+	version(Windows)
+	{
+		import std.socket:AddressFamily;
+		
+		enum Family:int
+		{
+			AFInet = AddressFamily.INET,
+			
+			AFInet6 = AddressFamily.INET6
+		}
+	}
+	else version(Posix)
+	{
+	    enum Family : ubyte
+	    {
+	        AFInet = AF_INET,
+	        AFInet6 = AF_INET+1,
+	    }
     }
+	
     Family family;
     ubyte bits;
     ubyte[16] ipaddr;
