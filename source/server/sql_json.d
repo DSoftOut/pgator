@@ -51,6 +51,13 @@ struct Entry
 	{
 		return params.length == arg_num;
 	}
+	
+	const shared(Entry) toShared() @property
+	{
+		auto res = this;
+		
+		return cast(shared Entry) res;
+	}
 }
 
 /**
@@ -65,8 +72,7 @@ shared class SqlJsonTable
 	/// Add entry to memory
 	void add(in Entry entry)
 	{
-		shared Entry ent = toShared(entry);
-		map[entry.method] = ent;
+		map[entry.method] = entry.toShared();
 	}
 	
 	void reset()
@@ -192,7 +198,7 @@ shared class SqlJsonTable
 	{
 		foreach(val; map.byValue())
 		{
-			string[] arr = new string[0];
+			shared string[] arr = new shared string[0];
 			
 			if (val.need_cache)
 			{
@@ -215,7 +221,7 @@ shared class SqlJsonTable
 				}
 			}
 			
-			dropMap[val.method] = toShared(arr);
+			dropMap[val.method] = arr.dup;
 		}
 		
 		dropMap.rehash();

@@ -149,14 +149,12 @@ class Application
 		settings.errorPageHandler = cast(HTTPServerErrorPageHandler) &errorHandler;
 		
 		settings.options = HTTPServerOption.parseJsonBody;
-		
-		auto appConfig = toUnqual(this.appConfig);
 			
 		if (appConfig.hostname) 
-			settings.hostName = appConfig.hostname;
+			settings.hostName = toUnqual(appConfig.hostname.idup);
 			
 		if (appConfig.bindAddresses)
-			settings.bindAddresses = appConfig.bindAddresses;
+			settings.bindAddresses =cast(string[]) appConfig.bindAddresses.idup;
 		
 		setLogLevel(LogLevel.none);
 		setLogFile(appConfig.vibelog, LogLevel.info);
@@ -375,10 +373,11 @@ class Application
 	
 	bool internalError;
 	
-	__gshared private //dirty
-	{	
-    	HTTPServerSettings settings;
-    	
-    	URLRouter router;
-	}
+}
+
+__gshared private //dirty
+{	
+	HTTPServerSettings settings;
+	
+	URLRouter router;
 }
