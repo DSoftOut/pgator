@@ -10,12 +10,6 @@ import db.pq.types.oids;
 import std.datetime;
 import std.bitmanip;
 
-struct Interval
-{
-    uint status;
-    SysTime[2] data;
-}
-
 private void j2date(int jd, out int year, out int month, out int day)
 {
     enum POSTGRES_EPOCH_JDATE = 2451545;
@@ -222,10 +216,45 @@ TimeInterval convert(PQType type)(ubyte[] val)
     return TimeInterval(val);
 }
 
-SysTime convert(PQType type)(ubyte[] val)
+/**
+*   Wrapper around std.datetime.Interval to handle [de]serializing
+*   acceptable for JSON-RPC and still conform with libpq format.
+*
+*   Note: libpq representation of abstime slightly different from
+*   std.datetime, thats why time converted to string could differ
+*   a lot for PostgreSQL and SysTime (about 9000-15000 seconds nonconstant 
+*   offset). 
+*/
+struct PGInterval
+{
+    private Interval!SysTime interval;
+    alias interval this;
+    
+    static PGInterval fromBson(Bson bson)
+    {
+        auto begin = SysTime(unixTimeToStdTime(bson.begin.get!long), UTC());
+        auto end   = SysTime(unixTimeToStdTime(bson.end.get!long), UTC());
+        return PGInterval(Interval!SysTime(begin, end));
+    }
+    
+    Bson toBson() const
+    {
+        Bson[string] map;
+        map["begin"] = Bson(cast(long)(interval.begin.toUnixTime));
+        map["end"]   = Bson(cast(long)(interval.end.toUnixTime));
+        return Bson(map);
+    }
+}
+
+PGInterval convert(PQType type)(ubyte[] val)
     if(type == PQType.Interval)
 {
-    assert(false);
+    assert(val.length == 3*int.sizeof);
+    auto state = val.read!int;
+    auto beg = SysTime(unixTimeToStdTime(val.read!int), UTC());
+    auto end = SysTime(unixTimeToStdTime(val.read!int), UTC());
+
+    return PGInterval(Interval!SysTime(beg, end));
 }
 
 SysTime convert(PQType type)(ubyte[] val)
@@ -362,10 +391,32 @@ version(IntegrationTest2)
         assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -4);
     }
     
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.Interval)
     {
-        logger.logInfo("Testing Interval...");
+        strictLogger.logInfo("Testing tinterval...");
+        scope(failure) 
+        {
+            version(Have_Int64_TimeStamp) string s = "with Have_Int64_TimeStamp";
+            else string s = "without Have_Int64_TimeStamp";
+            
+            strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
+            strictLogger.logInfo("============================================");
+        }
+        
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
+        
+        auto res = queryValue(logger, pool, "'[\"Dec 20 20:45:53 1986 GMT\" \"Mar 8 03:14:04 2014 GMT\"]'::tinterval").deserializeBson!PGInterval;
+        assert(res.begin == SysTime.fromSimpleString("1986-Dec-20 20:45:53Z"));
+        assert(res.end   == SysTime.fromSimpleString("2014-Mar-08 03:14:04Z"));
+        
+        res = queryValue(logger, pool, "'[\"Dec 20 20:45:53 1986 +3\" \"Mar 8 03:14:04 2014 +3\"]'::tinterval").deserializeBson!PGInterval;
+        assert(res.begin == SysTime.fromSimpleString("1986-Dec-20 20:45:53+03"));
+        assert(res.end   == SysTime.fromSimpleString("2014-Mar-08 03:14:04+03"));
+
     }
     
     void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
