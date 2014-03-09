@@ -1,7 +1,24 @@
 // Written in D programming language
 /**
 *   PostgreSQL time types binary format.
-*
+*   
+*   There are following supported libpq formats:
+*   <ul>
+*   <li>$(B date) - handles year, month, day. Corresponding D type - $(B std.datetime.Date).</li>
+*   <li>$(B abstime) - unix time in seconds without timezone. Corresponding D type - $(B PGAbsTime) 
+*        wrapper around $(B std.datetime.SysTime).</li>
+*   <li>$(B reltime) - seconds count positive or negative for representation of time durations.
+*        Corresponding D type - $(B PGRelTime) wrapper around $(B core.time.Duration). Note that
+*        D's duration holds hnsecs count, but reltime precise at least seconds.</li>
+*   <li>$(B time) - day time without time zone. Corresponding D type - $(B PGTime) wrapper around
+*        $(B std.datetime.TimeOfDay).</li>
+*   <li>$(B time with zone) - day time with time zone. Corresponding D type - $(B PGTimeWithZone)
+*        structure that can be casted to $(B std.datetime.TimeOfDay) and $(B std.datetime.SimpleTimeZone).</li>
+*   <li>$(B interval) - time duration (modern replacement for $(B reltime)). Corresponding D time - 
+*        $(B TimeInterval) that handles microsecond, day and month counts.</li>
+*   <li>$(B tinterval) - interval between two points in time. Consists of two abstime values: begin and end.
+*        Correponding D type - $(B PGInterval) wrapper around $(B std.datetime.Interval).</li>
+*   </ul>
 *   Authors: NCrashed <ncrashed@gmail.com>
 */
 module db.pq.types.time;
@@ -44,11 +61,61 @@ Date convert(PQType type)(ubyte[] val)
     return Date(year, month, day);
 }
 
-SysTime convert(PQType type)(ubyte[] val)
-    if(type == PQType.AbsTime || type == PQType.RelTime)
+/**
+*   Wrapper around SysTime to handle libpq abstime.
+*
+*   Note: abstime is stored in UTC timezone.
+*/
+struct PGAbsTime
 {
-    assert(val.length == 8);
-    return SysTime(val.read!long);
+    private SysTime time;
+    alias time this;
+    
+    static PGAbsTime fromBson(Bson bson)
+    {
+        auto val = SysTime(unixTimeToStdTime(bson.get!long), UTC());
+        return PGAbsTime(val);
+    }
+    
+    Bson toBson() const
+    {
+        return Bson(cast(long)(time.toUnixTime));
+    }
+}
+
+PGAbsTime convert(PQType type)(ubyte[] val)
+    if(type == PQType.AbsTime)
+{
+    assert(val.length == 4);
+    return PGAbsTime(SysTime(unixTimeToStdTime(val.read!int), UTC()));
+}
+
+/**
+*   Wrapper around Duration to handle libpq reltime.
+*
+*   Note: reltime can be negative.
+*/
+struct PGRelTime
+{
+    private Duration dur;
+    alias dur this;
+    
+    static PGRelTime fromBson(Bson bson)
+    {
+        return PGRelTime(bson.get!long.dur!"seconds");
+    }
+    
+    Bson toBson() const
+    {
+        return Bson(dur.total!"seconds");
+    }
+}
+
+PGRelTime convert(PQType type)(ubyte[] val)
+    if(type == PQType.RelTime)
+{
+    assert(val.length == 4);
+    return PGRelTime(val.read!int.dur!"seconds");
 }
 
 version(Have_Int64_TimeStamp)
@@ -121,18 +188,21 @@ private TimeOfDay time2tm(TimeADT time)
 */
 struct PGTime
 {
-    int hour, minute, second;
+    private TimeOfDay time;
+    alias time this;
     
-    this(TimeOfDay tm) pure
+    static PGTime fromBson(Bson bson)
     {
-        hour = tm.hour;
-        minute = tm.minute;
-        second = tm.second;
+        return PGTime(TimeOfDay(bson.hour.get!int, bson.minute.get!int, bson.second.get!int));
     }
     
-    T opCast(T)() const if(is(T == TimeOfDay))
+    Bson toBson() const
     {
-        return TimeOfDay(hour, minute, second);
+        Bson[string] map;
+        map["hour"] = time.hour;
+        map["minute"] = time.minute;
+        map["second"] = time.second;
+        return Bson(map);
     }
 }
 
@@ -321,17 +391,43 @@ version(IntegrationTest2)
 
     }
     
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.AbsTime)
     {
-        logger.logInfo("Testing AbsTime...");
+        strictLogger.logInfo("Testing AbsTime...");
+        
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
+        
+        auto res = queryValue(logger, pool, "'Dec 20 20:45:53 1986 GMT'::abstime").deserializeBson!PGAbsTime;
+        assert(res == SysTime.fromSimpleString("1986-Dec-20 20:45:53Z"));
+        
+        res = queryValue(logger, pool, "'Mar 8 03:14:04 2014 GMT'::abstime").deserializeBson!PGAbsTime;
+        assert(res == SysTime.fromSimpleString("2014-Mar-08 03:14:04Z"));
+        
+        res = queryValue(logger, pool, "'Dec 20 20:45:53 1986 +3'::abstime").deserializeBson!PGAbsTime;
+        assert(res == SysTime.fromSimpleString("1986-Dec-20 20:45:53+03"));
+        
+        res = queryValue(logger, pool, "'Mar 8 03:14:04 2014 +3'::abstime").deserializeBson!PGAbsTime;
+        assert(res == SysTime.fromSimpleString("2014-Mar-08 03:14:04+03"));
         
     }
      
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.RelTime)
     {
-        logger.logInfo("Testing RelTime...");
+        strictLogger.logInfo("Testing RelTime...");
+        
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
+        
+        auto res = queryValue(logger, pool, "'2 week 3 day 4 hour 5 minute 6 second'::reltime").deserializeBson!PGRelTime;
+        assert(res == 6.dur!"seconds" + 5.dur!"minutes" + 4.dur!"hours" + 3.dur!"days" + 2.dur!"weeks");
+        
+        res = queryValue(logger, pool, "'2 week 3 day 4 hour 5 minute 6 second ago'::reltime").deserializeBson!PGRelTime;
+        assert(res == (-6).dur!"seconds" + (-5).dur!"minutes" + (-4).dur!"hours" + (-3).dur!"days" + (-2).dur!"weeks");
     }
     
     void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
@@ -396,16 +492,7 @@ version(IntegrationTest2)
         if(type == PQType.Interval)
     {
         strictLogger.logInfo("Testing tinterval...");
-        scope(failure) 
-        {
-            version(Have_Int64_TimeStamp) string s = "with Have_Int64_TimeStamp";
-            else string s = "without Have_Int64_TimeStamp";
-            
-            strictLogger.logInfo("============================================");
-            strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
-            strictLogger.logInfo("============================================");
-        }
-        
+                
         auto logger = new shared BufferedLogger(strictLogger);
         scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
         scope(exit) logger.finalize;
