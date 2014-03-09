@@ -9,6 +9,7 @@ module db.pq.types.time;
 import db.pq.types.oids;
 import std.datetime;
 import std.bitmanip;
+import vibe.data.bson;
 
 private void j2date(int jd, out int year, out int month, out int day)
 {
