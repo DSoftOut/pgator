@@ -4,6 +4,8 @@ rpc-sql-proxy
 
 Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 
+**Sponsored by** [denizzzka](https://github.com/denizzzka)
+
 [Technical documentation (ongoing)](http://dsoftout.github.io/rpc-sql-proxy/app.html)
 
 ####Зачем это надо?
