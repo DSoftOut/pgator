@@ -24,6 +24,7 @@
 module db.pq.types.time;
 
 import db.pq.types.oids;
+import core.stdc.time;
 import std.datetime;
 import std.bitmanip;
 import vibe.data.bson;
@@ -73,7 +74,7 @@ struct PGAbsTime
     
     static PGAbsTime fromBson(Bson bson)
     {
-        auto val = SysTime(unixTimeToStdTime(bson.get!long), UTC());
+        auto val = SysTime(unixTimeToStdTime(bson.get!time_t), UTC());
         return PGAbsTime(val);
     }
     
@@ -303,8 +304,8 @@ struct PGInterval
     
     static PGInterval fromBson(Bson bson)
     {
-        auto begin = SysTime(unixTimeToStdTime(bson.begin.get!long), UTC());
-        auto end   = SysTime(unixTimeToStdTime(bson.end.get!long), UTC());
+        auto begin = SysTime(unixTimeToStdTime(bson.begin.get!time_t), UTC());
+        auto end   = SysTime(unixTimeToStdTime(bson.end.get!time_t), UTC());
         return PGInterval(Interval!SysTime(begin, end));
     }
     
