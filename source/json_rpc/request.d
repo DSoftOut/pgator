@@ -42,7 +42,7 @@ struct RpcRequest
 	string method;
 	
 	@possible
-	string[] params = null;
+	string[] params;
 	
 	@possible
 	Json id = Json(null);
