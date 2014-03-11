@@ -1,9 +1,9 @@
 PROJECTNAME = Rpc-sql-proxy
 REFERENCETOP = app.html
-REPOSRCTREE = https://github.com/DSoftOut/rpc-sql-proxy/tree/master
-TITLEBARTEXT = <a href="https://github.com/DSoftOut/rpc-sql-proxy/tree/master">Github Page</a>
+REPOSRCTREE = https://github.com/DSoftOut/pgator/tree/master
+TITLEBARTEXT = <a href="https://github.com/DSoftOut/pgator/tree/master">Github Page</a>
 RESOURCEROOT = bootDoc/
-ISSUETRACKER = https://github.com/DSoftOut/rpc-sql-proxy/issues
+ISSUETRACKER = https://github.com/DSoftOut/pgator/issues
 DEFAULTPACKAGE = app
 PACKAGESEP = .
 FAVICON = $(RESOURCEROOT)assets/ico/favicon.ico

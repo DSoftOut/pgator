@@ -35,7 +35,7 @@
 	<!-- Introduce DDoc settings required by JavaScript -->
 	<script type="text/javascript">
 		var Title = 'util';
-		var SourceRepository = 'https://github.com/DSoftOut/rpc-sql-proxy/tree/master';
+		var SourceRepository = 'https://github.com/DSoftOut/pgator/tree/master';
 		var PackageSeparator = '.';
 	</script>
 	
@@ -112,7 +112,7 @@
 						<input type="text" class="search-query" placeholder="Go to symbol in util" data-provide="typeahead" data-items="4">
 					</form>
 					
-					<p class="navbar-text pull-right"><a href="https://github.com/DSoftOut/rpc-sql-proxy/tree/master">Github Page</a></p>
+					<p class="navbar-text pull-right"><a href="https://github.com/DSoftOut/pgator/tree/master">Github Page</a></p>
 				</div><!--/.nav-collapse -->
 			</div>
 		</div>
@@ -246,7 +246,10 @@ writeln(<u>serializeRequiredToJson</u>(S())); <span class="d_comment">// { "a":1
 </div>
 <hr><div class="row-fluid declaration"><h3>shared(P) <span class="symbol-target" id="toShared">&nbsp;</span><a class="symbol-link" href="#toShared">toShared</a>(T)(T <i>par</i>);
 </h3></div>
-<div class="declaration-content"><dl><p>cast to shared type T</p>
+<div class="declaration-content"><dl><p>cast to shared type T
+</p>
+<dt>Warning:</dt><dd>
+Don't use this, if you want send object to another thread. It just dirty hack.</dd>
 </dl>
 </div>
 <hr><div class="row-fluid declaration"><h3>P <span class="symbol-target" id="toUnqual">&nbsp;</span><a class="symbol-link" href="#toUnqual">toUnqual</a>(T)(T <i>par</i>);

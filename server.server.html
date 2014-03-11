@@ -35,7 +35,7 @@
 	<!-- Introduce DDoc settings required by JavaScript -->
 	<script type="text/javascript">
 		var Title = 'server.server';
-		var SourceRepository = 'https://github.com/DSoftOut/rpc-sql-proxy/tree/master';
+		var SourceRepository = 'https://github.com/DSoftOut/pgator/tree/master';
 		var PackageSeparator = '.';
 	</script>
 	
@@ -112,7 +112,7 @@
 						<input type="text" class="search-query" placeholder="Go to symbol in server.server" data-provide="typeahead" data-items="4">
 					</form>
 					
-					<p class="navbar-text pull-right"><a href="https://github.com/DSoftOut/rpc-sql-proxy/tree/master">Github Page</a></p>
+					<p class="navbar-text pull-right"><a href="https://github.com/DSoftOut/pgator/tree/master">Github Page</a></p>
 				</div><!--/.nav-collapse -->
 			</div>
 		</div>
@@ -188,6 +188,11 @@
 </h3></div>
 <div class="declaration-content"><dl><p>Main program class
 </p>
+<dt>Warning:</dt><dd>
+Don't create more than 1 object, if you want to use with different <b>HTTPServerSettings</b>,
+	<b>URLRouter</b> beacuse they are _gshared, that means they are static
+
+</dd>
 <dt>Authors</dt><dd>Zaramzan <shamyan.roman@gmail.com></dd>
 </dl>
 <div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3> this(shared ILogger <i>logger</i>, immutable Options <i>options</i>, immutable AppConfig <i>config</i>);
