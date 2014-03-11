@@ -14,7 +14,7 @@ import std.range;
 import std.path;
 import vibe.data.json;
 
-enum APPNAME = "rpc-sql-proxy";
+enum APPNAME = "pgator";
 
 mixin template t_field(T, alias fieldName)
 {

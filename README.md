@@ -1,10 +1,10 @@
-rpc-sql-proxy
+pgator
 =============
-[![Build Status](https://travis-ci.org/DSoftOut/rpc-sql-proxy.png?branch=master)](https://travis-ci.org/DSoftOut/rpc-sql-proxy)
+[![Build Status](https://travis-ci.org/DSoftOut/pgator.png?branch=master)](https://travis-ci.org/DSoftOut/pgator)
 
 Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 
-[Technical documentation (ongoing)](http://dsoftout.github.io/rpc-sql-proxy/app.html)
+[Technical documentation (ongoing)](http://dsoftout.github.io/pgator/app.html)
 
 ####Зачем это надо?
 Чтобы работать с SQL БД необходим API.
@@ -19,7 +19,7 @@ Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 хранить кэш снаружи БД и передавать информацию об инвалидации кэша из БД с помощью флагов. И то, и другое больше смахивает на костыли и подпорки, чем на нормальную работу.
 
 ####Что же делать?
-rpc-sql-proxy предназначен для создания простого API к БД.
+pgator предназначен для создания простого API к БД.
 (В данный момент поддерживается только PostgreSQL.)
 
 При его использовании SQL-программист описывает методы и их аргументы, а прикладной программист может использовать их без опасения создать проблемы на стороне RDBMS. При этом становится доступна возможность кэширования ответов БД.

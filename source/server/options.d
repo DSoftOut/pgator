@@ -77,7 +77,7 @@ immutable class Options
 	InputRange!string configPaths() @property
 	{	
 	    auto builder = appender!(string[]);
-	    builder.put(buildPath("~/.config/rpc-sql-proxy", DEF_CONF_NAME).expandTilde);
+	    builder.put(buildPath("~/.config", APPNAME, DEF_CONF_NAME).expandTilde);
 	    
 	    version(Posix)
 	    {
@@ -117,7 +117,7 @@ immutable class Options
 	
 	/// Application help message
     enum helpMsg = "Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.\n\n"
-    "   rpc-proxy-server [arguments]\n"
+    "   pgator [arguments]\n"
     "   arguments =\n"
     "    --daemon - run in daemon mode (detached from tty).\n"
     "        Linux only.\n\n"

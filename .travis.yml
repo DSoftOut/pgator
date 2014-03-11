@@ -9,7 +9,7 @@ addons:
 services: postgresql
 
 before_script:
-  - psql -c 'create database "rpc-proxy-test";' -U postgres
+  - psql -c 'create database "pgator-test";' -U postgres
 
 install:
   # dmd
@@ -28,8 +28,8 @@ install:
 
 script:
   - dub build --config=test1 
-  - ./bin/rpc-sql-proxy --conn="dbname=rpc-proxy-test user=postgres"
+  - ./bin/pgator --conn="dbname=pgator-test user=postgres"
   - dub build --config=test2 
-  - ./bin/rpc-sql-proxy --conn="dbname=rpc-proxy-test user=postgres"
+  - ./bin/pgator --conn="dbname=pgator-test user=postgres"
   # dub --config=unittest --build=unittest
   - dub --build=unittest

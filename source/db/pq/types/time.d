@@ -27,6 +27,7 @@ import db.pq.types.oids;
 import std.datetime;
 import std.bitmanip;
 import vibe.data.bson;
+import std.math;
 
 private void j2date(int jd, out int year, out int month, out int day)
 {
@@ -120,15 +121,27 @@ PGRelTime convert(PQType type)(ubyte[] val)
 
 version(Have_Int64_TimeStamp)
 {
+    private alias long Timestamp;
+    private alias long TimestampTz;
     private alias long TimeADT;
     private alias long TimeOffset;
+    private alias int  fsec_t;      /* fractional seconds (in microseconds) */
+    
+    void TMODULO(ref long t, ref long q, double u)
+    {
+        q = cast(long)(t / u);
+        if (q != 0) t -= q * u;
+    }
 }
 else
 {
     import std.math;
     
+    private alias double Timestamp;
+    private alias double TimestampTz;
     private alias double TimeADT;
     private alias double TimeOffset;
+    private alias double fsec_t;    /* fractional seconds (in seconds) */
     
     void TMODULO(ref double t, ref int q, double u)
     {
@@ -328,12 +341,202 @@ PGInterval convert(PQType type)(ubyte[] val)
     return PGInterval(Interval!SysTime(beg, end));
 }
 
-SysTime convert(PQType type)(ubyte[] val)
-    if(type == PQType.TimeStamp || type == PQType.TimeStampWithZone)
+private
+{
+    struct pg_tm
+    {
+        int         tm_sec;
+        int         tm_min;
+        int         tm_hour;
+        int         tm_mday;
+        int         tm_mon;         /* origin 0, not 1 */
+        int         tm_year;        /* relative to 1900 */
+        int         tm_wday;
+        int         tm_yday;
+        int         tm_isdst;
+        long        tm_gmtoff;
+        string      tm_zone;
+    }
+    
+    alias long pg_time_t;
+    struct pg_tz;
+    
+    enum SECS_PER_DAY = 86400;
+    enum POSTGRES_EPOCH_JDATE = 2451545;
+    enum UNIX_EPOCH_JDATE     = 2440588;
+    
+    enum USECS_PER_HOUR   = 3600000000;
+    enum USECS_PER_MINUTE = 60000000;
+    
+    enum SECS_PER_HOUR   = 3600;
+    enum SECS_PER_MINUTE = 60;
+    
+    /*
+     *  Round off to MAX_TIMESTAMP_PRECISION decimal places.
+     *  Note: this is also used for rounding off intervals.
+     */
+    enum TS_PREC_INV = 1000000.0;
+    fsec_t TSROUND(fsec_t j)
+    {
+        return cast(fsec_t)(rint((cast(double) (j)) * TS_PREC_INV) / TS_PREC_INV);
+    }
+}
+
+ /*
+ * timestamp2tm() - Convert timestamp data type to POSIX time structure.
+ *
+ * Note that year is _not_ 1900-based, but is an explicit full value.
+ * Also, month is one-based, _not_ zero-based.
+ * Returns:
+ *   0 on success
+ *  -1 on out of range
+ *
+ * If attimezone is null, the global timezone (including possibly brute forced
+ * timezone) will be used.
+ */
+private int timestamp2tm(Timestamp dt, out pg_tm tm, out fsec_t fsec)
+{
+    Timestamp   date;
+    Timestamp   time;
+    pg_time_t   utime;
+
+    version(HAVE_INT64_TIMESTAMP)
+    {
+        time = dt;
+        TMODULO(time, date, USECS_PER_DAY);
+
+        if (time < INT64CONST(0))
+        {
+            time += USECS_PER_DAY;
+            date -= 1;
+        }
+    
+        /* add offset to go from J2000 back to standard Julian date */
+        date += POSTGRES_EPOCH_JDATE;
+    
+        /* Julian day routine does not work for negative Julian days */
+        if (date < 0 || date > cast(Timestamp) int.max)
+            return -1;
+    
+        j2date(cast(int) date, tm.tm_year, tm.tm_mon, tm.tm_mday);
+        dt2time(time, tm.tm_hour, tm.tm_min, tm.tm_sec, fsec);
+    } else
+    {
+        time = dt;
+        TMODULO(time, date, cast(double) SECS_PER_DAY);
+    
+        if (time < 0)
+        {
+            time += SECS_PER_DAY;
+            date -= 1;
+        }
+    
+        /* add offset to go from J2000 back to standard Julian date */
+        date += POSTGRES_EPOCH_JDATE;
+    
+    recalc_d:
+        /* Julian day routine does not work for negative Julian days */
+        if (date < 0 || date > cast(Timestamp) int.max)
+            return -1;
+    
+        j2date(cast(int) date, tm.tm_year, tm.tm_mon, tm.tm_mday);
+    recalc_t:
+        dt2time(time, tm.tm_hour, tm.tm_min, tm.tm_sec, fsec);
+    
+        fsec = TSROUND(fsec);
+        /* roundoff may need to propagate to higher-order fields */
+        if (fsec >= 1.0)
+        {
+            time = cast(Timestamp)ceil(time);
+            if (time >= cast(double) SECS_PER_DAY)
+            {
+                time = 0;
+                date += 1;
+                goto recalc_d;
+            }
+            goto recalc_t;
+        }
+    }
+
+    return 0;
+}
+
+private void dt2time(Timestamp jd, out int hour, out int min, out int sec, out fsec_t fsec)
+{
+    TimeOffset  time;
+
+    time = jd;
+
+    version(HAVE_INT64_TIMESTAMP)
+    {
+        hour = time / USECS_PER_HOUR;
+        time -= hour * USECS_PER_HOUR;
+        min = time / USECS_PER_MINUTE;
+        time -= min * USECS_PER_MINUTE;
+        sec = time / USECS_PER_SEC;
+        fsec = time - sec*USECS_PER_SEC;
+    } else
+    {
+        hour = cast(int)time / SECS_PER_HOUR;
+        time -= hour * SECS_PER_HOUR;
+        min = cast(int)time / SECS_PER_MINUTE;
+        time -= min * SECS_PER_MINUTE;
+        sec = cast(int) time;
+        fsec = cast(int) time - sec;
+    }
+} 
+
+struct PGTimeStamp
+{
+    private SysTime time;
+    alias time this;
+    
+    static PGTimeStamp fromBson(Bson bson)
+    {
+        auto val = SysTime(unixTimeToStdTime(bson.get!long), UTC());
+        return PGTimeStamp(val);
+    }
+    
+    Bson toBson() const
+    {
+        return Bson(cast(long)(time.toUnixTime));
+    }
+}
+
+PGTimeStamp convert(PQType type)(ubyte[] val)
+    if(type == PQType.TimeStamp)
 {
     assert(val.length == 8);
-    return SysTime(val.read!long);
+
+    Timestamp ts = val.read!Timestamp;
+    
+    pg_tm tm;
+    fsec_t fsec;
+    enforce(timestamp2tm(ts, tm, fsec) >= 0, "Timestamp out of range!");
+    
+//    std.stdio.writeln(tm);
+//    std.stdio.writeln(fsec);
+    
+    version(HAVE_INT64_TIMESTAMP)
+    {
+        
+    } else
+    {
+        auto time = cast(long)(val.read!double * 10e6);
+        std.stdio.writeln(time);
+        std.stdio.writeln(SysTime(time.dur!"usecs".fracSec.hnsecs));
+    }
+    
+    return PGTimeStamp(SysTime(val.read!long.unixTimeToStdTime));
 }
+
+SysTime convert(PQType type)(ubyte[] val)
+    if(type == PQType.TimeStampWithZone)
+{
+    assert(val.length == 8);
+    return SysTime(val.read!long.unixTimeToStdTime);
+}
+
 
 version(IntegrationTest2)
 {
@@ -343,8 +546,6 @@ version(IntegrationTest2)
     import std.random;
     import std.algorithm;
     import std.encoding;
-    import std.math;
-    import vibe.data.bson;
     import log;
     import bufflog;
     
@@ -541,10 +742,18 @@ version(IntegrationTest2)
         assert(res.time.dur!"usecs" == 4.dur!"hours" + 5.dur!"minutes" + 6.dur!"seconds" && res.day == 3 && res.month == 14);
     }
     
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.TimeStamp)
     {
-        logger.logInfo("Testing TimeStamp...");
+        strictLogger.logInfo("Testing TimeStamp...");
+        
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
+        
+        auto res = queryValue(logger, pool, "TIMESTAMP '2004-10-19 10:23:54'").deserializeBson!PGTimeStamp;
+        std.stdio.writeln(res);
+        assert(res == SysTime.fromSimpleString("2004-Oct-19 10:23:54"));
     }
      
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)

@@ -1,10 +1,11 @@
 {
-	"name": "rpc-sql-proxy",
+	"name": "pgator",
 	"description": "Server that transforms JSON-RPC calls into SQL queries for PostgreSQL",
 	"copyright": "Copyright © 2014, DSoftOut",
 	"authors": [
 		 "Anton Gushcha (NCrashed <ncrashed@gmail.com>)"
 		,"Shamyan Roman (Zaramzan <shamyan.roman@gmail.com>)"
+		,"denizzzka"
 		],
 	"targetPath": "bin",
 	"versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
@@ -33,7 +34,7 @@
 			"name": "testclient",
 			"description": "Simple json-rpc client to test the server",
 			"targetType": "executable",
-			"targetName": "rpc-sql-proxy-client",
+			"targetName": "pgator-client",
 			"versions": ["RpcClient"]
 		}
 	]
