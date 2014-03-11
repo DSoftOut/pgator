@@ -4,7 +4,9 @@ pgator
 
 Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 
-[Technical documentation (ongoing)](http://dsoftout.github.io/pgator/app.html)
+**Sponsored by** [denizzzka](https://github.com/denizzzka)
+
+[Technical documentation (ongoing)](http://dsoftout.github.io/rpc-sql-proxy/app.html)
 
 ####Зачем это надо?
 Чтобы работать с SQL БД необходим API.
