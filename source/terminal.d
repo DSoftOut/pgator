@@ -4,6 +4,9 @@
 *    is called when SIGHUP signal is caught (linux only).
 *
 *    See_Also: daemon
+*
+*    Copyright: © 2014 DSoftOut
+*    License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *    Authors: NCrashed <ncrashed@gmail.com>
 *    
 */

@@ -19,6 +19,9 @@
 *   <li>$(B tinterval) - interval between two points in time. Consists of two abstime values: begin and end.
 *        Correponding D type - $(B PGInterval) wrapper around $(B std.datetime.Interval).</li>
 *   </ul>
+*
+*   Copyright: © 2014 DSoftOut
+*   License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *   Authors: NCrashed <ncrashed@gmail.com>
 */
 module db.pq.types.time;

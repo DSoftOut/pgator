@@ -1,3 +1,37 @@
+/**
+*   Application contains four build configurations: production, unittests, integration test 1,
+*   integration test 2 and test client.
+*
+*   Unittests configuration produce dummy executable the only purpose is to run module unittests.
+*
+*   Production configuration is main and default configuration. There the configuration files and
+*   argument parameters are parsed, daemon or terminal mode is selected and actual rpc server starts.
+*
+*   Integration test 1 performs simple tests on real PostgreSQL instance. The configuration expects
+*   '--conn' parameter with valid connection string to test database. The main thing that is tested
+*   is connection pool operational correctness.
+*
+*   Integration test 2 performs major tests on real PostgreSQL instance. The configuration expects
+*   '--conn' parameter with valid connection string to test database. There are many tests for
+*   binary converting from libpq format. This test is the most important one as it should expose
+*   libp binary format changing while updating to new versions. 
+*
+*   Test client is most general integration tests set. First client expects that there is an instance
+*   of production configuration is running already. The '--host' argument specifies URL the server is
+*   binded to (usually 'http://localhost:8080). The '--serverpid' argument should hold the server 
+*   process PID to enable automatic server reloading while changing json-rpc table. '--conn' and
+*   '--tableName' specifies connection string to PostgreSQL and json-rpc table respectively that are 
+*   used in server being tested.
+*
+*   Test client performs automatic rules addition to json-rpc table, testing request sending to
+*   the production server and checking returned results. Finally test client cleans up used
+*   testing rules in json-rpc table.
+*
+*   Copyright: © 2014 DSoftOut
+*   License: Subject to the terms of the MIT license, as written in the included LICENSE file.
+*   Authors: NCrashed <ncrashed@gmail.com>
+*            Zaramzan <shamyan.roman@gmail.com>
+*/
 module app;
 
 import stdlog;
