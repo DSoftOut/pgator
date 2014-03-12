@@ -1,4 +1,4 @@
-PROJECTNAME = Rpc-sql-proxy
+PROJECTNAME = pgator
 REFERENCETOP = app.html
 REPOSRCTREE = https://github.com/DSoftOut/pgator/tree/master
 TITLEBARTEXT = <a href="https://github.com/DSoftOut/pgator/tree/master">Github Page</a>
