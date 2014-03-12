@@ -2,6 +2,7 @@
 	"name": "pgator",
 	"description": "Server that transforms JSON-RPC calls into SQL queries for PostgreSQL",
 	"copyright": "Copyright © 2014, DSoftOut",
+	"license": "MIT",
 	"authors": [
 		 "Anton Gushcha (NCrashed <ncrashed@gmail.com>)"
 		,"Shamyan Roman (Zaramzan <shamyan.roman@gmail.com>)"
