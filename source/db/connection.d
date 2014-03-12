@@ -1,7 +1,10 @@
 // Written in D programming language
 /**
-*    
-*    Authors: NCrashed <ncrashed@gmail.com>
+*   Medium sized wrapper around PostgreSQL connection. 
+*   
+*   Copyright: © 2014 DSoftOut
+*   License: Subject to the terms of the MIT license, as written in the included LICENSE file.
+*   Authors: NCrashed <ncrashed@gmail.com>
 */
 module db.connection;
 

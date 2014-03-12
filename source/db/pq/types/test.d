@@ -2,6 +2,8 @@
 /**
 *   Utilities for integration test of binary format conversion.
 *
+*   Copyright: © 2014 DSoftOut
+*   License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *   Authors: NCrashed <ncrashed@gmail.com>
 */
 module db.pq.types.test;

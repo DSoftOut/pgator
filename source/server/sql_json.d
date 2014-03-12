@@ -4,6 +4,8 @@
 *
 * Loads on SIGHUP or on startup
 *
+* Copyright: © 2014 DSoftOut
+* License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 *
 */

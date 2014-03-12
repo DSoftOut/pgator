@@ -5,6 +5,8 @@
 *   Test case includes json_rpc table row description,
 *   test params and expected response.
 *
+*   Copyright: © 2014 DSoftOut
+*   License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *   Authors: NCrashed <ncrashed@gmail.com>
 */
 module client.test.testcase;

@@ -1,9 +1,20 @@
 // Written in D programming language
 /**
-* Util module
+*   Module handles functions and templates that we lazied to factor out to separate module.
 *
-* Authors: Zaramzan <shamyan.roman@gmail.com>, NCrashed <ncrashed@gmail.com>
+*   Function categories:
+*   <ul>
+*   <li> JSON de/serialization based on annotations </li>
+*   <li> Exception handling functions </li>
+*   <li> Cheat casting functions </li>
+*   <li> String processing functions (the only one $(B fromStringz))</li>
+*   <li> Introspecting templates that cannot be found in Phobos </li> 
+*   </ul>
 *
+*   Copyright: © 2014 DSoftOut
+*   License: Subject to the terms of the MIT license, as written in the included LICENSE file.
+*   Authors: Zaramzan <shamyan.roman@gmail.com>, 
+*            NCrashed <ncrashed@gmail.com>
 */
 module util;
 

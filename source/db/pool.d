@@ -4,6 +4,8 @@
 *    several connections to one or more sql servers. If connection
 *    is lost, pool tries to reconnect over $(B reconnectTime) duration.
 *    
+*    Copyright: © 2014 DSoftOut
+*    License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *    Authors: NCrashed <ncrashed@gmail.com>
 */
 module db.pool;

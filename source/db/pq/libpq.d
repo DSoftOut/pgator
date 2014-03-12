@@ -3,6 +3,9 @@
 *   This module defines realization of high-level libpq api.
 *
 *   See_Also: db.pq.api
+*
+*   Copyright: © 2014 DSoftOut
+*   License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *   Authors: NCrashed <ncrashed@gmail.com>
 */
 module db.pq.libpq;

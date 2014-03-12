@@ -27,6 +27,16 @@
 * DEALINGS IN THE SOFTWARE.
 */
 // This file is written in D programming language
+/**
+*   Default synchronized log realization. The logging process performs
+*   instantly (if it can be processed properly). Logger puts message
+*   style string and current timestamp before the message.
+*
+*   Tested to be able operate in daemon mode and under heavy concurrent
+*   writing.
+*
+*   Authors: NCrashed <ncrashed@gmail.com>
+*/
 module stdlog;
 
 public import log;
