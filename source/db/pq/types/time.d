@@ -715,6 +715,7 @@ version(IntegrationTest2)
             else string s = "without Have_Int64_TimeStamp";
             
             strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
             strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
             strictLogger.logInfo("============================================");
         }
@@ -741,6 +742,7 @@ version(IntegrationTest2)
             else string s = "without Have_Int64_TimeStamp";
             
             strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
             strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
             strictLogger.logInfo("============================================");
         }
@@ -792,6 +794,7 @@ version(IntegrationTest2)
             else string s = "without Have_Int64_TimeStamp";
             
             strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
             strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
             strictLogger.logInfo("============================================");
         }
@@ -826,6 +829,7 @@ version(IntegrationTest2)
             else string s = "without Have_Int64_TimeStamp";
             
             strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
             strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
             strictLogger.logInfo("============================================");
         }
@@ -863,6 +867,7 @@ version(IntegrationTest2)
             else string s = "without Have_Int64_TimeStamp";
             
             strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
             strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
             strictLogger.logInfo("============================================");
         }

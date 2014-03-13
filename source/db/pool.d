@@ -159,6 +159,14 @@ interface IConnectionPool
     DateFormat dateFormat() @property shared;
     
     /**
+    *   Returns timestamp format used in ONE OF sql servers.
+    *   Warning: This method can be trust only the pool conns are connected
+    *            to the same sql server.
+    *   TODO: Make a way to get such configs for particular connection.
+    */
+    TimestampFormat timestampFormat() @property shared;
+    
+    /**
     *   Returns first free connection from the pool.
     *   Throws: ConnTimeoutException
     */

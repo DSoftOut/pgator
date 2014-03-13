@@ -274,6 +274,31 @@ synchronized class PQConnection : IConnection
         return DateFormat(vals[0], vals[1]);
     }
     
+    /**
+    *   Returns actual timestamp representation format used in server.
+    *
+    *   Note: This property tells particular HAVE_INT64_TIMESTAMP version flag that is used
+    *         by remote server.
+    */
+    TimestampFormat timestampFormat() @property
+    {
+        try
+        {
+            auto res = conn.parameterStatus("integer_datetimes");
+            if(res == "on")
+            {
+                return TimestampFormat.Int64;
+            } else
+            {
+                return TimestampFormat.Float8;
+            }
+        } catch(PGParamNotExistException e)
+        {
+            logger.logInfo(text("Server doesn't support '", e.param,"' parameter! Assume HAVE_INT64_TIMESTAMP."));
+            return TimestampFormat.Int64; 
+        }
+    }
+    
     private
     {
         bool reconnecting = false;

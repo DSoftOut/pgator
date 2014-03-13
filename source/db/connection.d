@@ -140,6 +140,17 @@ struct DateFormat
 }
 
 /**
+*   Enum describes two possible server configuration for timestamp format.
+*/
+enum TimestampFormat
+{
+    /// Server uses long (usecs) to encode time 
+    Int64,
+    /// Server uses double (seconds) to encode time
+    Float8
+}
+
+/**
 *    Handles a single connection to a SQL server.
 */
 interface IConnection
@@ -224,6 +235,14 @@ interface IConnection
     *   Throws: QueryException
     */
     DateFormat dateFormat() @property;
+    
+    /**
+    *   Returns actual timestamp representation format used in server.
+    *
+    *   Note: This property tells particular HAVE_INT64_TIMESTAMP version flag that is used
+    *         by remote server.
+    */
+    TimestampFormat timestampFormat() @property;
     
     /**
     *   Blocking wrapper to one-command query execution.
