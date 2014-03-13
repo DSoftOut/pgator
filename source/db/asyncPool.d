@@ -40,6 +40,7 @@ import std.algorithm;
 import std.conv;
 import std.container;
 import std.concurrency;
+import std.datetime;
 import std.exception;
 import std.range;
 import std.typecons;
@@ -449,6 +450,17 @@ class AsyncPool : IConnectionPool
     TimestampFormat timestampFormat() @property shared
     {
         return fetchFreeConnection.timestampFormat;
+    }
+    
+    /**
+    *   Returns server time zone used in ONE OF sql servers.
+    *   Warning: This method can be trusted only the pool conns are connected
+    *            to the same sql server.
+    *   TODO: Make a way to get such configs for particular connection.
+    */
+    immutable(TimeZone) timeZone() @property shared
+    {
+        return fetchFreeConnection.timeZone;
     }
     
     private

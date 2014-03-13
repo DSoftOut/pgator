@@ -12,6 +12,7 @@ module db.pool;
 
 import db.connection;
 import db.pq.api;
+import std.datetime;
 import std.range;
 import core.time;
 import vibe.data.bson;
@@ -152,7 +153,7 @@ interface IConnectionPool
     
     /**
     *   Returns date format used in ONE OF sql servers.
-    *   Warning: This method can be trust only the pool conns are connected
+    *   Warning: This method can be trusted only the pool conns are connected
     *            to the same sql server.
     *   TODO: Make a way to get such configs for particular connection.
     */
@@ -160,11 +161,19 @@ interface IConnectionPool
     
     /**
     *   Returns timestamp format used in ONE OF sql servers.
-    *   Warning: This method can be trust only the pool conns are connected
+    *   Warning: This method can be trusted only the pool conns are connected
     *            to the same sql server.
     *   TODO: Make a way to get such configs for particular connection.
     */
     TimestampFormat timestampFormat() @property shared;
+    
+    /**
+    *   Returns server time zone used in ONE OF sql servers.
+    *   Warning: This method can be trusted only the pool conns are connected
+    *            to the same sql server.
+    *   TODO: Make a way to get such configs for particular connection.
+    */
+    immutable(TimeZone) timeZone() @property shared;
     
     /**
     *   Returns first free connection from the pool.
