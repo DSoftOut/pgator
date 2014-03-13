@@ -145,7 +145,14 @@ else version(IntegrationTest2)
         pool.addServer(connString, connCount);
         logger.logInfo(text(connCount, " new connections were added to the pool."));
         
-        testConvertions(logger, pool);
+        try
+        {
+            testConvertions(logger, pool);
+        } catch(Throwable e)
+        {
+            logger.logInfo("Conversion tests are failed!");
+            logger.logError(text(e));
+        }
         
         pool.finalize();
         logger.finalize();
