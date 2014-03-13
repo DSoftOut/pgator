@@ -27,6 +27,7 @@
 module db.pq.types.time;
 
 import db.pq.types.oids;
+import db.connection;
 import core.stdc.time;
 import std.datetime;
 import std.bitmanip;
@@ -545,13 +546,14 @@ PGTimeStamp convert(PQType type)(ubyte[] val)
 
 /**
 *   Wrapper around std.datetime.SysTime to handle [de]serializing of libpq
-*   timestamps with time zone.
+*   time stamps with time zone.
 *
 *   Timezone is acquired from PQparameterStatus call for TimeZone parameter.
-*   Yes, the database server doesn't send any info about timezone to client.
+*   Database server doesn't send any info about time zone to client, the
+*   time zone is important only while showing time to an user.
 *
 *   Note: libpq has two compile configuration with HAS_INT64_TIMESTAMP and
-*   without (double timestamp format). The pgator should be compiled with
+*   without (double time stamp format). The pgator should be compiled with
 *   conform flag to operate properly. 
 */
 struct PGTimeStampWithZone
@@ -564,9 +566,10 @@ struct PGTimeStampWithZone
         this.time = time;
     }
     
-    this(pg_tm tm, fsec_t ts)
-    {
+    this(pg_tm tm, fsec_t ts, immutable TimeZone zone)
+    {    
         time = SysTime(Date(tm.tm_year, tm.tm_mon, tm.tm_mday), UTC());
+        time.timezone = zone;
         time += tm.tm_hour.dur!"hours";
         time += tm.tm_min.dur!"minutes";
         time += tm.tm_sec.dur!"seconds";
@@ -585,7 +588,7 @@ struct PGTimeStampWithZone
     }
 }
 
-PGTimeStampWithZone convert(PQType type)(ubyte[] val)
+PGTimeStampWithZone convert(PQType type)(ubyte[] val, shared IConnection conn)
     if(type == PQType.TimeStampWithZone)
 {
     auto raw = val.read!long;
@@ -608,7 +611,7 @@ PGTimeStampWithZone convert(PQType type)(ubyte[] val)
     if(timestamp2tm(raw, tm, ts) < 0)
         throw new Exception("Timestamp is out of range!");
 
-    return PGTimeStampWithZone(tm, ts);
+    return PGTimeStampWithZone(tm, ts, conn.timeZone);
 }
 
 
@@ -616,7 +619,6 @@ version(IntegrationTest2)
 {
     import db.pq.types.test;
     import db.pool;
-    import db.connection;
     import std.random;
     import std.algorithm;
     import std.encoding;

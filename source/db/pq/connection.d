@@ -268,7 +268,7 @@ synchronized class PQConnection : IConnection
         
         if(result.length == 0) throw new QueryException("DateFormat query expected result!");
         
-        auto res = result[0].asColumnBson["DateStyle"].deserializeBson!(string[]);
+        auto res = result[0].asColumnBson(this)["DateStyle"].deserializeBson!(string[]);
         assert(res.length == 1);
         auto vals = res[0].split(", ");
         assert(vals.length == 2);

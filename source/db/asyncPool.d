@@ -481,7 +481,7 @@ class AsyncPool : IConnectionPool
                exception = e.msg;
            }
            
-           bool collect(DList!(shared IPGresult) results)
+           bool collect(DList!(shared IPGresult) results, shared IConnection conn)
            {
                foreach(res; results)
                {
@@ -492,7 +492,7 @@ class AsyncPool : IConnectionPool
                       exception = res.resultErrorMessage;
                       return false;
                   }
-                  result ~= cast(immutable)res.asColumnBson;
+                  result ~= cast(immutable)res.asColumnBson(conn);
                   res.clear();
                }
                return true;
@@ -995,7 +995,7 @@ class AsyncPool : IConnectionPool
                                auto res = conn.getQueryResult;
                                if(needCollectResult) 
                                {
-                                   if(!respond.collect(res))
+                                   if(!respond.collect(res, conn))
                                    {
                                        stage = Stage.Finished;
                                        return;
@@ -1186,6 +1186,16 @@ version(unittest)
         DateFormat dateFormat() @property shared
         {
             return DateFormat("ISO", "DMY");
+        }
+        
+        TimestampFormat timestampFormat() @property
+        {
+            return TimestampFormat.Int64; 
+        }
+        
+        immutable(TimeZone) timeZone() @property
+        {
+            return UTC(); 
         }
         
         protected ConnectionStatus currConnStatus;
