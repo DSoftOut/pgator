@@ -188,7 +188,7 @@ class AsyncPool : IConnectionPool
     InputRange!(immutable Bson) execTransaction(string[] commands, string[] params, string[string] vars) shared
     {
         auto transaction = postTransaction(commands, params, vars);
-        while(isTransactionReady(transaction)) yield;
+        while(!isTransactionReady(transaction)) yield;
         return getTransaction(transaction);
     }
     

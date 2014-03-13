@@ -59,7 +59,26 @@ class QueryProcessingException : Exception
 *    connection is lost, pool tries to reconnect over $(B reconnectTime) 
 *    duration.
 *
+*    Example:
+*    --------
+*    scope(exit) pool.finalize();
+*    std.stdio.writeln(pool.timeZone); // know server time zone
 *    
+*    import db.pq.types.time; // for PGTimeStamp
+*
+*    // blocking quering
+*    auto time = pool.execTransaction(["SELECT TIMESTAMP 'epoch' as field;"]).deserializeBson!PGTimeStamp;
+*    assert(time == SysTime.fromSimpleString("1970-Jan-01 00:00:00Z"));
+*
+*    // or can use asynchronous alternative
+*    auto transaction = pool.postTransaction(["SELECT TIMESTAMP 'epoch' as field;"]);
+*    while(!isTransactionReady(transaction))
+*    {
+*       // do something
+*    }
+*    time = getTransaction(transaction).deserializeBson!PGTimeStamp;
+*    assert(time == SysTime.fromSimpleString("1970-Jan-01 00:00:00Z"));
+*    --------
 */
 interface IConnectionPool
 {
@@ -181,5 +200,11 @@ interface IConnectionPool
     */
     protected shared(IConnection) fetchFreeConnection() shared;
     
+    /**
+    *   Transaction that should be executed by one of connections
+    *   on remote SQL server. Client code shouldn't know anything
+    *   about the interface but only store it as unique key to acquire
+    *   finished transaction. 
+    */
     protected interface ITransaction {}
 }
