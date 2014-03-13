@@ -72,7 +72,29 @@ class PGEscapeException : PGException
     {
         super(msg, file, line); 
     }
-}
+} 
+
+/**
+*   The exception is thrown when postgres ran in problem with query processing.
+*/
+class PGParamNotExistException : PGException
+{
+    private string mParam;
+    
+    @safe pure nothrow this(string param, string file = __FILE__, size_t line = __LINE__)
+    {
+        mParam = param;
+        super("Connection parameter '"~param~"' doesn't exist!", file, line); 
+    }
+    
+    /**
+    *   Parameter that raised the exception
+    */
+    string param() @property
+    {
+        return mParam;
+    }
+} 
 
 /**
 *   Prototype: PGResult
@@ -315,6 +337,12 @@ interface IPGconn
     *   Throws: PGEscapeException
     */
     string escapeLiteral(string msg) const;
+    
+    /**
+    *   Prototype: PQparameterStatus
+    *   Throws: PGParamNotExistException
+    */
+    string parameterStatus(string param) const;
 }
 
 /**
