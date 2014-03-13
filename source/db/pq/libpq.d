@@ -548,6 +548,26 @@ synchronized class CPGconn : IPGconn
         return query;
     }
     
+    /**
+    *   Prototype: PQparameterStatus
+    *   Throws: PGParamNotExistException
+    */
+    string parameterStatus(string param) const
+    in
+    {
+        assert(this in conns, "PGconn was finished!");
+        assert(PQparameterStatus !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        // fix bindings char* -> const char*
+        auto res = PQparameterStatus(conns[this], cast(char*)toStringz(param));
+        if(res is null)
+            throw new PGParamNotExistException(param);
+        
+        return res.fromStringz;
+    }
+    
     private __gshared PGconn*[shared const CPGconn] conns;
 }
 

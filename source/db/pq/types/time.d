@@ -27,6 +27,7 @@
 module db.pq.types.time;
 
 import db.pq.types.oids;
+import db.connection;
 import core.stdc.time;
 import std.datetime;
 import std.bitmanip;
@@ -78,13 +79,13 @@ struct PGAbsTime
     
     static PGAbsTime fromBson(Bson bson)
     {
-        auto val = SysTime(unixTimeToStdTime(bson.get!time_t), UTC());
+        auto val = SysTime.fromISOExtString(bson.get!string);
         return PGAbsTime(val);
     }
     
     Bson toBson() const
     {
-        return Bson(cast(long)(time.toUnixTime));
+        return Bson(time.toISOExtString);
     }
 }
 
@@ -320,16 +321,16 @@ struct PGInterval
     
     static PGInterval fromBson(Bson bson)
     {
-        auto begin = SysTime(unixTimeToStdTime(bson.begin.get!time_t), UTC());
-        auto end   = SysTime(unixTimeToStdTime(bson.end.get!time_t), UTC());
+        auto begin = SysTime.fromISOExtString(bson.begin.get!string);
+        auto end   = SysTime.fromISOExtString(bson.end.get!string);
         return PGInterval(Interval!SysTime(begin, end));
     }
     
     Bson toBson() const
     {
         Bson[string] map;
-        map["begin"] = Bson(cast(long)(interval.begin.toUnixTime));
-        map["end"]   = Bson(cast(long)(interval.end.toUnixTime));
+        map["begin"] = Bson(interval.begin.toISOExtString);
+        map["end"]   = Bson(interval.end.toISOExtString);
         return Bson(map);
     }
 }
@@ -345,33 +346,272 @@ PGInterval convert(PQType type)(ubyte[] val)
     return PGInterval(Interval!SysTime(beg, end));
 }
  
+private
+{
+    struct pg_tm
+    {
+        int         tm_sec;
+        int         tm_min;
+        int         tm_hour;
+        int         tm_mday;
+        int         tm_mon;         /* origin 0, not 1 */
+        int         tm_year;        /* relative to 1900 */
+        int         tm_wday;
+        int         tm_yday;
+        int         tm_isdst;
+        long        tm_gmtoff;
+        string      tm_zone;
+    }
+    
+    alias long pg_time_t;
+    struct pg_tz;
+    
+    enum SECS_PER_DAY = 86400;
+    enum POSTGRES_EPOCH_JDATE = 2451545;
+    enum UNIX_EPOCH_JDATE     = 2440588;
+    
+    enum USECS_PER_DAY    = 86_400_000_000;
+    enum USECS_PER_HOUR   = 3_600_000_000;
+    enum USECS_PER_MINUTE = 60_000_000;
+    enum USECS_PER_SEC    = 1_000_000;
+    
+    enum SECS_PER_HOUR   = 3600;
+    enum SECS_PER_MINUTE = 60;
+    
+    /*
+     *  Round off to MAX_TIMESTAMP_PRECISION decimal places.
+     *  Note: this is also used for rounding off intervals.
+     */
+    enum TS_PREC_INV = 1000000.0;
+    fsec_t TSROUND(fsec_t j)
+    {
+        return cast(fsec_t)(rint((cast(double) (j)) * TS_PREC_INV) / TS_PREC_INV);
+    }
+}
+
+ /*
+ * timestamp2tm() - Convert timestamp data type to POSIX time structure.
+ *
+ * Note that year is _not_ 1900-based, but is an explicit full value.
+ * Also, month is one-based, _not_ zero-based.
+ * Returns:
+ *   0 on success
+ *  -1 on out of range
+ *
+ * If attimezone is null, the global timezone (including possibly brute forced
+ * timezone) will be used.
+ */
+private int timestamp2tm(Timestamp dt, out pg_tm tm, out fsec_t fsec)
+{
+    Timestamp   date;
+    Timestamp   time;
+    pg_time_t   utime;
+
+    version(Have_Int64_TimeStamp)
+    {
+        time = dt;
+        TMODULO(time, date, USECS_PER_DAY);
+
+        if (time < 0)
+        {
+            time += USECS_PER_DAY;
+            date -= 1;
+        }       
+    
+        j2date(cast(int) date, tm.tm_year, tm.tm_mon, tm.tm_mday);
+        dt2time(time, tm.tm_hour, tm.tm_min, tm.tm_sec, fsec);
+    } else
+    {
+        time = dt;
+        TMODULO(time, date, cast(double) SECS_PER_DAY);
+    
+        if (time < 0)
+        {
+            time += SECS_PER_DAY;
+            date -= 1;
+        }    
+         
+    recalc_d:
+        j2date(cast(int) date, tm.tm_year, tm.tm_mon, tm.tm_mday);
+    recalc_t:
+        dt2time(time, tm.tm_hour, tm.tm_min, tm.tm_sec, fsec);
+    
+        fsec = TSROUND(fsec);
+        /* roundoff may need to propagate to higher-order fields */
+        if (fsec >= 1.0)
+        {
+            time = cast(Timestamp)ceil(time);
+            if (time >= cast(double) SECS_PER_DAY)
+            {
+                time = 0;
+                date += 1;
+                goto recalc_d;
+            }
+            goto recalc_t;
+        }
+    }
+
+    return 0;
+}
+
+private void dt2time(Timestamp jd, out int hour, out int min, out int sec, out fsec_t fsec)
+{
+    TimeOffset  time;
+
+    time = jd;
+
+    version(Have_Int64_TimeStamp)
+    {
+        hour = cast(int)(time / USECS_PER_HOUR);
+        time -= hour * USECS_PER_HOUR;
+        min = cast(int)(time / USECS_PER_MINUTE);
+        time -= min * USECS_PER_MINUTE;
+        sec = cast(int)(time / USECS_PER_SEC);
+        fsec = cast(int)(time - sec*USECS_PER_SEC);
+    } else
+    {
+        hour = cast(int)(time / SECS_PER_HOUR);
+        time -= hour * SECS_PER_HOUR;
+        min = cast(int)(time / SECS_PER_MINUTE);
+        time -= min * SECS_PER_MINUTE;
+        sec = cast(int)time;
+        fsec = cast(int)(time - sec);
+    }
+} 
+
+/**
+*   Wrapper around std.datetime.SysTime to handle [de]serializing of libpq
+*   timestamps (without time zone).
+*
+*   Note: libpq has two compile configuration with HAS_INT64_TIMESTAMP and
+*   without (double timestamp format). The pgator should be compiled with
+*   conform flag to operate properly. 
+*/
 struct PGTimeStamp
 {
     private SysTime time;
     alias time this;
     
+    this(SysTime time)
+    {
+        this.time = time;
+    }
+    
+    this(pg_tm tm, fsec_t ts)
+    {
+        time = SysTime(Date(tm.tm_year, tm.tm_mon, tm.tm_mday), UTC());
+        time += tm.tm_hour.dur!"hours";
+        time += tm.tm_min.dur!"minutes";
+        time += tm.tm_sec.dur!"seconds";
+        time += ts.dur!"usecs";
+    }
+    
     static PGTimeStamp fromBson(Bson bson)
     {
-        auto val = SysTime(unixTimeToStdTime(bson.get!long), UTC());
+        auto val = SysTime.fromISOExtString(bson.get!string);
         return PGTimeStamp(val);
     }
     
     Bson toBson() const
     {
-        return Bson(cast(long)(time.toUnixTime));
+        return Bson(time.toISOExtString);
     }
 }
 
 PGTimeStamp convert(PQType type)(ubyte[] val)
     if(type == PQType.TimeStamp)
 {
-    assert(false, "Isn't supported yet!");
+    auto raw = val.read!long;
+    
+    version(Have_Int64_TimeStamp)
+    {
+        if(raw >= time_t.max)
+        {
+            return PGTimeStamp(SysTime.max);
+        }
+        if(raw <= time_t.min)
+        {
+            return PGTimeStamp(SysTime.min);
+        }
+    }
+    
+    pg_tm tm;
+    fsec_t ts;
+    
+    if(timestamp2tm(raw, tm, ts) < 0)
+        throw new Exception("Timestamp is out of range!");
+
+    return PGTimeStamp(tm, ts);
 }
 
-SysTime convert(PQType type)(ubyte[] val)
+/**
+*   Wrapper around std.datetime.SysTime to handle [de]serializing of libpq
+*   time stamps with time zone.
+*
+*   Timezone is acquired from PQparameterStatus call for TimeZone parameter.
+*   Database server doesn't send any info about time zone to client, the
+*   time zone is important only while showing time to an user.
+*
+*   Note: libpq has two compile configuration with HAS_INT64_TIMESTAMP and
+*   without (double time stamp format). The pgator should be compiled with
+*   conform flag to operate properly. 
+*/
+struct PGTimeStampWithZone
+{
+    private SysTime time;
+    alias time this;
+    
+    this(SysTime time)
+    {
+        this.time = time;
+    }
+    
+    this(pg_tm tm, fsec_t ts, immutable TimeZone zone)
+    {    
+        time = SysTime(Date(tm.tm_year, tm.tm_mon, tm.tm_mday), UTC());
+        time.timezone = zone;
+        time += tm.tm_hour.dur!"hours";
+        time += tm.tm_min.dur!"minutes";
+        time += tm.tm_sec.dur!"seconds";
+        time += ts.dur!"usecs";
+    }
+    
+    static PGTimeStampWithZone fromBson(Bson bson)
+    {
+        auto val = SysTime.fromISOExtString(bson.get!string);
+        return PGTimeStampWithZone(val);
+    }
+    
+    Bson toBson() const
+    {
+        return Bson(time.toISOExtString);
+    }
+}
+
+PGTimeStampWithZone convert(PQType type)(ubyte[] val, shared IConnection conn)
     if(type == PQType.TimeStampWithZone)
 {
-    assert(false, "Isn't supported yet!");
+    auto raw = val.read!long;
+    
+    version(Have_Int64_TimeStamp)
+    {
+        if(raw >= time_t.max)
+        {
+            return PGTimeStampWithZone(SysTime.max);
+        }
+        if(raw <= time_t.min)
+        {
+            return PGTimeStampWithZone(SysTime.min);
+        }
+    }
+    
+    pg_tm tm;
+    fsec_t ts;
+    
+    if(timestamp2tm(raw, tm, ts) < 0)
+        throw new Exception("Timestamp is out of range!");
+
+    return PGTimeStampWithZone(tm, ts, conn.timeZone);
 }
 
 
@@ -379,7 +619,6 @@ version(IntegrationTest2)
 {
     import db.pq.types.test;
     import db.pool;
-    import db.connection;
     import std.random;
     import std.algorithm;
     import std.encoding;
@@ -478,6 +717,7 @@ version(IntegrationTest2)
             else string s = "without Have_Int64_TimeStamp";
             
             strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
             strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
             strictLogger.logInfo("============================================");
         }
@@ -504,6 +744,7 @@ version(IntegrationTest2)
             else string s = "without Have_Int64_TimeStamp";
             
             strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
             strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
             strictLogger.logInfo("============================================");
         }
@@ -555,6 +796,7 @@ version(IntegrationTest2)
             else string s = "without Have_Int64_TimeStamp";
             
             strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
             strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
             strictLogger.logInfo("============================================");
         }
@@ -583,13 +825,75 @@ version(IntegrationTest2)
         if(type == PQType.TimeStamp)
     {
         strictLogger.logInfo("Testing TimeStamp...");
-        strictLogger.logInfo("NCrased should write this functionality!");
+        scope(failure) 
+        {
+            version(Have_Int64_TimeStamp) string s = "with Have_Int64_TimeStamp";
+            else string s = "without Have_Int64_TimeStamp";
+            
+            strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
+            strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
+            strictLogger.logInfo("============================================");
+        }
+        
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
+        
+        auto res = queryValue(logger, pool, "TIMESTAMP '2004-10-19 10:23:54'").deserializeBson!PGTimeStamp;
+        assert(res == SysTime.fromSimpleString("2004-Oct-19 10:23:54Z"));
+        
+        res = queryValue(logger, pool, "TIMESTAMP '1999-01-08 04:05:06'").deserializeBson!PGTimeStamp;
+        assert(res == SysTime.fromSimpleString("1999-Jan-08 04:05:06Z"));
+        
+        res = queryValue(logger, pool, "TIMESTAMP 'January 8 04:05:06 1999 PST'").deserializeBson!PGTimeStamp;
+        assert(res == SysTime.fromSimpleString("1999-Jan-08 04:05:06Z"));
+        
+        res = queryValue(logger, pool, "TIMESTAMP 'epoch'").deserializeBson!PGTimeStamp;
+        assert(res == SysTime.fromSimpleString("1970-Jan-01 00:00:00Z"));
+        
+        res = queryValue(logger, pool, "TIMESTAMP 'infinity'").deserializeBson!PGTimeStamp;
+        assert(res == SysTime.max);
+        
+        res = queryValue(logger, pool, "TIMESTAMP '-infinity'").deserializeBson!PGTimeStamp;
+        assert(res == SysTime.min);
     }
      
     void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.TimeStampWithZone)
     {
         strictLogger.logInfo("Testing TimeStampWithZone...");
-        strictLogger.logInfo("NCrased should write this functionality!");
+        scope(failure) 
+        {
+            version(Have_Int64_TimeStamp) string s = "with Have_Int64_TimeStamp";
+            else string s = "without Have_Int64_TimeStamp";
+            
+            strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
+            strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
+            strictLogger.logInfo("============================================");
+        }
+        
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
+        
+        auto res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54+02'").deserializeBson!PGTimeStampWithZone;
+        assert(res == SysTime.fromSimpleString("2004-Oct-19 10:23:54+02"));
+        
+        res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE '1999-01-08 04:05:06-04'").deserializeBson!PGTimeStampWithZone;
+        assert(res == SysTime.fromSimpleString("1999-Jan-08 04:05:06-04"));
+        
+        res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE 'January 8 04:05:06 1999 -8:00'").deserializeBson!PGTimeStampWithZone;
+        assert(res == SysTime.fromSimpleString("1999-Jan-08 04:05:06-08"));
+        
+        res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE 'epoch'").deserializeBson!PGTimeStampWithZone;
+        assert(res == SysTime.fromSimpleString("1970-Jan-01 00:00:00Z"));
+        
+        res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE 'infinity'").deserializeBson!PGTimeStampWithZone;
+        assert(res == SysTime.max);
+        
+        res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE '-infinity'").deserializeBson!PGTimeStampWithZone;
+        assert(res == SysTime.min);
     }
 }

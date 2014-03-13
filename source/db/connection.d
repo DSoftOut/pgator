@@ -11,6 +11,7 @@ module db.connection;
 import db.pq.api;
 import dunit.mockable;
 import std.container;
+import std.datetime;
 
 /**
 *    The exception is thrown when connection attempt to SQL server is failed due some reason.
@@ -140,6 +141,17 @@ struct DateFormat
 }
 
 /**
+*   Enum describes two possible server configuration for timestamp format.
+*/
+enum TimestampFormat
+{
+    /// Server uses long (usecs) to encode time 
+    Int64,
+    /// Server uses double (seconds) to encode time
+    Float8
+}
+
+/**
 *    Handles a single connection to a SQL server.
 */
 interface IConnection
@@ -224,6 +236,27 @@ interface IConnection
     *   Throws: QueryException
     */
     DateFormat dateFormat() @property;
+    
+    /**
+    *   Returns actual time stamp representation format used in server.
+    *
+    *   Note: This property tells particular HAVE_INT64_TIMESTAMP version flag that is used
+    *         by remote server.
+    *
+    *   Note: Will fallback to Int64 value if server protocol doesn't support acquiring of
+    *         'integer_datetimes' parameter.
+    */
+    TimestampFormat timestampFormat() @property;
+    
+    /**
+    *   Returns server time zone. This value is important to handle 
+    *   time stamps with time zone specified as libpq doesn't send
+    *   the information with time stamp.
+    *
+    *   Note: Will fallback to UTC value if server protocol doesn't support acquiring of
+    *         'TimeZone' parameter or server returns invalid time zone name.
+    */
+    immutable(TimeZone) timeZone() @property;
     
     /**
     *   Blocking wrapper to one-command query execution.

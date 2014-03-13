@@ -9,8 +9,11 @@
 module db.pq.types.conv;
 
 import db.pq.types.oids;
+import db.connection;
 import vibe.data.bson;
+import std.conv;
 import std.traits;
+import std.typetuple;
 import util;
 
 import db.pq.types.geometric;
@@ -99,7 +102,7 @@ bool nonConvertable(PQType type)
     }
 }
 
-Bson toBson(PQType type)(ubyte[] val)
+Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
 {
     template IsNativeSupport(T)
     {  
@@ -128,7 +131,17 @@ Bson toBson(PQType type)(ubyte[] val)
         }
     }
     
-    auto convVal = convert!type(val);
+    // Checking if the convert function needs connection for reverse link
+    static if(is(ParameterTypeTuple!(convert!type) == TypeTuple!(ubyte[])))
+    {
+        auto convVal = convert!type(val);
+    } else static if(is(ParameterTypeTuple!(convert!type) == TypeTuple!(ubyte[], shared IConnection)))
+    {
+        auto convVal = convert!type(val, conn);
+    } else
+    {
+        static assert(false, text("Doesn't support '",ParameterTypeTuple!(convert!type),"' signature of converting function"));
+    }
     alias typeof(convVal) T;
     
     static if(is(T == ubyte[]))
@@ -161,7 +174,7 @@ Bson toBson(PQType type)(ubyte[] val)
     }
 }
 
-Bson pqToBson(PQType type, ubyte[] val)
+Bson pqToBson(PQType type, ubyte[] val, shared IConnection conn)
 {
     foreach(ts; __traits(allMembers, PQType))
     {
@@ -175,7 +188,7 @@ Bson pqToBson(PQType type, ubyte[] val)
                 assert(false,errMsg);
             } else
             {
-                return toBson!t(val); 
+                return toBson!t(val, conn); 
             }
         }
     }

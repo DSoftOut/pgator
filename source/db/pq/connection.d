@@ -17,6 +17,7 @@ import std.algorithm;
 import std.conv;
 import std.container;
 import std.range;
+import std.datetime;
 import vibe.data.bson;
 
 /**
@@ -267,11 +268,66 @@ synchronized class PQConnection : IConnection
         
         if(result.length == 0) throw new QueryException("DateFormat query expected result!");
         
-        auto res = result[0].asColumnBson["DateStyle"].deserializeBson!(string[]);
+        auto res = result[0].asColumnBson(this)["DateStyle"].deserializeBson!(string[]);
         assert(res.length == 1);
         auto vals = res[0].split(", ");
         assert(vals.length == 2);
         return DateFormat(vals[0], vals[1]);
+    }
+    
+    /**
+    *   Returns actual timestamp representation format used in server.
+    *
+    *   Note: This property tells particular HAVE_INT64_TIMESTAMP version flag that is used
+    *         by remote server.
+    */
+    TimestampFormat timestampFormat() @property
+    {
+        try
+        {
+            auto res = conn.parameterStatus("integer_datetimes");
+            if(res == "on")
+            {
+                return TimestampFormat.Int64;
+            } else
+            {
+                return TimestampFormat.Float8;
+            }
+        } catch(PGParamNotExistException e)
+        {
+            logger.logInfo(text("Server doesn't support '", e.param,"' parameter! Assume HAVE_INT64_TIMESTAMP."));
+            return TimestampFormat.Int64; 
+        }
+    }
+    
+    /**
+    *   Returns server time zone. This value is important to handle 
+    *   time stamps with time zone specified as libpq doesn't send
+    *   the information with time stamp.
+    *
+    *   Note: Will fallback to UTC value if server protocol doesn't support acquiring of
+    *         'TimeZone' parameter or server returns invalid time zone name.
+    */
+    immutable(TimeZone) timeZone() @property
+    {
+        try
+        {
+            auto res = conn.parameterStatus("TimeZone");
+
+            try
+            {
+                return TimeZone.getTimeZone(res);
+            } catch(DateTimeException e)
+            {
+                logger.logInfo(text("Cannot parse time zone value '", res, "'. Assume UTC."));
+                return UTC();
+            }
+
+        } catch(PGParamNotExistException e)
+        {
+            logger.logInfo(text("Server doesn't support '", e.param,"' parameter! Assume UTC."));
+            return UTC(); 
+        }
     }
     
     private

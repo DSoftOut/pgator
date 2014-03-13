@@ -16,6 +16,7 @@ module db.pq.api;
 
 import derelict.pq.pq;
 public import db.pq.types.oids;
+import db.connection;
 import db.pq.types.conv;
 import vibe.data.bson;
 
@@ -72,7 +73,29 @@ class PGEscapeException : PGException
     {
         super(msg, file, line); 
     }
-}
+} 
+
+/**
+*   The exception is thrown when postgres ran in problem with query processing.
+*/
+class PGParamNotExistException : PGException
+{
+    private string mParam;
+    
+    @safe pure nothrow this(string param, string file = __FILE__, size_t line = __LINE__)
+    {
+        mParam = param;
+        super("Connection parameter '"~param~"' doesn't exist!", file, line); 
+    }
+    
+    /**
+    *   Parameter that raised the exception
+    */
+    string param() @property
+    {
+        return mParam;
+    }
+} 
 
 /**
 *   Prototype: PGResult
@@ -153,7 +176,7 @@ interface IPGresult
     *   
     *   Bson consists of named arrays of column values.
     */
-    final Bson asColumnBson()
+    final Bson asColumnBson(shared IConnection conn)
     {
         Bson[string] fields;
         foreach(i; 0..nfields)
@@ -161,7 +184,7 @@ interface IPGresult
             Bson[] rows;
             foreach(j; 0..ntuples)
             {
-                rows ~= pqToBson(ftype(i), asBytes(j, i));
+                rows ~= pqToBson(ftype(i), asBytes(j, i), conn);
             }
             fields[fname(i)] = Bson(rows);
         }
@@ -176,7 +199,7 @@ interface IPGresult
     *
     * Authors: Zaramzan <shamyan.roman@gmail.com>
     */
-    final Bson asRowBson()
+    final Bson asRowBson(shared IConnection conn)
     {
     	Bson[] arr = new Bson[0];
     	
@@ -186,7 +209,7 @@ interface IPGresult
     		
     		foreach(j; 0..nfields)
     		{
-    			entry[fname(j)] = pqToBson(ftype(j), asBytes(i, j));	
+    			entry[fname(j)] = pqToBson(ftype(j), asBytes(i, j), conn);	
     		}
     		
     		arr ~= Bson(entry);
@@ -315,6 +338,12 @@ interface IPGconn
     *   Throws: PGEscapeException
     */
     string escapeLiteral(string msg) const;
+    
+    /**
+    *   Prototype: PQparameterStatus
+    *   Throws: PGParamNotExistException
+    */
+    string parameterStatus(string param) const;
 }
 
 /**

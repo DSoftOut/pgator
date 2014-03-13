@@ -40,6 +40,7 @@ import std.algorithm;
 import std.conv;
 import std.container;
 import std.concurrency;
+import std.datetime;
 import std.exception;
 import std.range;
 import std.typecons;
@@ -187,7 +188,7 @@ class AsyncPool : IConnectionPool
     InputRange!(immutable Bson) execTransaction(string[] commands, string[] params, string[string] vars) shared
     {
         auto transaction = postTransaction(commands, params, vars);
-        while(isTransactionReady(transaction)) yield;
+        while(!isTransactionReady(transaction)) yield;
         return getTransaction(transaction);
     }
     
@@ -440,6 +441,28 @@ class AsyncPool : IConnectionPool
         return fetchFreeConnection.dateFormat;
     }
     
+    /**
+    *   Returns timestamp format used in ONE OF sql servers.
+    *   Warning: This method can be trust only the pool conns are connected
+    *            to the same sql server.
+    *   TODO: Make a way to get such configs for particular connection.
+    */
+    TimestampFormat timestampFormat() @property shared
+    {
+        return fetchFreeConnection.timestampFormat;
+    }
+    
+    /**
+    *   Returns server time zone used in ONE OF sql servers.
+    *   Warning: This method can be trusted only the pool conns are connected
+    *            to the same sql server.
+    *   TODO: Make a way to get such configs for particular connection.
+    */
+    immutable(TimeZone) timeZone() @property shared
+    {
+        return fetchFreeConnection.timeZone;
+    }
+    
     private
     {
        shared ILogger logger;
@@ -458,7 +481,7 @@ class AsyncPool : IConnectionPool
                exception = e.msg;
            }
            
-           bool collect(DList!(shared IPGresult) results)
+           bool collect(DList!(shared IPGresult) results, shared IConnection conn)
            {
                foreach(res; results)
                {
@@ -469,7 +492,7 @@ class AsyncPool : IConnectionPool
                       exception = res.resultErrorMessage;
                       return false;
                   }
-                  result ~= cast(immutable)res.asColumnBson;
+                  result ~= cast(immutable)res.asColumnBson(conn);
                   res.clear();
                }
                return true;
@@ -972,7 +995,7 @@ class AsyncPool : IConnectionPool
                                auto res = conn.getQueryResult;
                                if(needCollectResult) 
                                {
-                                   if(!respond.collect(res))
+                                   if(!respond.collect(res, conn))
                                    {
                                        stage = Stage.Finished;
                                        return;
@@ -1163,6 +1186,16 @@ version(unittest)
         DateFormat dateFormat() @property shared
         {
             return DateFormat("ISO", "DMY");
+        }
+        
+        TimestampFormat timestampFormat() @property
+        {
+            return TimestampFormat.Int64; 
+        }
+        
+        immutable(TimeZone) timeZone() @property
+        {
+            return UTC(); 
         }
         
         protected ConnectionStatus currConnStatus;
