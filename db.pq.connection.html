@@ -275,6 +275,26 @@
 <dt>Throws</dt><dd>QueryException</dd>
 </dl>
 </div>
+<hr><div class="row-fluid declaration"><h3>shared @property TimestampFormat <span class="symbol-target" id="timestampFormat">&nbsp;</span><a class="symbol-link" href="#timestampFormat">timestampFormat</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns actual timestamp representation format used in server.
+</p>
+<dt>Note:</dt><dd>
+This property tells particular HAVE_INT64_TIMESTAMP version flag that is used
+         by remote server.</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared @property immutable(TimeZone) <span class="symbol-target" id="timeZone">&nbsp;</span><a class="symbol-link" href="#timeZone">timeZone</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns server time zone. This value is important to handle
+   time stamps with time zone specified as libpq doesn't send
+   the information with time stamp.
+</p>
+<dt>Note:</dt><dd>
+Will fallback to UTC value if server protocol doesn't support acquiring of
+         'TimeZone' parameter or server returns invalid time zone name.</dd>
+</dl>
+</div>
 </div>
 </div>
 

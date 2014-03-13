@@ -244,6 +244,33 @@ libpq representation of abstime slightly different from
    offset).</dd>
 </dl>
 </div>
+<hr><div class="row-fluid declaration"><h3>struct <span class="symbol-target" id="PGTimeStamp">&nbsp;</span><a class="symbol-link" href="#PGTimeStamp">PGTimeStamp</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Wrapper around std.datetime.SysTime to handle [de]serializing of libpq
+   timestamps (without time zone).
+</p>
+<dt>Note:</dt><dd>
+libpq has two compile configuration with HAS_INT64_TIMESTAMP and
+   without (double timestamp format). The pgator should be compiled with
+   conform flag to operate properly.</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>struct <span class="symbol-target" id="PGTimeStampWithZone">&nbsp;</span><a class="symbol-link" href="#PGTimeStampWithZone">PGTimeStampWithZone</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Wrapper around std.datetime.SysTime to handle [de]serializing of libpq
+   time stamps with time zone.
+</p>
+<p>Timezone is acquired from PQparameterStatus call for TimeZone parameter.
+   Database server doesn't send any info about time zone to client, the
+   time zone is important only while showing time to an user.
+
+</p>
+<dt>Note:</dt><dd>
+libpq has two compile configuration with HAS_INT64_TIMESTAMP and
+   without (double time stamp format). The pgator should be compiled with
+   conform flag to operate properly.</dd>
+</dl>
+</div>
 
 
 				</div>

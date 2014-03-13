@@ -213,6 +213,26 @@
     connection is lost, pool tries to reconnect over <b>reconnectTime</b>
     duration.
 </p>
+<dt>Example:</dt><dd>
+<pre class="d_code"><span class="d_keyword">scope</span>(exit) pool.finalize();
+std.stdio.writeln(pool.timeZone); <span class="d_comment">// know server time zone
+</span>
+<span class="d_keyword">import</span> db.pq.types.time; <span class="d_comment">// for PGTimeStamp
+</span>
+<span class="d_comment">// blocking quering
+</span><span class="d_keyword">auto</span> time = pool.execTransaction([<span class="d_string">"SELECT TIMESTAMP 'epoch' as field;"</span>]).deserializeBson!PGTimeStamp;
+<span class="d_keyword">assert</span>(time == SysTime.fromSimpleString(<span class="d_string">"1970-Jan-01 00:00:00Z"</span>));
+
+<span class="d_comment">// or can use asynchronous alternative
+</span><span class="d_keyword">auto</span> transaction = pool.postTransaction([<span class="d_string">"SELECT TIMESTAMP 'epoch' as field;"</span>]);
+<span class="d_keyword">while</span>(!isTransactionReady(transaction))
+{
+   <span class="d_comment">// do something
+</span>}
+time = getTransaction(transaction).deserializeBson!PGTimeStamp;
+<span class="d_keyword">assert</span>(time == SysTime.fromSimpleString(<span class="d_string">"1970-Jan-01 00:00:00Z"</span>));
+</pre>
+</dd>
 </dl>
 <div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3>abstract shared void <span class="symbol-target" id="addServer">&nbsp;</span><a class="symbol-link" href="#addServer">addServer</a>(string <i>connString</i>, size_t <i>connNum</i>);
 </h3></div>
@@ -312,7 +332,31 @@
 <div class="declaration-content"><dl><p>Returns date format used in ONE OF sql servers.
 </p>
 <dt>Warning:</dt><dd>
-This method can be trust only the pool conns are connected
+This method can be trusted only the pool conns are connected
+            to the same sql server.
+</dd>
+<dt>TODO:</dt><dd>
+Make a way to get such configs for particular connection.</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared @property TimestampFormat <span class="symbol-target" id="timestampFormat">&nbsp;</span><a class="symbol-link" href="#timestampFormat">timestampFormat</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns timestamp format used in ONE OF sql servers.
+</p>
+<dt>Warning:</dt><dd>
+This method can be trusted only the pool conns are connected
+            to the same sql server.
+</dd>
+<dt>TODO:</dt><dd>
+Make a way to get such configs for particular connection.</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared @property immutable(TimeZone) <span class="symbol-target" id="timeZone">&nbsp;</span><a class="symbol-link" href="#timeZone">timeZone</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns server time zone used in ONE OF sql servers.
+</p>
+<dt>Warning:</dt><dd>
+This method can be trusted only the pool conns are connected
             to the same sql server.
 </dd>
 <dt>TODO:</dt><dd>
@@ -324,6 +368,14 @@ Make a way to get such configs for particular connection.</dd>
 <div class="declaration-content"><dl><p>Returns first free connection from the pool.
 </p>
 <dt>Throws</dt><dd>ConnTimeoutException</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>interface <span class="symbol-target" id="ITransaction">&nbsp;</span><a class="symbol-link" href="#ITransaction">ITransaction</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Transaction that should be executed by one of connections
+   on remote SQL server. Client code shouldn't know anything
+   about the interface but only store it as unique key to acquire
+   finished transaction.</p>
 </dl>
 </div>
 </div>
