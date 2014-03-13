@@ -79,13 +79,13 @@ struct PGAbsTime
     
     static PGAbsTime fromBson(Bson bson)
     {
-        auto val = SysTime(unixTimeToStdTime(bson.get!time_t), UTC());
+        auto val = SysTime.fromISOExtString(bson.get!string);
         return PGAbsTime(val);
     }
     
     Bson toBson() const
     {
-        return Bson(cast(long)(time.toUnixTime));
+        return Bson(time.toISOExtString);
     }
 }
 
@@ -321,16 +321,16 @@ struct PGInterval
     
     static PGInterval fromBson(Bson bson)
     {
-        auto begin = SysTime(unixTimeToStdTime(bson.begin.get!time_t), UTC());
-        auto end   = SysTime(unixTimeToStdTime(bson.end.get!time_t), UTC());
+        auto begin = SysTime.fromISOExtString(bson.begin.get!string);
+        auto end   = SysTime.fromISOExtString(bson.end.get!string);
         return PGInterval(Interval!SysTime(begin, end));
     }
     
     Bson toBson() const
     {
         Bson[string] map;
-        map["begin"] = Bson(cast(long)(interval.begin.toUnixTime));
-        map["end"]   = Bson(cast(long)(interval.end.toUnixTime));
+        map["begin"] = Bson(interval.begin.toISOExtString);
+        map["end"]   = Bson(interval.end.toISOExtString);
         return Bson(map);
     }
 }
