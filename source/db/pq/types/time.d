@@ -148,9 +148,10 @@ else
     private alias double TimeOffset;
     private alias double fsec_t;    /* fractional seconds (in seconds) */
     
-    void TMODULO(ref double t, ref int q, double u)
+    void TMODULO(T)(ref double t, ref T q, double u)
+        if(is(T == double) || is(T == int))
     {
-        q = cast(int)((t < 0) ? ceil(t / u) : floor(t / u));
+        q = cast(T)((t < 0) ? ceil(t / u) : floor(t / u));
         if (q != 0) t -= rint(q * u);
     }
     
@@ -503,7 +504,13 @@ struct PGTimeStamp
         time += tm.tm_hour.dur!"hours";
         time += tm.tm_min.dur!"minutes";
         time += tm.tm_sec.dur!"seconds";
-        time += ts.dur!"usecs";
+        version(Have_Int64_TimeStamp)
+        {
+            time += ts.dur!"usecs";
+        } else
+        {
+            time += (cast(long)(ts*10e6)).dur!"usecs";
+        }
     }
     
     static PGTimeStamp fromBson(Bson bson)
@@ -573,7 +580,13 @@ struct PGTimeStampWithZone
         time += tm.tm_hour.dur!"hours";
         time += tm.tm_min.dur!"minutes";
         time += tm.tm_sec.dur!"seconds";
-        time += ts.dur!"usecs";
+        version(Have_Int64_TimeStamp)
+        {
+            time += ts.dur!"usecs";
+        } else
+        {
+            time += (cast(long)(ts*10e6)).dur!"usecs";
+        }
     }
     
     static PGTimeStampWithZone fromBson(Bson bson)
