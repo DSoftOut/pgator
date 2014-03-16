@@ -27,7 +27,7 @@
 	<![endif]-->
 
 	<!-- fav and touch icons -->
-	<link rel="shortcut icon" href="bootDoc/assets/ico/favicon.ico">
+	<link rel="shortcut icon" href="bootDoc/../pgator.png">
 	<link rel="apple-touch-icon-precomposed" sizes="114x114" href="bootDoc/assets/ico/apple-touch-icon-114-precomposed.png">
 	<link rel="apple-touch-icon-precomposed" sizes="72x72" href="bootDoc/assets/ico/apple-touch-icon-72-precomposed.png">
 	<link rel="apple-touch-icon-precomposed" href="bootDoc/assets/ico/apple-touch-icon-57-precomposed.png">
@@ -175,7 +175,7 @@
 						
 					</div>
 					<div class="span1 offset11">
-						<a href="app.html"><img src="bootDoc/assets/img/icon-github.png" alt="pgator"/></a>
+						<a href="app.html"><img src="bootDoc/../pgator.png" alt="pgator"/></a>
 					</div>
 				</div>
 				<div id="declaration-list">
@@ -186,6 +186,110 @@
 </dd>
 <dt>Authors</dt><dd>NCrashed <ncrashed@gmail.com></dd>
 </dl>
+<hr><div class="row-fluid declaration"><h3>struct <span class="symbol-target" id="PQMacAddress">&nbsp;</span><a class="symbol-link" href="#PQMacAddress">PQMacAddress</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>MAC address. Struct holds 6 octets of the address.
+</p>
+<p>Serializes to bson as string like 'xx:xx:xx:xx:xx:xx'</p>
+</dl>
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3> this(ubyte <i>a</i>, ubyte <i>b</i>, ubyte <i>c</i>, ubyte <i>d</i>, ubyte <i>e</i>, ubyte <i>f</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Creating from already separated octets</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3> this(ubyte[6] <i>data</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Creating form raw buffer</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3> this(string <i>s</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Parsing from string 'xx:xx:xx:xx:xx:xx'</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>const string <span class="symbol-target" id="toString">&nbsp;</span><a class="symbol-link" href="#toString">toString</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Converting to string 'xx:xx:xx:xx:xx:xx'</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>const Bson <span class="symbol-target" id="toBson">&nbsp;</span><a class="symbol-link" href="#toBson">toBson</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Serializing to bson as string 'xx:xx:xx:xx:xx:xx'</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>static PQMacAddress <span class="symbol-target" id="fromBson">&nbsp;</span><a class="symbol-link" href="#fromBson">fromBson</a>(Bson <i>bson</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Deserializing from <i>bson</i>. Expecting string format</p>
+</dl>
+</div>
+</div>
+</div>
+<hr><div class="row-fluid declaration"><h3>struct <span class="symbol-target" id="PQInetAddress">&nbsp;</span><a class="symbol-link" href="#PQInetAddress">PQInetAddress</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Struct holds PostgreSQL 'cidr' and 'inet' data types.
+   Supports IPv4 and IPv6 with explicit mask designation (CIDR model).</p>
+</dl>
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3>Family <span class="symbol-target" id="family">&nbsp;</span><a class="symbol-link" href="#family">family</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Address version</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>ubyte <span class="symbol-target" id="bits">&nbsp;</span><a class="symbol-link" href="#bits">bits</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Mask <span class="symbol-target" id="bits">&nbsp;</span><a class="symbol-link" href="#bits">bits</a></p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>ubyte[16] <span class="symbol-target" id="ipaddr">&nbsp;</span><a class="symbol-link" href="#ipaddr">ipaddr</a>;
+</h3></div>
+<div class="declaration-content"><dl><p>Address body, not all buffer is used for IPv4</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3> this(string <i>addr</i>, ubyte <i>maskBits</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Parsing from string and network mask bits.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3> this(ubyte[16] <i>adrr</i>, ubyte <i>maskBits</i>, Family <i>family</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Creating from raw data</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>const @property string <span class="symbol-target" id="address">&nbsp;</span><a class="symbol-link" href="#address">address</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns <span class="symbol-target" id="address">&nbsp;</span><a class="symbol-link" href="#address">address</a> without mask</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>string <span class="symbol-target" id="toString">&nbsp;</span><a class="symbol-link" href="#toString">toString</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Converts to string like 'address/mast'</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>T <span class="symbol-target" id="opCast">&nbsp;</span><a class="symbol-link" href="#opCast">opCast</a>(T)() if (is(T == Address));
+</h3></div>
+<div class="declaration-content"><dl><p>Casting to native D type, but mask is thrown away.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>const Bson <span class="symbol-target" id="toBson">&nbsp;</span><a class="symbol-link" href="#toBson">toBson</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Serializing to BSON. Address and mask are holded separatly.
+</p>
+<dt>Example:</dt><dd>
+<pre class="d_code">{
+    <span class="d_string">"address"</span>: <span class="d_string">"address without mask"</span>,
+    <span class="d_string">"mask"</span>: <span class="d_string">"bits count"</span>
+}
+</pre>
+</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>static PQInetAddress <span class="symbol-target" id="fromBson">&nbsp;</span><a class="symbol-link" href="#fromBson">fromBson</a>(Bson <i>bson</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Deserializing from BSON.</p>
+</dl>
+</div>
+</div>
+</div>
+
 
 				</div>
 				
