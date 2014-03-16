@@ -1,7 +1,7 @@
 pgator
 =============
 [![Build Status](https://travis-ci.org/DSoftOut/pgator.png?branch=master)](https://travis-ci.org/DSoftOut/pgator)
-<img style="float: right" src="pgator.svg" />
+<img style="float: right" src="pgator.png" />
 
 Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 
