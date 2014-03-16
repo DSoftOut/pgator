@@ -23,40 +23,64 @@ bool nonConvertable(PQType type)
     switch(type)
     {
         case PQType.RegProc: return true;
+        case PQType.RegProcArray: return true;
         case PQType.TypeCatalog: return true;
         case PQType.AttributeCatalog: return true;
         case PQType.ProcCatalog: return true;
         case PQType.ClassCatalog: return true; 
         case PQType.StorageManager: return true;
         case PQType.Tid: return true;
+        case PQType.TidArray: return true;
         case PQType.Line: return true;
         case PQType.AccessControlList: return true;
+        case PQType.AccessControlListArray: return true;
         
         // awaiting implementation
         case PQType.FixedBitString: return true;
+        case PQType.FixedBitStringArray: return true;
         case PQType.VariableBitString: return true;
+        case PQType.VariableBitStringArray: return true;
         
         case PQType.RefCursor: return true;
+        case PQType.RefCursorArray: return true;
         case PQType.RegProcWithArgs: return true;
+        case PQType.RegProcWithArgsArray: return true;
         case PQType.RegOperator: return true;
+        case PQType.RegOperatorArray: return true;
         case PQType.RegOperatorWithArgs: return true;
+        case PQType.RegOperatorWithArgsArray: return true;
         case PQType.RegClass: return true;
+        case PQType.RegClassArray: return true;
         case PQType.RegType: return true;
         case PQType.RegTypeArray: return true;
         
         case PQType.UUID: return true;
+        case PQType.UUIDArray: return true;
         case PQType.TSVector: return true;
+        case PQType.TSVectorArray: return true;
         case PQType.GTSVector: return true;
+        case PQType.GTSVectorArray: return true;
         case PQType.TSQuery: return true;
+        case PQType.TSQueryArray: return true;
         case PQType.RegConfig: return true;
+        case PQType.RegConfigArray: return true;
         case PQType.RegDictionary: return true;
+        case PQType.RegDictionaryArray: return true;
+        case PQType.TXidSnapshot: return true;
+        case PQType.TXidSnapshotArray: return true;
         
         case PQType.Int4Range: return true;
+        case PQType.Int4RangeArray: return true;
         case PQType.NumRange: return true;
+        case PQType.NumRangeArray: return true;
         case PQType.TimeStampRange: return true;
+        case PQType.TimeStampRangeArray: return true;
         case PQType.TimeStampWithZoneRange: return true;
+        case PQType.TimeStampWithZoneRangeArray: return true;
         case PQType.DateRange: return true;
+        case PQType.DateRangeArray: return true;
         case PQType.Int8Range: return true;
+        case PQType.Int8RangeArray: return true;
         
         // Pseudo types
         case PQType.Record: return true;

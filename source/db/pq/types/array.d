@@ -9,11 +9,14 @@
 module db.pq.types.array;
 
 import db.pq.types.oids;
+import db.connection;
 import derelict.pq.pq;
 import std.array;
 import std.bitmanip;
 import std.conv;
+import std.traits;
 
+import std.datetime;
 import db.pq.types.all;
 
 private struct Vector(T)
@@ -26,7 +29,7 @@ private struct Vector(T)
     T[]     values;
 }
 
-private Vector!T readVec(T, PQType type)(ubyte[] arr)
+private Vector!T readVec(T, PQType type)(ubyte[] arr, shared IConnection conn)
 {
     if(arr.length == 0) return Vector!T();
     
@@ -41,29 +44,69 @@ private Vector!T readVec(T, PQType type)(ubyte[] arr)
     vec.dim1       = arr.read!int;
     vec.lbound1    = arr.read!int;
     
-    static if(!is(T == string)) assert(arr.length % T.sizeof == 0);
     auto builder = appender!(T[]);
     while(arr.length > 0)
     {
-        auto length = cast(size_t)arr.read!int;
-
-        auto value = db.pq.types.all.convert!type(arr[0..length]);
-        builder.put(value);
-        arr = arr[length..$];
+        auto length = cast(size_t)arr.read!int; 
+        
+        static if(__traits(compiles, db.pq.types.all.convert!type(arr)))
+        {
+            auto value = db.pq.types.all.convert!type(arr[0..length]); 
+            builder.put(value);
+            arr = arr[length..$];
+        } else static if(__traits(compiles, db.pq.types.all.convert!type(arr, conn)))
+        { 
+            auto value = db.pq.types.all.convert!type(arr[0..length], conn); 
+            builder.put(value); 
+            arr = arr[length..$];
+        } else
+        {
+            static assert(false, "There is no convert function for libpq type: "~type.to!text);
+        }
     }
     vec.values = builder.data;
     return vec;    
 }
 
 mixin ArraySupport!(
-    PQType.Int2Vector,   short[],   PQType.Int2,
-    PQType.Int2Array,    short[],   PQType.Int2,
-    PQType.Int4Array,    int[],     PQType.Int4,
-    PQType.OidVector,    Oid[],     PQType.Oid,
-    PQType.OidArray,     Oid[],     PQType.Oid,
-    PQType.TextArray,    string[],  PQType.Text,
-    PQType.CStringArray, string[],  PQType.Text,
-    PQType.Float4Array,  float[],   PQType.Float4,
+    PQType.Int2Vector,              short[],                PQType.Int2,
+    PQType.Int2Array,               short[],                PQType.Int2,
+    PQType.Int4Array,               int[],                  PQType.Int4,
+    PQType.OidVector,               Oid[],                  PQType.Oid,
+    PQType.OidArray,                Oid[],                  PQType.Oid,
+    PQType.TextArray,               string[],               PQType.Text,
+    PQType.CStringArray,            string[],               PQType.Text,
+    PQType.Float4Array,             float[],                PQType.Float4,
+    PQType.BoolArray,               bool[],                 PQType.Bool,
+    PQType.ByteArrayArray,          ubyte[][],              PQType.ByteArray,
+    PQType.CharArray,               char[],                 PQType.Char,
+    PQType.NameArray,               string[],               PQType.Name,
+    PQType.Int2VectorArray,         short[][],              PQType.Int2VectorArray,
+    PQType.XidArray,                Xid[],                  PQType.Xid,
+    PQType.CidArray,                Cid[],                  PQType.Cid,
+    PQType.OidVectorArray,          Oid[][],                PQType.OidVector,
+    PQType.FixedStringArray,        string[],               PQType.FixedString,
+    PQType.VariableStringArray,     string[],               PQType.VariableString,
+    PQType.Int8Array,               long[],                 PQType.Int8,
+    PQType.PointArray,              Point[],                PQType.Point,
+    PQType.LineSegmentArray,        LineSegment[],          PQType.LineSegment,
+    PQType.PathArray,               Path[],                 PQType.Path,
+    PQType.BoxArray,                Box[],                  PQType.Box,
+    PQType.Float8Array,             double[],               PQType.Float8,
+    PQType.AbsTimeArray,            PGAbsTime[],            PQType.AbsTime,
+    PQType.RelTimeArray,            PGRelTime[],            PQType.RelTime,
+    PQType.IntervalArray,           PGInterval[],           PQType.Interval,
+    PQType.PolygonArray,            Polygon[],              PQType.Polygon,
+    PQType.MacAddressArray,         PQMacAddress[],         PQType.MacAddress,
+    PQType.HostAdressArray,         PQInetAddress[],        PQType.HostAddress,
+    PQType.NetworkAdressArray,      PQInetAddress[],        PQType.NetworkAddress,
+    PQType.TimeStampArray,          PGTimeStamp[],          PQType.TimeStamp,
+    PQType.DateArray,               Date[],                 PQType.Date,
+    PQType.TimeArray,               PGTime[],               PQType.Time,
+    PQType.TimeStampWithZoneArray,  PGTimeStampWithZone[],  PQType.TimeStampWithZone,
+    PQType.TimeIntervalArray,       TimeInterval[],         PQType.TimeInterval,
+    PQType.NumericArray,            Numeric[],              PQType.Numeric,
+    PQType.TimeWithZoneArray,       PGTimeWithZone[],       PQType.TimeWithZone,
     );
 
 /**
@@ -74,6 +117,7 @@ mixin ArraySupport!(
 private mixin template ArraySupport(PairsRaw...)
 {
     import std.range;
+    import std.traits;
     
     /// To work with D tuples
     private template Tuple(E...)
@@ -170,9 +214,9 @@ private mixin template ArraySupport(PairsRaw...)
         {
             alias TS[0] T;
             
-            enum genConvertFunction = T.type.stringof ~ " convert(PQType type)(ubyte[] val)\n"
+            enum genConvertFunction = T.type.stringof ~ " convert(PQType type)(ubyte[] val, shared IConnection conn)\n"
                 "\t if(type == PQType."~T.id.to!string~")\n{\n"
-                "\t return val.readVec!("~ElementType!(T.type).stringof~", PQType."~T.elementType.to!string~").values;\n}";
+                "\t return val.readVec!("~ForeachType!(T.type).stringof~", PQType."~T.elementType.to!string~")(conn).values;\n}";
         }
            
         static if(TS.length == 0)
@@ -183,7 +227,8 @@ private mixin template ArraySupport(PairsRaw...)
             enum genConvertFunctions = genConvertFunction!(TS[0]) ~"\n"~genConvertFunctions!(TS[1..$]);
         }
     }
-    
+    static assert(is(ForeachType!(char[]) == char));
+//    pragma(msg, genConvertFunctions!Pairs);
     mixin(genConvertFunctions!Pairs);
 }   
 
@@ -292,6 +337,187 @@ version(IntegrationTest2)
         testArray!string(logger, pool, "cstring[]");
     }
     
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.BoolArray)
+    {
+        //testArray!bool(logger, pool, "bool[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.ByteArrayArray)
+    {
+        //testArray!string(logger, pool, "bytea[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.CharArray)
+    {
+        //testArray!string(logger, pool, "char[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.NameArray)
+    {
+        //testArray!string(logger, pool, "name[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Int2VectorArray)
+    {
+        //testArray!string(logger, pool, "int2vector[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.XidArray)
+    {
+        //testArray!string(logger, pool, "xid[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.CidArray)
+    {
+        //testArray!string(logger, pool, "cid[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.OidVectorArray)
+    {
+        //testArray!string(logger, pool, "oidvector[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.FixedStringArray)
+    {
+        //testArray!string(logger, pool, "FixedString[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.VariableStringArray)
+    {
+        //testArray!string(logger, pool, "varchar[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Int8Array)
+    {
+        //testArray!string(logger, pool, "int8[]");
+    }
+        
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.PointArray)
+    {
+        //testArray!string(logger, pool, "point[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.LineSegmentArray)
+    {
+        //testArray!string(logger, pool, "lseg[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.PathArray)
+    {
+        //testArray!string(logger, pool, "path[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.BoxArray)
+    {
+        //testArray!string(logger, pool, "box[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Float8Array)
+    {
+        //testArray!string(logger, pool, "float8[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.AbsTimeArray)
+    {
+        //testArray!string(logger, pool, "abstime[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.RelTimeArray)
+    {
+        //testArray!string(logger, pool, "reltime[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.IntervalArray)
+    {
+        //testArray!string(logger, pool, "interval[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.PolygonArray)
+    {
+        //testArray!string(logger, pool, "polygon[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.MacAddressArray)
+    {
+        //testArray!string(logger, pool, "macaddress[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.HostAdressArray)
+    {
+        //testArray!string(logger, pool, "inet[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.NetworkAdressArray)
+    {
+        //testArray!string(logger, pool, "cidr[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.TimeStampArray)
+    {
+        //testArray!string(logger, pool, "timestamp[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.DateArray)
+    {
+        //testArray!string(logger, pool, "date[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.TimeArray)
+    {
+        //testArray!string(logger, pool, "time[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.TimeStampWithZoneArray)
+    {
+        //testArray!string(logger, pool, "timestamp with zone[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.TimeIntervalArray)
+    {
+        //testArray!string(logger, pool, "TimeInterval[]");
+    }
+
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.NumericArray)
+    {
+        //testArray!string(logger, pool, "numeric[]");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.TimeWithZoneArray)
+    {
+        //testArray!string(logger, pool, "time with zone[]");
+    }
+
+
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Float4Array)
     {
