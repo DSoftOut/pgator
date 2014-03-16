@@ -120,7 +120,7 @@ class RpcException:Exception
 {
 	RPC_ERROR_CODE code;
 	
-	@safe pure nothrow this(string msg = null, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+	@safe pure nothrow this(string msg = "", string file = __FILE__, size_t line = __LINE__, Throwable next = null)
 	{
 		super(msg, file, line, next); 
 	}
@@ -129,18 +129,24 @@ class RpcException:Exception
 
 class RpcParseError: RpcException
 {	
-	@safe pure nothrow this(string msg = "Parse error", string file = __FILE__, size_t line = __LINE__)
+	@safe pure nothrow this(string msg = "", string file = __FILE__, size_t line = __LINE__)
 	{
 		code = RPC_ERROR_CODE.PARSE_ERROR;
+		
+		msg = "Parse error. " ~ msg;
+		
 		super(msg, file, line); 
 	}
 }
 
 class RpcInvalidRequest: RpcException
 {	
-	@safe pure nothrow this(string msg = "Invalid request", string file = __FILE__, size_t line = __LINE__)
+	@safe pure nothrow this(string msg = "", string file = __FILE__, size_t line = __LINE__)
 	{
 		code = RPC_ERROR_CODE.INVALID_REQUEST;
+		
+		msg = "Invalid request. " ~ msg;
+		
 		super(msg, file, line); 
 	}
 }
@@ -150,33 +156,45 @@ class RpcMethodNotFound: RpcException
 	@safe pure nothrow this(string msg = "Method not found", string file = __FILE__, size_t line = __LINE__)
 	{
 		code = RPC_ERROR_CODE.METHOD_NOT_FOUND;
+		
+		msg = "Method not found. " ~ msg;
+		
 		super(msg, file, line);
 	}
 }
 
 class RpcInvalidParams: RpcException
 {	
-	@safe pure nothrow this(string msg = "Invalid params", string file = __FILE__, size_t line = __LINE__)
+	@safe pure nothrow this(string msg = "", string file = __FILE__, size_t line = __LINE__)
 	{
 		code = RPC_ERROR_CODE.INVALID_PARAMS;
+		
+		msg = "Invalid params. " ~ msg;
+		
 		super(msg, file, line); 
 	}
 }
 
 class RpcInternalError: RpcException
 {
-	@safe pure nothrow this(string msg = "Internal error", string file = __FILE__, size_t line = __LINE__)
+	@safe pure nothrow this(string msg = "", string file = __FILE__, size_t line = __LINE__)
 	{
 		code = RPC_ERROR_CODE.INTERNAL_ERROR;
+		
+		msg = "Internal error. " ~ msg;
+		
 		super(msg, file, line);
 	}
 }
 
 class RpcServerError: RpcException
 {
-	@safe pure nothrow this(string msg = "Server error", string file = __FILE__, size_t line = __LINE__)
+	@safe pure nothrow this(string msg = "", string file = __FILE__, size_t line = __LINE__)
 	{
 		code = RPC_ERROR_CODE.SERVER_ERROR;
+		
+		msg = "Server error. " ~ msg;
+		
 		super(msg, file, line);
 	}
 }
