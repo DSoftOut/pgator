@@ -16,12 +16,7 @@ import std.traits;
 import std.typetuple;
 import util;
 
-import db.pq.types.geometric;
-import db.pq.types.inet;
-import db.pq.types.numeric;
-import db.pq.types.plain;
-import db.pq.types.time;
-import db.pq.types.array;
+import db.pq.types.all;
 
 bool nonConvertable(PQType type)
 {
@@ -174,7 +169,7 @@ Bson pqToBson(PQType type, ubyte[] val, shared IConnection conn)
             }
         }
     }
-    assert(false, "Unknown type "~to!string(type)~"!");
+    throw new Exception("Server doesn't support type: '"~to!string(type)~"'!");
 }
 
 version(IntegrationTest2)
