@@ -14,6 +14,8 @@ import std.array;
 import std.bitmanip;
 import std.conv;
 
+import db.pq.types.all;
+
 private struct Vector(T)
 {
     int     ndim;
@@ -24,7 +26,7 @@ private struct Vector(T)
     T[]     values;
 }
 
-private Vector!T readVec(T)(ubyte[] arr)
+private Vector!T readVec(T, PQType type)(ubyte[] arr)
 {
     if(arr.length == 0) return Vector!T();
     
@@ -43,50 +45,147 @@ private Vector!T readVec(T)(ubyte[] arr)
     auto builder = appender!(T[]);
     while(arr.length > 0)
     {
-        static if(is(T == string))
-        {
-            auto length = cast(size_t)arr.read!int;
-            builder.put(cast(string)arr[0..length].idup);
-            arr = arr[length .. $];
-        } else
-        {
-            arr.read!int; // some kind of length
-            builder.put(arr.read!T);
-        }
+        auto length = cast(size_t)arr.read!int;
+
+        auto value = db.pq.types.all.convert!type(arr[0..length]);
+        builder.put(value);
+        arr = arr[length..$];
     }
     vec.values = builder.data;
     return vec;    
 }
 
-short[] convert(PQType type)(ubyte[] val)
-    if(type == PQType.Int2Vector || type == PQType.Int2Array)
-{
-    return val.readVec!short.values;
-}
+mixin ArraySupport!(
+    PQType.Int2Vector,   short[],   PQType.Int2,
+    PQType.Int2Array,    short[],   PQType.Int2,
+    PQType.Int4Array,    int[],     PQType.Int4,
+    PQType.OidVector,    Oid[],     PQType.Oid,
+    PQType.OidArray,     Oid[],     PQType.Oid,
+    PQType.TextArray,    string[],  PQType.Text,
+    PQType.CStringArray, string[],  PQType.Text,
+    PQType.Float4Array,  float[],   PQType.Float4,
+    );
 
-int[] convert(PQType type)(ubyte[] val)
-    if(type == PQType.Int4Array)
+/**
+*   Template magic lives here! Generates templates and functions to work with
+*   templates. Expects input argument as triples of PQType value, corresponding
+*   D type and corresponding element type of libpq type.
+*/    
+private mixin template ArraySupport(PairsRaw...)
 {
-    return val.readVec!int.values;
-}
-
-Oid[] convert(PQType type)(ubyte[] val)
-    if(type == PQType.OidVector || type == PQType.OidArray)
-{
-    return val.readVec!Oid.values;
-}
-
-string[] convert(PQType type)(ubyte[] val)
-    if(type == PQType.TextArray || type == PQType.CStringArray)
-{
-    return val.readVec!string.values;
-}
-
-float[] convert(PQType type)(ubyte[] val)
-    if(type == PQType.Float4Array)
-{
-    return val.readVec!float.values;
-}
+    import std.range;
+    
+    /// To work with D tuples
+    private template Tuple(E...)
+    {
+        alias Tuple = E;
+    }
+    
+    /// Custom tuple for a pair
+    private template ArrayTuple(TS...)
+    {
+        static assert(TS.length == 3);
+        enum id = TS[0];
+        alias TS[1] type;
+        enum elementType = TS[2];
+    } 
+    
+    /// Converts unstructured pairs in ArrayTuple tuple
+    private template ConvertPairs(TS...)
+    {
+        static assert(TS.length % 3 == 0, "ArraySupport expected even count of arguments!");
+        static if(TS.length == 3)
+        {
+            alias Tuple!(ArrayTuple!(TS[0], TS[1], TS[2])) ConvertPairs;
+        } else
+        {
+            static assert(is(typeof(TS[0]) == PQType), "ArraySupport expected PQType value as first triple argument!");
+            static assert(is(TS[1]), "ArraySupport expected a type as second triple argument!"); 
+            static assert(is(typeof(TS[0]) == PQType), "ArraySupport expected PQType value as third triple argument!");
+            
+            alias Tuple!(ArrayTuple!(TS[0], TS[1], TS[2]), ConvertPairs!(TS[3..$])) ConvertPairs;
+        }
+    }
+    
+    /// Structured pairs
+    alias ConvertPairs!PairsRaw Pairs;
+    
+    /// Checks if PQType value is actually array type
+    template IsArrayType(TS...)
+    {
+        private template genCompareExpr(US...)
+        {
+            static if(US.length == 0)
+            {
+                enum genCompareExpr = "";
+            } else static if(US.length == 1)
+            {
+                enum genCompareExpr = "T == PQType."~US[0].id.to!string;
+            } else
+            {
+                enum genCompareExpr = "T == PQType."~US[0].id.to!string~" || "
+                    ~ genCompareExpr!(US[1..$]);
+            }
+        }
+        
+        static assert(TS.length > 0, "IsArrayType expected argument count > 0!");
+        alias TS[0] T;
+        enum IsArrayType = mixin(genCompareExpr!(Pairs));
+    }
+    
+    /// Returns oid of provided element type or generates error if it is not a libpq array
+    template ArrayElementType(TS...)
+    {
+        static assert(TS.length > 0, "ArrayElementType expected argument!");
+        
+        private enum T = TS[0];
+        
+        static assert(is(typeof(TS[0]) == PQType), "ArrayElementType expected PQType value as argument!");
+        static assert(IsArrayType!(TS[0]), TS[0].to!string~" is not a libpq array!");
+        
+        template FindArrayTuple(TS...)
+        {
+            static if(TS.length == 0)
+            {
+                static assert("Cannot find "~T.to!string~" in array types!");
+            } else
+            {
+                static if(TS[0] == T)
+                {
+                    enum FindArrayTuple = TS[3];
+                } else
+                {
+                    enum FindArrayTuple = FindArrayTuple!(TS[1..$]);
+                }
+            }
+        }
+        
+        enum ArrayElementType = FindArrayTuple!TS;
+    }
+    
+    /// Generates set of converting functions from ubyte[] to types in triples
+    private template genConvertFunctions(TS...)
+    {
+        private template genConvertFunction(TS...)
+        {
+            alias TS[0] T;
+            
+            enum genConvertFunction = T.type.stringof ~ " convert(PQType type)(ubyte[] val)\n"
+                "\t if(type == PQType."~T.id.to!string~")\n{\n"
+                "\t return val.readVec!("~ElementType!(T.type).stringof~", PQType."~T.elementType.to!string~").values;\n}";
+        }
+           
+        static if(TS.length == 0)
+        {
+            enum genConvertFunctions = "";
+        } else
+        {
+            enum genConvertFunctions = genConvertFunction!(TS[0]) ~"\n"~genConvertFunctions!(TS[1..$]);
+        }
+    }
+    
+    mixin(genConvertFunctions!Pairs);
+}   
 
 version(IntegrationTest2)
 {
