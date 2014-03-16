@@ -15,9 +15,11 @@ import std.bitmanip;
 import std.socket;
 import std.conv;
 import std.format;
+import vibe.data.bson;
 import core.sys.posix.sys.socket;
+import hexconv;
 
-struct MacAddress
+struct PQMacAddress
 {
     ubyte a,b,c,d,e,f;
     
@@ -49,7 +51,7 @@ struct MacAddress
         foreach(i, bs; data)
         {
             enforce(bs.length == 2, "Failed to parse MacAddress");
-            ret[i] = to!ubyte(bs);
+            ret[i] = cast(ubyte)xtoul(bs);
         }
         this(ret);
     }
@@ -59,10 +61,20 @@ struct MacAddress
         string hex(const ubyte f)
         {
             auto builder = appender!string;
-            formattedWrite(builder, "%x", f);
+            formattedWrite(builder, "%02x", f);
             return builder.data;
         }
         return text(hex(a),":",hex(b),":",hex(c),":",hex(d),":",hex(e),":",hex(f));
+    }
+    
+    Bson toBson() const
+    {
+        return Bson(toString);
+    }
+    
+    static PQMacAddress fromBson(Bson bson)
+    {
+        return PQMacAddress(bson.get!string);
     }
 }
 
@@ -138,13 +150,13 @@ struct PQInetAddress
     }
 }
 
-MacAddress convert(PQType type)(ubyte[] val)
+PQMacAddress convert(PQType type)(ubyte[] val)
     if(type == PQType.MacAddress)
 {
     assert(val.length == 6);
     ubyte[6] buff;
     buff[] = val[0..6];
-    return MacAddress(buff);
+    return PQMacAddress(buff);
 }
 
 PQInetAddress convert(PQType type)(ubyte[] val)
@@ -170,11 +182,33 @@ version(IntegrationTest2)
     import std.encoding;
     import std.math;
     import log;
+    import bufflog;
     
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.MacAddress)
     {
-        logger.logInfo("Testing MacAddress...");
+        strictLogger.logInfo("Testing MacAddress...");
+        scope(failure) 
+        {
+            version(Have_Int64_TimeStamp) string s = "with Have_Int64_TimeStamp";
+            else string s = "without Have_Int64_TimeStamp";
+            
+            strictLogger.logInfo("============================================");
+            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
+            strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
+            strictLogger.logInfo("============================================");
+        }
+
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
+        
+        assert(queryValue(logger, pool, "'08:00:2b:01:02:03'::macaddr").deserializeBson!PQMacAddress == PQMacAddress("08:00:2b:01:02:03"));
+        assert(queryValue(logger, pool, "'08-00-2b-01-02-03'::macaddr").deserializeBson!PQMacAddress == PQMacAddress("08:00:2b:01:02:03"));
+        assert(queryValue(logger, pool, "'08002b:010203'::macaddr").deserializeBson!PQMacAddress == PQMacAddress("08:00:2b:01:02:03"));
+        assert(queryValue(logger, pool, "'08002b-010203'::macaddr").deserializeBson!PQMacAddress == PQMacAddress("08:00:2b:01:02:03"));
+        assert(queryValue(logger, pool, "'0800.2b01.0203'::macaddr").deserializeBson!PQMacAddress == PQMacAddress("08:00:2b:01:02:03"));
+        assert(queryValue(logger, pool, "'08002b010203'::macaddr").deserializeBson!PQMacAddress == PQMacAddress("08:00:2b:01:02:03"));
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
