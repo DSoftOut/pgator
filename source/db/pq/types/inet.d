@@ -19,10 +19,18 @@ import vibe.data.bson;
 import core.sys.posix.sys.socket;
 import hexconv;
 
+/**
+*   MAC address. Struct holds 6 octets of the address.
+*
+*   Serializes to bson as string like 'xx:xx:xx:xx:xx:xx'
+*/
 struct PQMacAddress
 {
     ubyte a,b,c,d,e,f;
     
+    /**
+    *   Creating from already separated octets
+    */
     this(ubyte a, ubyte b, ubyte c, ubyte d, ubyte e, ubyte f)
     {
         this.a = a;
@@ -33,6 +41,9 @@ struct PQMacAddress
         this.f = f;
     }
     
+    /**
+    *   Creating form raw buffer
+    */
     this(ubyte[6] data)
     {
         a = data[0];
@@ -43,6 +54,9 @@ struct PQMacAddress
         f = data[5];
     } 
     
+    /**
+    *   Parsing from string 'xx:xx:xx:xx:xx:xx'
+    */
     this(string s)
     {
         auto data = s.splitter(':').array;
@@ -56,6 +70,9 @@ struct PQMacAddress
         this(ret);
     }
     
+    /**
+    *   Converting to string 'xx:xx:xx:xx:xx:xx'
+    */
     string toString() const
     {
         string hex(const ubyte f)
@@ -67,17 +84,27 @@ struct PQMacAddress
         return text(hex(a),":",hex(b),":",hex(c),":",hex(d),":",hex(e),":",hex(f));
     }
     
+    /**
+    *   Serializing to bson as string 'xx:xx:xx:xx:xx:xx'
+    */
     Bson toBson() const
     {
         return Bson(toString);
     }
     
+    /**
+    *   Deserializing from bson. Expecting string format
+    */
     static PQMacAddress fromBson(Bson bson)
     {
         return PQMacAddress(bson.get!string);
     }
 }
 
+/**
+*   Struct holds PostgreSQL 'cidr' and 'inet' data types.
+*   Supports IPv4 and IPv6 with explicit mask designation (CIDR model).
+*/
 struct PQInetAddress
 {
 	version(Windows)
@@ -100,10 +127,16 @@ struct PQInetAddress
 	    }
     }
 	
+	/// Address version
     Family family;
+    /// Mask bits
     ubyte bits;
+    /// Address body, not all buffer is used for IPv4
     ubyte[16] ipaddr;
     
+    /**
+    *   Parsing from string and network mask bits.
+    */
     this(string addr, ubyte maskBits)
     {
         bits = maskBits;
@@ -112,7 +145,7 @@ struct PQInetAddress
         {
             family = Family.AFInet;
             uint val = InternetAddress.parse(addr.dup);
-            ipaddr[0..4] = (cast(ubyte[])[val])[];
+            (cast(ubyte[])ipaddr).write(val, 0);
         } else
         {
             family = Family.AFInet6;
@@ -120,24 +153,47 @@ struct PQInetAddress
         }
     }
     
+    /**
+    *   Creating from raw data
+    */
     this(ubyte[16] adrr, ubyte maskBits, Family family)
     {
         this.family = family;
         bits = maskBits;
-        ipaddr = adrr;
+        ipaddr = adrr.dup;
     }
     
-    string toString()
+    /**
+    *   Returns address without mask
+    */
+    string address() const @property
     {
         if (family == Family.AFInet)
         {
-            return InternetAddress.addrToString((cast(uint[])ipaddr)[0]);
+            return InternetAddress.addrToString((cast(ubyte[])ipaddr).peek!uint);
         } else
         {
             return new Internet6Address(ipaddr, Internet6Address.PORT_ANY).toAddrString;
         }
     }
     
+    /**
+    *   Converts to string like 'address/mast'
+    */
+    string toString()
+    {
+        if(bits != 0)
+        {
+            return address ~ "/" ~ bits.to!string;
+        } else
+        {
+            return address;
+        }
+    }
+    
+    /**
+    *   Casting to native D type, but mask is thrown away.
+    */
     T opCast(T)() if(is(T==Address))
     {
         if (family == Family.AFInet)
@@ -147,6 +203,32 @@ struct PQInetAddress
         {
             return new Internet6Address(ipaddr, Internet6Address.PORT_ANY);
         }
+    }
+    
+    /**
+    *   Serializing to BSON. Address and mask are holded separatly.
+    *   Example:
+    *   -------
+    *   {
+    *       "address": "address without mask",
+    *       "mask": "bits count"
+    *   }
+    *   -------
+    */
+    Bson toBson() const
+    {
+        Bson[string] map;
+        map["address"] = Bson(address);
+        map["mask"] = Bson(cast(int)bits);
+        return Bson(map);
+    }
+    
+    /**
+    *   Deserializing from BSON.
+    */
+    static PQInetAddress fromBson(Bson bson)
+    {
+        return PQInetAddress(bson.address.get!string, cast(ubyte)bson.mask.get!int);
     }
 }
 
@@ -165,11 +247,23 @@ PQInetAddress convert(PQType type)(ubyte[] val)
     assert(val.length >= 4);
     ubyte family = val.read!ubyte;
     ubyte bits = val.read!ubyte;
-    ubyte nb = val.read!ubyte;
-    assert(nb <= 16);
-    assert(val.length == nb);
+
+    val.read!ubyte; // flag for cidr or inet recognize
+    ubyte n = val.read!ubyte;
     ubyte[16] addrBytes;
-    addrBytes[0..cast(size_t)nb] = val[0..cast(size_t)nb];  
+    if(n == 4)
+    {
+        assert(val.length == 4, text("Expected 4 bytes, but got ", val.length));
+        addrBytes[0..4] = val[0..4]; 
+    } else if(n == 16)
+    {
+        assert(val.length == 16, text("Expected 16 bytes, but got ", val.length));
+        addrBytes[] = val[0..16]; 
+    } else
+    {
+        assert(false, text("Got invalid address size: ", n));
+    }
+
     return PQInetAddress(addrBytes, bits, cast(PQInetAddress.Family)family);
 }
 
@@ -188,16 +282,6 @@ version(IntegrationTest2)
         if(type == PQType.MacAddress)
     {
         strictLogger.logInfo("Testing MacAddress...");
-        scope(failure) 
-        {
-            version(Have_Int64_TimeStamp) string s = "with Have_Int64_TimeStamp";
-            else string s = "without Have_Int64_TimeStamp";
-            
-            strictLogger.logInfo("============================================");
-            strictLogger.logInfo(text("Server timestamp format is: ", pool.timestampFormat));
-            strictLogger.logInfo(text("Application was compiled ", s, ". Try to switch the compilation flag."));
-            strictLogger.logInfo("============================================");
-        }
 
         auto logger = new shared BufferedLogger(strictLogger);
         scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
@@ -211,15 +295,47 @@ version(IntegrationTest2)
         assert(queryValue(logger, pool, "'08002b010203'::macaddr").deserializeBson!PQMacAddress == PQMacAddress("08:00:2b:01:02:03"));
     }
     
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.HostAddress)
     {
-        logger.logInfo("Testing HostAddress...");
+        strictLogger.logInfo("Testing HostAddress...");
+
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
+        
+        assert(queryValue(logger, pool, "'192.168.100.128/25'::inet").deserializeBson!PQInetAddress == PQInetAddress("192.168.100.128", 25));
+        assert(queryValue(logger, pool, "'10.1.2.3/32'::inet").deserializeBson!PQInetAddress == PQInetAddress("10.1.2.3", 32));
+        assert(queryValue(logger, pool, "'2001:4f8:3:ba::/64'::inet").deserializeBson!PQInetAddress == PQInetAddress("2001:4f8:3:ba::", 64));
+        assert(queryValue(logger, pool, "'2001:4f8:3:ba:2e0:81ff:fe22:d1f1/128'::inet").deserializeBson!PQInetAddress == PQInetAddress("2001:4f8:3:ba:2e0:81ff:fe22:d1f1", 128));
+        assert(queryValue(logger, pool, "'::ffff:1.2.3.0/120'::inet").deserializeBson!PQInetAddress == PQInetAddress("::ffff:1.2.3.0", 120));
+        assert(queryValue(logger, pool, "'::ffff:1.2.3.0/128'::inet").deserializeBson!PQInetAddress == PQInetAddress("::ffff:1.2.3.0", 128));
     }
     
-    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+    void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.NetworkAddress)
     {
-        logger.logInfo("Testing NetworkAddress...");
+        strictLogger.logInfo("Testing NetworkAddress...");
+
+        auto logger = new shared BufferedLogger(strictLogger);
+        scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
+        scope(exit) logger.finalize;
+
+        assert(queryValue(logger, pool, "'192.168.100.128/25'::cidr").deserializeBson!PQInetAddress == PQInetAddress("192.168.100.128", 25));
+        assert(queryValue(logger, pool, "'192.168/24'::cidr").deserializeBson!PQInetAddress == PQInetAddress("192.168.0.0", 24));
+        assert(queryValue(logger, pool, "'192.168/25'::cidr").deserializeBson!PQInetAddress == PQInetAddress("192.168.0.0", 25));
+        assert(queryValue(logger, pool, "'192.168.1'::cidr").deserializeBson!PQInetAddress == PQInetAddress("192.168.1.0", 24));
+        assert(queryValue(logger, pool, "'192.168'::cidr").deserializeBson!PQInetAddress == PQInetAddress("192.168.0.0", 24));
+        assert(queryValue(logger, pool, "'128.1'::cidr").deserializeBson!PQInetAddress == PQInetAddress("128.1.0.0", 16));
+        assert(queryValue(logger, pool, "'128'::cidr").deserializeBson!PQInetAddress == PQInetAddress("128.0.0.0", 16));
+        assert(queryValue(logger, pool, "'128.1.2'::cidr").deserializeBson!PQInetAddress == PQInetAddress("128.1.2.0", 24));
+        assert(queryValue(logger, pool, "'10.1.2'::cidr").deserializeBson!PQInetAddress == PQInetAddress("10.1.2.0", 24));
+        assert(queryValue(logger, pool, "'10.1'::cidr").deserializeBson!PQInetAddress == PQInetAddress("10.1.0.0", 16));
+        assert(queryValue(logger, pool, "'10'::cidr").deserializeBson!PQInetAddress == PQInetAddress("10.0.0.0", 8));
+        assert(queryValue(logger, pool, "'10.1.2.3/32'::cidr").deserializeBson!PQInetAddress == PQInetAddress("10.1.2.3", 32));
+        assert(queryValue(logger, pool, "'2001:4f8:3:ba::/64'::cidr").deserializeBson!PQInetAddress == PQInetAddress("2001:4f8:3:ba::", 64));
+        assert(queryValue(logger, pool, "'2001:4f8:3:ba:2e0:81ff:fe22:d1f1/128'::cidr").deserializeBson!PQInetAddress == PQInetAddress("2001:4f8:3:ba:2e0:81ff:fe22:d1f1", 128));
+        assert(queryValue(logger, pool, "'::ffff:1.2.3.0/120'::cidr").deserializeBson!PQInetAddress == PQInetAddress("::ffff:1.2.3.0", 120));
+        assert(queryValue(logger, pool, "'::ffff:1.2.3.0/128'::cidr").deserializeBson!PQInetAddress == PQInetAddress("::ffff:1.2.3.0", 128));
     }
 }
