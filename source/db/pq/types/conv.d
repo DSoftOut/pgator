@@ -35,30 +35,12 @@ bool nonConvertable(PQType type)
         case PQType.StorageManager: return true;
         case PQType.Tid: return true;
         case PQType.Line: return true;
+        case PQType.AccessControlList: return true;
         
         // awaiting implementation
-        //case PQType.Int2Array: return true;
-        //case PQType.Int4Array: return true;
-        //case PQType.TextArray: return true;
-        //case PQType.OidArray: return true;
-        //case PQType.Float4Array: return true;
-        case PQType.AccessControlList: return true;
-        //case PQType.CStringArray: return true;
-        
-        //case PQType.FixedString: return true;
-        //case PQType.VariableString: return true;
-        
-        //case PQType.Date: return true;
-        //case PQType.Time: return true;
-        //case PQType.TimeStamp: return true;
-        //case PQType.TimeStampWithZone: return true;
-        //case PQType.TimeInterval: return true;
-        //case PQType.TimeWithZone: return true;
-        
         case PQType.FixedBitString: return true;
         case PQType.VariableBitString: return true;
         
-        //case PQType.Numeric: return true;
         case PQType.RefCursor: return true;
         case PQType.RegProcWithArgs: return true;
         case PQType.RegOperator: return true;
