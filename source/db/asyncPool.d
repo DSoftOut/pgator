@@ -900,6 +900,12 @@ class AsyncPool : IConnectionPool
                            stage = Stage.Finished;
                            return;
                        }
+                       catch (Exception e)
+                       {
+                           respond = Respond(new QueryException("Internal error: "~e.msg));
+                           stage = Stage.Finished;
+                           return;
+                       }
                        stage = Stage.Proccessing;                
                        return;
                    }
@@ -916,6 +922,12 @@ class AsyncPool : IConnectionPool
                           respond = Respond(e);                
                           stage = Stage.Finished;
                           return;
+                       }
+                       catch (Exception e)
+                       {
+                           respond = Respond(new QueryException("Internal error: "~e.msg));
+                           stage = Stage.Finished;
+                           return;
                        }
                        stage = Stage.Proccessing;                
                        return;
@@ -935,6 +947,12 @@ class AsyncPool : IConnectionPool
                           stage = Stage.Finished;
                           return;
                        }
+                       catch (Exception e)
+                       {
+                           respond = Respond(new QueryException("Internal error: "~e.msg));
+                           stage = Stage.Finished;
+                           return;
+                       }
                        stage = Stage.Proccessing;                
                        return;
                    }
@@ -947,6 +965,12 @@ class AsyncPool : IConnectionPool
                        catch(QueryException e)
                        {
                            respond = Respond(e);                
+                           stage = Stage.Finished;
+                           return;
+                       }
+                       catch (Exception e)
+                       {
+                           respond = Respond(new QueryException("Internal error: "~e.msg));
                            stage = Stage.Finished;
                            return;
                        }
@@ -986,6 +1010,12 @@ class AsyncPool : IConnectionPool
                                stage = Stage.Finished;
                                return;
                            } 
+                           catch (Exception e)
+                           {
+                               respond = Respond(new QueryException("Internal error: "~e.msg));
+                               stage = Stage.Finished;
+                               return;
+                           }
                            break;
                        }
                        case QueringStatus.Finished:
@@ -1015,6 +1045,12 @@ class AsyncPool : IConnectionPool
                                stage = Stage.Finished;                            
                                return;
                            } 
+                           catch (Exception e)
+                           {
+                               respond = Respond(new QueryException("Internal error: "~e.msg));
+                               stage = Stage.Finished;
+                               return;
+                           }
                            break;
                        }
                    }
