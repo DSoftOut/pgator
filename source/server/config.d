@@ -39,8 +39,8 @@ struct AppConfig
 	@required
 	SqlConfig[] sqlServers;
 	
-	@required
-	string[] sqlAuth;
+	@possible
+	string[] sqlAuth = null;
 	
 	@required
 	uint sqlTimeout; //ms
