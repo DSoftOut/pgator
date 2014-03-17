@@ -109,7 +109,7 @@ int runDaemon(shared ILogger logger, int delegate(string[]) progMain, string[] a
         }
         // If we got a good PID, then we can exit the parent process.
         if (pid > 0) {
-            savedLogger.logError(text("Daemon detached with pid ", pid));
+            savedLogger.logInfo(text("Daemon detached with pid ", pid));
             exit(EXIT_SUCCESS);
         }
         
