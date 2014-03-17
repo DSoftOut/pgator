@@ -57,8 +57,8 @@ struct AppConfig
 	@possible
 	int sqlReconnectTime = -1; //ms
 	
-	@possible
-	string vibelog = "http.log";
+	@required
+	string vibelog = "/var/log/"~APPNAME~"/"~"http.txt";
 	
 	@required
 	string logname = "/var/log/"~APPNAME~"/"~APPNAME~".txt";
@@ -346,7 +346,9 @@ version(unittest)
 	
 	    \"sqlJsonTable\" : \"json_rpc\",
 
-	    \"logname\" : \"log.txt\"
+	    \"logname\" : \"log.txt\",
+
+	    \"vibelog\" : \"http.txt\"
 	    }";
 }
 
@@ -363,6 +365,7 @@ unittest
 	config2.sqlAuth = ["login", "password"];
 	config2.sqlJsonTable = "json_rpc";
 	config2.logname = "log.txt";
+	config2.vibelog = "http.txt";
 	config2.sqlReconnectTime = 150;
 	config2.sqlTimeout = 100;
 	config2.sqlServers = [SqlConfig("sql1", cast(size_t)1,""), SqlConfig("sql2", cast(size_t)2, "",)];
