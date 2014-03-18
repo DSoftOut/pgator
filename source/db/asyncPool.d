@@ -80,6 +80,9 @@ class AsyncPool : IConnectionPool
     */
     void addServer(string connString, size_t connNum) shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         TimedConnList failedList;
         ConnectionList connsList;
         foreach(i; 0..connNum)
@@ -187,6 +190,9 @@ class AsyncPool : IConnectionPool
     */
     InputRange!(immutable Bson) execTransaction(string[] commands, string[] params, string[string] vars) shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         auto transaction = postTransaction(commands, params, vars);
         while(!isTransactionReady(transaction)) yield;
         return getTransaction(transaction);
@@ -205,6 +211,9 @@ class AsyncPool : IConnectionPool
     */
     immutable(ITransaction) postTransaction(string[] commands, string[] params, string[string] vars) shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         auto conn = fetchFreeConnection();
         auto transaction = new immutable Transaction(commands, params, vars);
         (cast()processingTransactions).insert(cast(shared)transaction); 
@@ -226,6 +235,9 @@ class AsyncPool : IConnectionPool
     */
     bool isTransactionReady(immutable ITransaction transaction) shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         scope(failure) return true;
 
         if((cast()processingTransactions)[].find(cast(shared)transaction).empty)
@@ -249,6 +261,9 @@ class AsyncPool : IConnectionPool
     */
     InputRange!(immutable Bson) getTransaction(immutable ITransaction transaction) shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         if((cast()processingTransactions)[].find(cast(shared)transaction).empty)
             throw new UnknownTransactionException();
              
@@ -290,6 +305,9 @@ class AsyncPool : IConnectionPool
     */
     Duration reconnectTime() @property shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         return mReconnectTime;
     }
     
@@ -301,6 +319,9 @@ class AsyncPool : IConnectionPool
     */
     Duration freeConnTimeout() @property shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         return mFreeConnTimeout;
     }
     
@@ -312,6 +333,9 @@ class AsyncPool : IConnectionPool
     */
     size_t activeConnections() @property shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         size_t freeCount, queringCount;
         ids.freeCheckerId.send(thisTid, "length");
         ids.queringCheckerId.send(thisTid, "length");
@@ -344,6 +368,9 @@ class AsyncPool : IConnectionPool
     */
     size_t inactiveConnections() @property shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         size_t closedCount, connectingCount;
         ids.closedCheckerId.send(thisTid, "length");
         ids.connectingCheckerId.send(thisTid, "length");
@@ -370,6 +397,9 @@ class AsyncPool : IConnectionPool
     
     size_t totalConnections() @property shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         size_t freeCount, queringCount;
         size_t closedCount, connectingCount;
         ids.freeCheckerId.send(thisTid, "length");
@@ -419,6 +449,9 @@ class AsyncPool : IConnectionPool
     */
     protected shared(IConnection) fetchFreeConnection() shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+                
         ids.freeCheckerId.send(thisTid, "get");
         shared IConnection res;
         enforceEx!ConnTimeoutException(receiveTimeout(freeConnTimeout,
@@ -438,6 +471,9 @@ class AsyncPool : IConnectionPool
     */
     DateFormat dateFormat() @property shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         return fetchFreeConnection.dateFormat;
     }
     
@@ -449,6 +485,9 @@ class AsyncPool : IConnectionPool
     */
     TimestampFormat timestampFormat() @property shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         return fetchFreeConnection.timestampFormat;
     }
     
@@ -460,6 +499,9 @@ class AsyncPool : IConnectionPool
     */
     immutable(TimeZone) timeZone() @property shared
     {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
         return fetchFreeConnection.timeZone;
     }
     

@@ -61,7 +61,7 @@ shared class Database
 	{		
 		foreach(server; appConfig.sqlServers)
 		{
-		    logger.logInfo("Connecting to " ~ server.name);
+		    logger.logInfo(text("Connecting to ", server.name, ". Adding ", server.maxConn, " connections."));
 			pool.addServer(server.connString, server.maxConn);	
 		}
 	}
