@@ -78,7 +78,6 @@ int runTerminal(shared ILogger logger, int delegate(string[]) progMain, string[]
         signal(SIGQUIT, &termHandler);
         signal(SIGINT, &termHandler);
         signal(SIGQUIT, &termHandler);
-        signal(SIGSEGV, &termHandler);
         
         savedListener = listener;
         signal(SIGHUP, &sighandler);

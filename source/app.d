@@ -270,8 +270,8 @@ else
             
             enum termFunc = ()
             {
-                app.finalize;
                 auto newApp = app.restart;
+                app.finalize;
                 send(thisTid, newApp);
             };
                     

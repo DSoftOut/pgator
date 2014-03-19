@@ -17,6 +17,7 @@ import std.string;
 import std.exception;
 import std.stdio;
 import std.file;
+import std.functional;
 import std.path;
 
 import vibe.data.bson;
@@ -42,15 +43,13 @@ import stdlog;
 * Main program class
 *
 * Warning:
-*	Don't create more than 1 object, if you want to use with different $(B HTTPServerSettings), 
-*	$(B URLRouter) beacuse they are __gshared, that means they are static
+*   Don't run at once more than one instance of server. Workaround for vibe.d lack of
+*   handler removing relies on that there is one running server at current moment.
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 */
-class Application
+shared class Application
 {
-	shared public:
-	
 	/// Construct Application from ILogger, Options and AppConfig
 	this(shared ILogger logger, immutable Options options, immutable AppConfig config)
 	{
@@ -58,17 +57,18 @@ class Application
 		this.options = options;
 		this.appConfig = config;
 		
-		init();
-	}
-	
-	~this()
-	{
-		finalize();
+		mSettings[this] = new HTTPServerSettings;
+        mRouters[this] = new URLRouter;
 	}
 	
 	/// runs the server
 	int run()
-	{			
+	in
+	{
+	    assert(!finalized, "Application was finalized!");
+	}
+	body
+	{	
 		if (running) return 0;
 		
 		logger.logInfo("Running server...");
@@ -81,6 +81,11 @@ class Application
 	*  Recreates new application object with refreshed config.
 	*/
 	shared(Application) restart()
+    in
+    {
+        assert(!finalized, "Application was finalized!");
+    }
+    body
 	{	
         try
         {
@@ -106,7 +111,13 @@ class Application
 	*/
 	void finalize()
 	{
-	    scope(exit) logger.finalize();
+	    if(finalized) return;
+	    
+	    scope(exit) 
+	    {
+	        logger.finalize();
+	        finalized = true;
+        }
 		logger.logDebug("Called finalize");
 		
 		scope(failure)
@@ -126,29 +137,35 @@ class Application
 		{
 			stopServer();
 		}
+		
+		if(this in mSettings)
+	    {
+	        mSettings.remove(this);
+	    }
+	    if(this in mRouters)
+	    {
+	        mRouters.remove(this);
+	    }
 	}
 	
 	/// Return current application logger
 	shared(ILogger) logger()
+    in
+    {
+        assert(!finalized, "Application was finalized!");
+    }
+    body
 	{
 	    return mLogger;
 	}
-	
-	shared private:
-	
-	/// initialize resources 
-	void init() // called once
-	{
-		settings = new HTTPServerSettings;
-		
-		router = new URLRouter;
-	}
-	
+    
+    private:
+    
 	void setupSettings()
 	{
 		settings.port = appConfig.port;
 		
-		settings.errorPageHandler = cast(HTTPServerErrorPageHandler) &errorHandler;
+		settings.errorPageHandler = cast(HTTPServerErrorPageHandler) toDelegate(&errorHandler);
 		
 		settings.options = HTTPServerOption.parseJsonBody;
 			
@@ -166,7 +183,7 @@ class Application
 	
 	void setupRouter()
 	{
-		auto del = cast(HTTPServerRequestDelegate) &handler;
+		auto del = cast(HTTPServerRequestDelegate) toDelegate(&handler);
 		
 		router.any("*", del);
 	}
@@ -177,7 +194,6 @@ class Application
 		
 		database.setupPool();
 	}
-	
 	
 	void configure()
 	{	
@@ -206,25 +222,22 @@ class Application
 		try
 		{	
 			configure();
-			
+
 			listenHTTP(settings, router);
-			
 			lowerPrivileges();
 		
 			logger.logInfo("Starting event loop");
 			
 			running = true;
-			
+			currApplication = this;
 			return runEventLoop();
 		}
 		catch(Throwable e)
 		{
 			logger.logError("Server error: "~e.msg);
-			
 			logger.logDebug("Server error:" ~ to!string(e));
 			
 			finalize();
-			
 			return -1;
 		}
 		
@@ -233,10 +246,7 @@ class Application
 	void stopServer()
 	{
 		logger.logInfo("Stopping event loop");
-		
-		database.finalize();
 		getEventDriver().exitEventLoop();
-		
 		running = false;
 	}
 	
@@ -266,88 +276,95 @@ class Application
 	}
 	
 	/// handles HTTP requests
-	void handler(HTTPServerRequest req, HTTPServerResponse res)
+	static void handler(HTTPServerRequest req, HTTPServerResponse res)
+    in
+    {
+        assert(!currApplication.finalized, "Application was finalized!");
+    }
+    body
 	{	
-		atomicOp!"+="(conns, 1);
-		
-		scope(exit)
-		{
-			atomicOp!"-="(conns, 1);
+	    with(currApplication)
+	    {
+    		atomicOp!"+="(conns, 1);
+    		
+    		scope(exit)
+    		{
+    			atomicOp!"-="(conns, 1);
+    		}
+    		
+    		enum CONTENT_TYPE = "application/json";
+    		
+    		if (ifMaxConn)
+    		{
+    			res.statusPhrase = "Reached maximum connections";
+    			throw new HTTPStatusException(HTTPStatus.serviceUnavailable,
+    				res.statusPhrase);
+    		}
+    		
+    		if (req.contentType != CONTENT_TYPE)
+    		{
+    			res.statusPhrase = "Supported only application/json content type";
+    			throw new HTTPStatusException(HTTPStatus.notImplemented,
+    				res.statusPhrase);
+    		}
+    		
+    		RpcRequest rpcReq;
+    		
+    		try
+    		{
+    			rpcReq = RpcRequest(tryEx!RpcParseError(req.json));
+    			
+    			string user = null;
+    			string password = null;
+    			
+    			if (tryEx!RpcInvalidRequest(hasAuth(req, user, password)))
+    			{
+    				string[string] map;
+    				
+    				rpcReq.auth = map;
+    				
+    				enforceEx!RpcInvalidRequest(appConfig.sqlAuth.length >=2, "sqlAuth must have at least 2 elements");
+    				
+    				rpcReq.auth[appConfig.sqlAuth[0]] = user;
+    				
+    				rpcReq.auth[appConfig.sqlAuth[1]] = password;
+    			}
+    			
+    			if (internalError)
+    			{				
+    				res.statusPhrase = "Failed to use table: "~appConfig.sqlJsonTable;
+    				
+    				throw new HTTPStatusException(HTTPStatus.internalServerError,
+    					res.statusPhrase);
+    			}
+    			
+    			auto rpcRes = database.query(rpcReq);
+    			
+    			res.writeBody(rpcRes.toJson.toPrettyString, CONTENT_TYPE);
+    			
+    			void resetCacheIfNeeded()
+    			{
+    				yield();
+    				
+    				database.dropcaches(rpcReq.method);	
+    			}
+    			
+    			runTask(&resetCacheIfNeeded);
+    		
+    		}
+    		catch (RpcException ex)
+    		{
+    			RpcError error = RpcError(ex);
+    			
+    			RpcResponse rpcRes = RpcResponse(rpcReq.id, error);
+    			
+    			res.writeBody(rpcRes.toJson.toPrettyString, CONTENT_TYPE);
+    		}
 		}
-		
-		enum CONTENT_TYPE = "application/json";
-		
-		if (ifMaxConn)
-		{
-			res.statusPhrase = "Reached maximum connections";
-			throw new HTTPStatusException(HTTPStatus.serviceUnavailable,
-				res.statusPhrase);
-		}
-		
-		if (req.contentType != CONTENT_TYPE)
-		{
-			res.statusPhrase = "Supported only application/json content type";
-			throw new HTTPStatusException(HTTPStatus.notImplemented,
-				res.statusPhrase);
-		}
-		
-		RpcRequest rpcReq;
-		
-		try
-		{
-			rpcReq = RpcRequest(tryEx!RpcParseError(req.json));
-			
-			string user = null;
-			string password = null;
-			
-			if (tryEx!RpcInvalidRequest(hasAuth(req, user, password)))
-			{
-				string[string] map;
-				
-				rpcReq.auth = map;
-				
-				enforceEx!RpcInvalidRequest(appConfig.sqlAuth.length >=2, "sqlAuth must have at least 2 elements");
-				
-				rpcReq.auth[appConfig.sqlAuth[0]] = user;
-				
-				rpcReq.auth[appConfig.sqlAuth[1]] = password;
-			}
-			
-			if (internalError)
-			{				
-				res.statusPhrase = "Failed to use table: "~appConfig.sqlJsonTable;
-				
-				throw new HTTPStatusException(HTTPStatus.internalServerError,
-					res.statusPhrase);
-			}
-			
-			auto rpcRes = database.query(rpcReq);
-			
-			res.writeBody(rpcRes.toJson.toPrettyString, CONTENT_TYPE);
-			
-			void resetCacheIfNeeded()
-			{
-				yield();
-				
-				database.dropcaches(rpcReq.method);	
-			}
-			
-			runTask(&resetCacheIfNeeded);
-		
-		}
-		catch (RpcException ex)
-		{
-			RpcError error = RpcError(ex);
-			
-			RpcResponse rpcRes = RpcResponse(rpcReq.id, error);
-			
-			res.writeBody(rpcRes.toJson.toPrettyString, CONTENT_TYPE);
-		}
-		
 	}
 	
 	/// vibe error handler
-	void errorHandler(HTTPServerRequest req, HTTPServerResponse res, HTTPServerErrorInfo info)
+	static void errorHandler(HTTPServerRequest req, HTTPServerResponse res, HTTPServerErrorInfo info)
 	{
 		if (info.code == HTTPStatus.badRequest)
 		{
@@ -362,24 +379,45 @@ class Application
 		}
 	}
 	
-	shared ILogger mLogger;
+	HTTPServerSettings settings()
+	{
+	    assert(this in mSettings);
+	    return mSettings[this];
+	}
+	
+	void settings(HTTPServerSettings value)
+	{
+	    assert(this in mSettings);
+	    mSettings[this] = value;
+	}
+	
+	URLRouter router()
+	{
+	    assert(this in mRouters);
+	    return mRouters[this];
+	}
+	
+	void router(URLRouter value)
+	{
+	    assert(this in mRouters);
+	    mRouters[this] = value;
+	}
+	
+	ILogger mLogger;
+	Database database;
 	
 	immutable AppConfig appConfig;
 	immutable Options options;
 	
-	Database database;
-	
 	int conns;
-	
 	bool running;
-	
 	bool internalError;
+	bool finalized;
 	
-}
-
-__gshared private //dirty
-{	
-	HTTPServerSettings settings;
-	
-	URLRouter router;
+	private
+	{
+		__gshared HTTPServerSettings[shared const Application] mSettings;
+		__gshared URLRouter[shared const Application] mRouters;
+		static shared Application currApplication;
+	}
 }
