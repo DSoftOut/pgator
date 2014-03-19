@@ -44,6 +44,7 @@ import std.datetime;
 import std.exception;
 import std.range;
 import std.typecons;
+import std.regex : regex, matchFirst;
 import core.time;
 import core.thread;
 import vibe.core.core : yield;
@@ -980,7 +981,8 @@ class AsyncPool : IConnectionPool
                        commandPosting = true;
                        try 
                        {
-                           conn.postQuery(transaction.commands[transactPos], transaction.params.dup);  
+                           auto rebased = rebaseQuery(transaction.commands[transactPos], transaction.params);
+                           conn.postQuery(rebased.query, rebased.params);  
                            transactPos++; 
                        }
                        catch (QueryException e)
@@ -1101,6 +1103,47 @@ class AsyncPool : IConnectionPool
                void sendRespond()
                {
                    sender.send(thisTid, cast(shared)transaction, respond);            
+               }
+               
+               private alias Tuple!(string, "query", string[], "params") RebasedQuery;
+               
+               /**
+               *    Reindexes $(B params) in $(B query) and returns new query with
+               *    parameters that only needed to be used.
+               */
+               private RebasedQuery rebaseQuery(string query, const string[] params)
+               {
+                   string newQuery = query;
+                   auto builder = appender!(string[]);
+                   
+                   size_t j = 1;
+                   foreach(i; 1..params.length+1)
+                   {
+                       if(newQuery.matchFirst(text(`\$`,i)))
+                       {
+                           /// TODO: post std.regex.replace issue - cannot replace to '$n' it always
+                           /// refers to submatches
+                           string rawReplace(string source, string what, string target)
+                           {
+                               auto builder = appender!string;
+                               auto reducing = source;
+                               auto i = reducing.countUntil(what);
+                               while(i >= 0)
+                               {
+                                   builder.put(reducing[0..i]~target);
+                                   reducing = reducing[i + what.length .. $];
+                                   i = reducing.countUntil(what);
+                               }
+                               
+                               return builder.data~reducing;
+                           }
+                           
+                           newQuery = rawReplace(newQuery, text("$",i), text("$",j));
+                           builder.put(params[i-1]);
+                           j += 1;
+                       }
+                   }
+                   return RebasedQuery(newQuery, builder.data);
                }
            }
            
