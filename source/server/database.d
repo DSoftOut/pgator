@@ -185,7 +185,16 @@ shared class Database
 			
 			try
 			{			
-				auto irange = pool.execTransaction(entry.sql_queries, req.params, req.auth);
+				InputRange!(immutable Bson) irange;
+				
+				if (entry.set_username)
+				{
+					irange = pool.execTransaction(entry.sql_queries, req.params, req.auth);
+				}
+				else
+				{
+					irange = pool.execTransaction(entry.sql_queries, req.params);
+				}
 				
 				auto builder = appender!(Bson[]);
 				foreach(ibson; irange)
@@ -198,7 +207,7 @@ shared class Database
 			}
 			catch (QueryProcessingException e)
 			{
-				res = RpcResponse(req.id, RpcError(RPC_ERROR_CODE.SERVER_ERROR, e.msg));
+				res = RpcResponse(req.id, RpcError(RPC_ERROR_CODE.SERVER_ERROR, "Server error. " ~ e.msg));
 			}
 			catch (Exception e)
 			{
@@ -215,6 +224,14 @@ shared class Database
 		}
 		
 		return res;
+	}
+	
+	/**
+	* Returns: true, if authorization required in json_rpc
+	*/
+	bool needAuth(string method)
+	{
+		return table.needAuth(method);
 	}
 	
 	/**
