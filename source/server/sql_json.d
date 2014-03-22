@@ -159,6 +159,25 @@ shared class SqlJsonTable
 	}
 	
 	/**
+	* Returns: set_username in json_rpc
+	*/
+	bool needAuth(string method)
+	{
+		shared Entry* p;
+		
+		p = method in map;
+		
+		if (p)
+		{
+			auto entry = cast(Entry) *p;
+			
+			return entry.set_username;
+		}
+		
+		return false;
+	}
+	
+	/**
 	* Returns: true if method found, and put entry
 	*/
 	bool methodFound(string method, out Entry entry)
@@ -197,7 +216,7 @@ shared class SqlJsonTable
 		return (method in map) !is null;
 	}
 	
-	/// Make drop map
+	/// Makes drop map
 	void makeDropMap()
 	{
 		foreach(val; map.byValue())

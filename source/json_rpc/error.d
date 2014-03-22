@@ -153,7 +153,7 @@ class RpcInvalidRequest: RpcException
 
 class RpcMethodNotFound: RpcException
 {
-	@safe pure nothrow this(string msg = "Method not found", string file = __FILE__, size_t line = __LINE__)
+	@safe pure nothrow this(string msg = "", string file = __FILE__, size_t line = __LINE__)
 	{
 		code = RPC_ERROR_CODE.METHOD_NOT_FOUND;
 		

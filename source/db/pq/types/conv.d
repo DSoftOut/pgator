@@ -116,15 +116,34 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
     // Checking if the convert function needs connection for reverse link
     static if(is(ParameterTypeTuple!(convert!type) == TypeTuple!(ubyte[])))
     {
+        alias typeof(convert!type(val)) T;
+        
+        static if(isArray!T)
+        {
+            if(val.length == 0) return serializeToBson(cast(T[])[]);
+        } else
+        {
+            if(val.length == 0) return Bson(null);
+        }
+    
         auto convVal = convert!type(val);
     } else static if(is(ParameterTypeTuple!(convert!type) == TypeTuple!(ubyte[], shared IConnection)))
     {
+        alias typeof(convert!type(val, conn)) T;
+        
+        static if(isArray!T)
+        {
+            if(val.length == 0) return serializeToBson(cast(T[])[]);
+        } else
+        {
+            if(val.length == 0) return Bson(null);
+        }
+    
         auto convVal = convert!type(val, conn);
     } else
     {
         static assert(false, text("Doesn't support '",ParameterTypeTuple!(convert!type),"' signature of converting function"));
     }
-    alias typeof(convVal) T;
     
     static if(is(T == ubyte[]))
     {

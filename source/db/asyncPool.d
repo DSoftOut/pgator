@@ -1065,13 +1065,25 @@ class AsyncPool : IConnectionPool
                        {
                            try 
                            {
-                               auto res = conn.getQueryResult;
+                               auto resList = conn.getQueryResult;
                                if(needCollectResult) 
                                {
-                                   if(!respond.collect(res, conn))
+                                   if(!respond.collect(resList, conn))
                                    {
                                        stage = Stage.Finished;
                                        return;
+                                   }
+                               } else // setting vars can fail
+                               {
+                                   foreach(res; resList[])
+                                   {
+                                       if(res.resultStatus != ExecStatusType.PGRES_TUPLES_OK &&
+                                          res.resultStatus != ExecStatusType.PGRES_COMMAND_OK)
+                                       {
+                                           respond = Respond(new QueryException(res.resultErrorMessage));
+                                           stage = Stage.Finished;                            
+                                           return;
+                                       }
                                    }
                                }
                                              

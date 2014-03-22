@@ -329,6 +329,10 @@ shared class Application
     				
     				rpcReq.auth[appConfig.sqlAuth[1]] = password;
     			}
+    			else if (database.needAuth(rpcReq.method))
+    			{
+    				throw new HTTPStatusException(HTTPStatus.unauthorized);
+    			}
     			
     			if (internalError)
     			{				
