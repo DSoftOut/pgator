@@ -372,7 +372,7 @@ shared class Application
 	{
 		if (info.code == HTTPStatus.badRequest)
 		{
-			RpcResponse rpcRes = RpcResponse(Json(null), RpcError(new RpcParseError()));
+			RpcResponse rpcRes = RpcResponse(Json(null), RpcError(new RpcParseError(info.exception.msg)));
 			
 			res.writeBody(rpcRes.toJson.toPrettyString, "application/json");
 		}
