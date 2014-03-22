@@ -11,6 +11,7 @@
 */
 module server.sql_json;
 
+import std.algorithm;
 import std.traits;
 
 import util;
@@ -29,7 +30,7 @@ struct Entry
 	string[] sql_queries;
 	
 	@required
-	uint arg_num;
+	uint[] arg_nums;
 	
 	@required
 	bool set_username;
@@ -49,9 +50,10 @@ struct Entry
 	@possible
 	string commentary;
 	
-	const bool isValidParams(in string[] params)
+	const bool isValidParams(in string[] params, out size_t expected)
 	{
-		return params.length == arg_num;
+	    expected = arg_nums.reduce!"a+b";
+		return params.length == expected;
 	}
 	
 	const shared(Entry) toShared() @property

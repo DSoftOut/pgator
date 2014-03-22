@@ -12,6 +12,7 @@ module db.pool;
 
 import db.connection;
 import db.pq.api;
+import std.algorithm;
 import std.datetime;
 import std.range;
 import core.time;
@@ -99,9 +100,28 @@ interface IConnectionPool
     *   values. Before any command occurs in transaction the
     *   local SQL variables is set from $(B vars). 
     *
+    *   $(B argnums) array holds information about which parameter
+    *   from $(B params) should be passed to a query in $(B commands).
+    *   If there are no params, the $(B argnums) can be empty.
+    *
+    *   Example:
+    *   -----------
+    *   pool.execTransaction(["com1", "com2"],
+    *       ["par1", "par2", "par3"], [1, 2]);
+    *   // com1 is fed with par1
+    *   // com2 is fed with par2 and par3
+    *   -----------
+    *
     *   Throws: ConnTimeoutException, QueryProcessingException
     */
-    InputRange!(immutable Bson) execTransaction(string[] commands, string[] params = [], string[string] vars = AssociativeArray!(string, string)()) shared;
+    InputRange!(immutable Bson) execTransaction(string[] commands
+        , string[] params = [], uint[] argnums = []
+        , string[string] vars = AssociativeArray!(string, string)()) shared
+    in
+    {
+        assert(commands && params && argnums, "null reference");
+        assert(argnums.reduce!"a+b" == params.length, "length of params is not equal argument count summ!");
+    }
     
     /**
     *   Asynchronous way to execute transaction. User can check
@@ -111,10 +131,30 @@ interface IConnectionPool
     * 
     *   Returns: Specific interface to distinct the query
     *            among others.
+    *
+    *   $(B argnums) array holds information about which parameter
+    *   from $(B params) should be passed to a query in $(B commands).
+    *   If there are no params, the $(B argnums) can be empty.
+    *
+    *   Example:
+    *   -----------
+    *   pool.postTransaction(["com1", "com2"],
+    *       ["par1", "par2", "par3"], [1, 2]);
+    *   // com1 is fed with par1
+    *   // com2 is fed with par2 and par3
+    *   -----------
+    *
     *   See_Also: isTransactionReady, getTransaction.
     *   Throws: ConnTimeoutException
     */
-    immutable(ITransaction) postTransaction(string[] commands, string[] params = [], string[string] vars = AssociativeArray!(string, string)()) shared;
+    immutable(ITransaction) postTransaction(string[] commands
+        , string[] params = [], uint[] argnums = []
+        , string[string] vars = AssociativeArray!(string, string)()) shared
+    in
+    {
+        assert(commands && params && argnums, "null reference");
+        assert(argnums.reduce!"a+b" == params.length, "length of params is not equal argument count summ!");
+    }
     
     /**
     *   Returns true if transaction processing is finished (doesn't

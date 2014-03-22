@@ -176,16 +176,18 @@ shared class Database
 		}
 		else
 		{
-			if (!entry.isValidParams(req.params))
+		    size_t expected;
+			if (!entry.isValidParams(req.params, expected))
 			{
-				throw new RpcInvalidParams();
+				throw new RpcInvalidParams(text("Expected ", expected, " parameters, ",
+				        "but got ", req.params.length, "!"));
 			}
 						
 			logger.logDebug("Querying pool");
 			
 			try
 			{			
-				auto irange = pool.execTransaction(entry.sql_queries, req.params, req.auth);
+				auto irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, req.auth);
 				
 				auto builder = appender!(Bson[]);
 				foreach(ibson; irange)
