@@ -165,9 +165,7 @@ shared class Application
 	{
 		settings.port = appConfig.port;
 		
-		settings.errorPageHandler = cast(HTTPServerErrorPageHandler) toDelegate(&errorHandler);
-		
-		settings.options = HTTPServerOption.parseJsonBody;
+		settings.options = HTTPServerOption.none;
 			
 		if (appConfig.hostname) 
 			settings.hostName = toUnqual(appConfig.hostname.idup);
@@ -312,7 +310,11 @@ shared class Application
     		
     		try
     		{
-    			rpcReq = RpcRequest(tryEx!RpcParseError(req.json));
+    			string jsonStr;
+    			
+    			jsonStr = cast(string) req.bodyReader.peek;
+    			
+    			rpcReq = RpcRequest(tryEx!RpcParseError(jsonStr));
     			
     			string user = null;
     			string password = null;
@@ -364,22 +366,6 @@ shared class Application
     			
     			res.writeBody(rpcRes.toJson.toPrettyString, CONTENT_TYPE);
     		}
-		}
-	}
-	
-	/// vibe error handler
-	static void errorHandler(HTTPServerRequest req, HTTPServerResponse res, HTTPServerErrorInfo info)
-	{
-		if (info.code == HTTPStatus.badRequest)
-		{
-			RpcResponse rpcRes = RpcResponse(Json(null), RpcError(new RpcParseError(info.exception.msg)));
-			
-			res.writeBody(rpcRes.toJson.toPrettyString, "application/json");
-		}
-		else
-		{
-			res.writeBody(
-				format("%d - %s\n%s", info.code, info.message, info.debugMessage), "text/plain");
 		}
 	}
 	
