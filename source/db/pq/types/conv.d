@@ -193,7 +193,13 @@ Bson pqToBson(PQType type, ubyte[] val, shared IConnection conn)
             }
         }
     }
-    assert(false, "Unknown type "~to!string(type)~"!");
+    
+    debug assert(false, "Unknown type "~to!string(type)~"!");
+    version(release)
+    {
+        throw new Exception(text("pgator doesn't support typeid ", type," at the moment! Please, visit "
+                "https://github.com/DSoftOut/pgator and open an issue."));
+    }
 }
 
 version(IntegrationTest2)
