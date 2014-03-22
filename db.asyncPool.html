@@ -227,7 +227,7 @@
     is dropped (or is down initially).</p>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>shared InputRange!(immutable(Bson)) <span class="symbol-target" id="execTransaction">&nbsp;</span><a class="symbol-link" href="#execTransaction">execTransaction</a>(string[] <i>commands</i>, string[] <i>params</i>, string[string] <i>vars</i>);
+<hr><div class="row-fluid declaration"><h3>shared InputRange!(immutable(Bson)) <span class="symbol-target" id="execTransaction">&nbsp;</span><a class="symbol-link" href="#execTransaction">execTransaction</a>(string[] <i>commands</i>, string[] <i>params</i>, uint[] <i>argnums</i>, string[string] <i>vars</i>);
 </h3></div>
 <div class="declaration-content"><dl><p>Performs several SQL <b><i>commands</i></b> on single connection
    wrapped in a transaction (BEGIN/COMMIT in PostgreSQL).
@@ -238,7 +238,7 @@
 <dt>Throws</dt><dd>ConnTimeoutException, QueryProcessingException</dd>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>shared immutable(ITransaction) <span class="symbol-target" id="postTransaction">&nbsp;</span><a class="symbol-link" href="#postTransaction">postTransaction</a>(string[] <i>commands</i>, string[] <i>params</i>, string[string] <i>vars</i>);
+<hr><div class="row-fluid declaration"><h3>shared immutable(ITransaction) <span class="symbol-target" id="postTransaction">&nbsp;</span><a class="symbol-link" href="#postTransaction">postTransaction</a>(string[] <i>commands</i>, string[] <i>params</i>, uint[] <i>argnums</i>, string[string] <i>vars</i>);
 </h3></div>
 <div class="declaration-content"><dl><p>Asynchronous way to execute transaction. User can check
    transaction status by calling <b>isTransactionReady</b> method.

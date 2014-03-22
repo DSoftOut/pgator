@@ -191,8 +191,8 @@
 <div class="declaration-content"><dl><p>Main program class
 </p>
 <dt>Warning:</dt><dd>
-Don't create more than 1 object, if you want to use with different <b>HTTPServerSettings</b>,
-	<b>URLRouter</b> beacuse they are _gshared, that means they are static
+Don't run at once more than one instance of server. Workaround for vibe.d lack of
+   handler removing relies on that there is one running server at current moment.
 
 </dd>
 <dt>Authors</dt><dd>Zaramzan <shamyan.roman@gmail.com></dd>

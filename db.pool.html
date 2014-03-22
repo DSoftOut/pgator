@@ -244,7 +244,7 @@ time = getTransaction(transaction).deserializeBson!PGTimeStamp;
     is dropped (or is down initially).</p>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>abstract shared InputRange!(immutable(Bson)) <span class="symbol-target" id="execTransaction">&nbsp;</span><a class="symbol-link" href="#execTransaction">execTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], string[string] <i>vars</i> = AssociativeArray!(string, string)());
+<hr><div class="row-fluid declaration"><h3>abstract shared InputRange!(immutable(Bson)) <span class="symbol-target" id="execTransaction">&nbsp;</span><a class="symbol-link" href="#execTransaction">execTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], uint[] <i>argnums</i> = [], string[string] <i>vars</i> = AssociativeArray!(string, string)());
 </h3></div>
 <div class="declaration-content"><dl><p>Performs several SQL <b><i>commands</i></b> on single connection
    wrapped in a transaction (BEGIN/COMMIT in PostgreSQL).
@@ -252,10 +252,23 @@ time = getTransaction(transaction).deserializeBson!PGTimeStamp;
    values. Before any command occurs in transaction the
    local SQL variables is set from <b><i>vars</i></b>.
 </p>
+<p><b><i>argnums</i></b> array holds information about which parameter
+   from <b><i>params</i></b> should be passed to a query in <b><i>commands</i></b>.
+   If there are no <i>params</i>, the <b><i>argnums</i></b> can be empty.
+
+</p>
+<dt>Example:</dt><dd>
+<pre class="d_code">pool.<u>execTransaction</u>([<span class="d_string">"com1"</span>, <span class="d_string">"com2"</span>],
+    [<span class="d_string">"par1"</span>, <span class="d_string">"par2"</span>, <span class="d_string">"par3"</span>], [1, 2]);
+<span class="d_comment">// com1 is fed with par1
+</span><span class="d_comment">// com2 is fed with par2 and par3
+</span></pre>
+
+</dd>
 <dt>Throws</dt><dd>ConnTimeoutException, QueryProcessingException</dd>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>abstract shared immutable(ITransaction) <span class="symbol-target" id="postTransaction">&nbsp;</span><a class="symbol-link" href="#postTransaction">postTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], string[string] <i>vars</i> = AssociativeArray!(string, string)());
+<hr><div class="row-fluid declaration"><h3>abstract shared immutable(ITransaction) <span class="symbol-target" id="postTransaction">&nbsp;</span><a class="symbol-link" href="#postTransaction">postTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], uint[] <i>argnums</i> = [], string[string] <i>vars</i> = AssociativeArray!(string, string)());
 </h3></div>
 <div class="declaration-content"><dl><p>Asynchronous way to execute transaction. User can check
    transaction status by calling <b>isTransactionReady</b> method.
@@ -264,6 +277,20 @@ time = getTransaction(transaction).deserializeBson!PGTimeStamp;
 </p>
 <dt>Returns</dt><dd>Specific interface to distinct the query
             among others.
+<br><br>
+
+   <b><i>argnums</i></b> array holds information about which parameter
+   from <b><i>params</i></b> should be passed to a query in <b><i>commands</i></b>.
+   If there are no <i>params</i>, the <b><i>argnums</i></b> can be empty.
+
+</dd>
+<dt>Example:</dt><dd>
+<pre class="d_code">pool.<u>postTransaction</u>([<span class="d_string">"com1"</span>, <span class="d_string">"com2"</span>],
+    [<span class="d_string">"par1"</span>, <span class="d_string">"par2"</span>, <span class="d_string">"par3"</span>], [1, 2]);
+<span class="d_comment">// com1 is fed with par1
+</span><span class="d_comment">// com2 is fed with par2 and par3
+</span></pre>
+
 </dd>
 <dt>See Also</dt><dd>isTransactionReady, getTransaction.
 </dd>
