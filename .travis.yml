@@ -33,3 +33,5 @@ script:
   - ./bin/pgator --conn="dbname=pgator-test user=postgres"
   # dub --config=unittest --build=unittest
   - dub --build=unittest
+  - dub build --build=debug
+  - dub build --build=release
