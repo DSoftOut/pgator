@@ -44,6 +44,7 @@ import std.datetime;
 import std.exception;
 import std.range;
 import std.typecons;
+import std.regex : regex, matchFirst;
 import core.time;
 import core.thread;
 import vibe.core.core : yield;
@@ -116,10 +117,11 @@ class AsyncPool : IConnectionPool
     
     protected static class Transaction : ITransaction
     {
-        this(string[] commands, string[] params, string[string] vars) immutable
+        this(string[] commands, string[] params, uint[] argnums, string[string] vars) immutable
         {
             this.commands = commands.idup;
             this.params = params.idup;
+            this.argnums = argnums.idup;
             string[string] temp = vars.dup;
             this.vars = assumeUnique(temp);
         }
@@ -129,53 +131,34 @@ class AsyncPool : IConnectionPool
             auto b = cast(Transaction)o;
             if(b is null) return false;
             
-            return commands == b.commands && params == b.params && vars == b.vars;
+            return commands == b.commands && params == b.params && argnums == b.argnums && vars == b.vars;
         }
         
         override hash_t toHash() nothrow @trusted
         {
-            auto stringHash = &(typeid(string).getHash);
-            
-            hash_t toHashArr(immutable string[] arr) nothrow
+            hash_t toHashArr(T)(immutable T[] arr) nothrow
             {
                 hash_t h;
-                foreach(elem; arr) h += stringHash(&elem);
+                auto hashFunc = &(typeid(T).getHash);
+                foreach(elem; arr) h += hashFunc(&elem);
                 return h;
             }
             
-            hash_t toHashAss(immutable string[string] arr) nothrow
+            hash_t toHashAss(T)(immutable T[T] arr) nothrow
             {
                 hash_t h;
                 scope(failure) return 0;
-                foreach(key, val; arr) h += stringHash(&key) + stringHash(&val);
+                auto hashFunc = &(typeid(T).getHash);
+                foreach(key, val; arr) h += hashFunc(&key) + hashFunc(&val);
                 return h;
             }
             
-            return toHashArr(commands) + toHashArr(params) + toHashAss(vars);
+            return toHashArr(commands) + toHashArr(params) + toHashArr(argnums) + toHashAss(vars);
         }
-        
-        override int opCmp(Object o) nothrow
-        {
-            scope(failure) return -1;
-            
-            auto b = cast(Transaction)o;
-            if(b is null) return -1;
-            
-            if(this == b) return 0;
-            else
-            {
-                if(commands == b.commands)
-                {
-                    if(params == b.params)
-                    {
-                        return cast(int)(vars.length) - cast(int)(b.vars.length);
-                    } else return cast(int)(params.length) - cast(int)(b.params.length);
-                } else return cast(int)commands.length - cast(int)b.commands.length;
-            }
-        } 
         
         immutable string[] commands;
         immutable string[] params;
+        immutable uint[]   argnums;
         immutable string[string] vars;
     }
     
@@ -188,12 +171,12 @@ class AsyncPool : IConnectionPool
     *
     *   Throws: ConnTimeoutException, QueryProcessingException
     */
-    InputRange!(immutable Bson) execTransaction(string[] commands, string[] params, string[string] vars) shared
+    InputRange!(immutable Bson) execTransaction(string[] commands, string[] params, uint[] argnums, string[string] vars) shared
     {
         ///TODO: move to contract when issue with contracts is fixed
         assert(!finalized, "Pool was finalized!");
         
-        auto transaction = postTransaction(commands, params, vars);
+        auto transaction = postTransaction(commands, params, argnums, vars);
         while(!isTransactionReady(transaction)) yield;
         return getTransaction(transaction);
     }
@@ -209,13 +192,18 @@ class AsyncPool : IConnectionPool
     *   See_Also: isTransactionReady, getTransaction.
     *   Throws: ConnTimeoutException
     */
-    immutable(ITransaction) postTransaction(string[] commands, string[] params, string[string] vars) shared
+    immutable(ITransaction) postTransaction(string[] commands, string[] params, uint[] argnums, string[string] vars) shared
     {
         ///TODO: move to contract when issue with contracts is fixed
         assert(!finalized, "Pool was finalized!");
         
+        if(params.length == 0 && argnums.length == 0)
+        {
+            argnums = 0u.repeat.take(commands.length).array;
+        }
+        
         auto conn = fetchFreeConnection();
-        auto transaction = new immutable Transaction(commands, params, vars);
+        auto transaction = new immutable Transaction(commands, params, argnums, vars);
         (cast()processingTransactions).insert(cast(shared)transaction); 
         
         ids.queringCheckerId.send(thisTid, conn, cast(shared)transaction);
@@ -900,12 +888,16 @@ class AsyncPool : IConnectionPool
                shared IConnection conn;
                
                immutable Transaction transaction;
-               private size_t transactPos = 0;
-               private immutable string[] varsQueries;
-               private size_t localVars = 0;
-               private bool transStarted = false;
-               private bool transEnded = false;
-               private bool commandPosting = false;
+               private
+               {
+                    size_t transactPos = 0;
+                    size_t paramsPassed = 0;
+                    immutable string[] varsQueries;
+                    size_t localVars = 0;
+                    bool transStarted = false;
+                    bool transEnded = false;
+                    bool commandPosting = false;
+               }
                
                enum Stage
                {
@@ -980,7 +972,16 @@ class AsyncPool : IConnectionPool
                        commandPosting = true;
                        try 
                        {
-                           conn.postQuery(transaction.commands[transactPos], transaction.params.dup);  
+                           assert(transactPos < transaction.commands.length);
+                           auto query = transaction.commands[transactPos];
+                           
+                           assert(transactPos < transaction.argnums.length);
+                           assert(transaction.argnums[transactPos] + paramsPassed <= transaction.params.length);
+                           auto params = transaction.params[paramsPassed .. paramsPassed + transaction.argnums[transactPos]].dup;
+                           
+                           conn.postQuery(query, params);  
+                           
+                           paramsPassed += transaction.argnums[transactPos];
                            transactPos++; 
                        }
                        catch (QueryException e)
@@ -1114,6 +1115,8 @@ class AsyncPool : IConnectionPool
                {
                    sender.send(thisTid, cast(shared)transaction, respond);            
                }
+               
+               private alias Tuple!(string, "query", string[], "params") RebasedQuery;
            }
            
            

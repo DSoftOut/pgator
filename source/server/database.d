@@ -176,9 +176,11 @@ shared class Database
 		}
 		else
 		{
-			if (!entry.isValidParams(req.params))
+		    size_t expected;
+			if (!entry.isValidParams(req.params, expected))
 			{
-				throw new RpcInvalidParams();
+				throw new RpcInvalidParams(text("Expected ", expected, " parameters, ",
+				        "but got ", req.params.length, "!"));
 			}
 						
 			logger.logDebug("Querying pool");
@@ -189,13 +191,13 @@ shared class Database
 				
 				if (entry.set_username)
 				{
-					irange = pool.execTransaction(entry.sql_queries, req.params, req.auth);
+					irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, req.auth);
 				}
 				else
 				{
-					irange = pool.execTransaction(entry.sql_queries, req.params);
+					irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums);
 				}
-				
+
 				auto builder = appender!(Bson[]);
 				foreach(ibson; irange)
 				{

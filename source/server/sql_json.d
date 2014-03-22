@@ -11,6 +11,7 @@
 */
 module server.sql_json;
 
+import std.algorithm;
 import std.traits;
 
 import util;
@@ -29,7 +30,7 @@ struct Entry
 	string[] sql_queries;
 	
 	@required
-	uint arg_num;
+	uint[] arg_nums;
 	
 	@required
 	bool set_username;
@@ -49,9 +50,10 @@ struct Entry
 	@possible
 	string commentary;
 	
-	const bool isValidParams(in string[] params)
+	const bool isValidParams(in string[] params, out size_t expected)
 	{
-		return params.length == arg_num;
+	    expected = arg_nums.reduce!"a+b";
+		return params.length == expected;
 	}
 	
 	const shared(Entry) toShared() @property
@@ -269,18 +271,18 @@ version(unittest)
 		
 		auto entry1 = Entry();
 		entry1.method = "subtract";
-		entry1.arg_num = 2;
+		entry1.arg_nums = [2];
 		entry1.need_cache = true;
 		entry1.reset_caches = ["drop", "safe", "pure"];
 		entry1.reset_by = ["drop", "unsafe"];
 		
 		auto entry2 = Entry();
 		entry2.method = "multiply";
-		entry2.arg_num = 2;
+		entry2.arg_nums = [2];
 		
 		auto entry3 = Entry();
 		entry3.method = "divide";
-		entry3.arg_num = 2;
+		entry3.arg_nums = [2];
 		entry3.need_cache = true;
 		entry3.reset_caches = ["trusted", "infinity"];
 		entry3.reset_by = ["drop", "unsafe"];
