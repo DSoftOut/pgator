@@ -181,6 +181,14 @@ long convert(PQType type)(ubyte[] val)
     return val.read!long;
 }
 
+string convert(PQType type)(ubyte[] val)
+    if(type == PQType.Void)
+{
+    std.stdio.writeln(val.length);
+    std.stdio.writeln(val);
+    return "";
+}
+
 version(IntegrationTest2)
 {
     import db.pq.types.test;
@@ -189,7 +197,9 @@ version(IntegrationTest2)
     import std.algorithm;
     import std.encoding;
     import std.math;
+    import vibe.data.bson;
     import log;
+    import bufflog;
     
      void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
          if(type == PQType.Bool)
@@ -444,5 +454,20 @@ version(IntegrationTest2)
         
         foreach(i; 0..100)
             testValue!(double, convFloat)(logger, pool, uniform(-100.0, 100.0), "Float8");
+    }
+    
+    void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
+        if(type == PQType.Void)
+    {
+        logger.logInfo("Testing Void...");
+        
+        pool.execTransaction(["drop function if exists pgator_test_void();"]);
+        pool.execTransaction(["CREATE FUNCTION pgator_test_void() RETURNS void AS $$ DECLARE BEGIN END; $$ LANGUAGE plpgsql;"]);
+        
+        auto blogger = new shared BufferedLogger(logger);
+        auto res = queryValue(blogger, pool, "test_void()").deserializeBson!string;
+        assert(res == "");
+        
+        pool.execTransaction(["drop function if exists pgator_test_void();"]);
     }
 }

@@ -64,12 +64,11 @@ bool nonConvertable(PQType type)
         case PQType.Int8Range: return true;
         
         // Pseudo types
+        case PQType.CString: return true;
         case PQType.Record: return true;
         case PQType.RecordArray: return true;
-        case PQType.CString: return true;
         case PQType.AnyVoid: return true;
         case PQType.AnyArray: return true;
-        case PQType.Void: return true;
         case PQType.Trigger: return true;
         case PQType.EventTrigger: return true;
         case PQType.LanguageHandler: return true;
@@ -113,32 +112,48 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
         }
     }
     
+    bool checkNullValues(T)(out Bson bson)
+    {
+        static if(is(T == string))
+        {
+            if(val.length == 0)
+            {
+                bson = Bson("");
+                return true;
+            }
+        }
+        else static if(isArray!T)
+        {
+            if(val.length == 0) 
+            {
+                bson = serializeToBson(cast(T[])[]);
+                return true;
+            }
+        } else
+        {
+            if(val.length == 0)
+            {
+                bson = Bson(null);
+                return true;
+            }
+        }
+        return false;
+    }
+    
     // Checking if the convert function needs connection for reverse link
     static if(is(ParameterTypeTuple!(convert!type) == TypeTuple!(ubyte[])))
     {
         alias typeof(convert!type(val)) T;
         
-        static if(isArray!T)
-        {
-            if(val.length == 0) return serializeToBson(cast(T[])[]);
-        } else
-        {
-            if(val.length == 0) return Bson(null);
-        }
+        Bson retBson; if(checkNullValues!T(retBson)) return retBson;
     
         auto convVal = convert!type(val);
     } else static if(is(ParameterTypeTuple!(convert!type) == TypeTuple!(ubyte[], shared IConnection)))
     {
         alias typeof(convert!type(val, conn)) T;
-        
-        static if(isArray!T)
-        {
-            if(val.length == 0) return serializeToBson(cast(T[])[]);
-        } else
-        {
-            if(val.length == 0) return Bson(null);
-        }
     
+        Bson retBson; if(checkNullValues!T(retBson)) return retBson;
+        
         auto convVal = convert!type(val, conn);
     } else
     {
