@@ -465,7 +465,7 @@ version(IntegrationTest2)
         pool.execTransaction(["CREATE FUNCTION pgator_test_void() RETURNS void AS $$ DECLARE BEGIN END; $$ LANGUAGE plpgsql;"]);
         
         auto blogger = new shared BufferedLogger(logger);
-        auto res = queryValue(blogger, pool, "test_void()").deserializeBson!string;
+        auto res = queryValue(blogger, pool, "pgator_test_void()").deserializeBson!string;
         assert(res == "");
         
         pool.execTransaction(["drop function if exists pgator_test_void();"]);
