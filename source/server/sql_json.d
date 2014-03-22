@@ -52,7 +52,7 @@ struct Entry
 	
 	const bool isValidParams(in string[] params, out size_t expected)
 	{
-	    expected = arg_nums.reduce!"a+b";
+	    expected = reduce!"a+b"(0, arg_nums);
 		return params.length == expected;
 	}
 	
