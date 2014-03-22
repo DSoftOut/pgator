@@ -59,7 +59,7 @@ ubyte[] convert(PQType type)(ubyte[] val)
 char convert(PQType type)(ubyte[] val)
     if(type == PQType.Char)
 {
-    assert(val.length == 1);
+    assert(val.length == 1, text("Expected 1 bytes, but got ", val.length));
     return val.read!char;
 }
 
@@ -73,28 +73,28 @@ string convert(PQType type)(ubyte[] val)
 long convert(PQType type)(ubyte[] val)
     if(type == PQType.Int8)
 {
-    assert(val.length == 8);
+    assert(val.length == 8, text("Expected 8 bytes, but got ", val.length));
     return val.read!long;
 }
 
 short convert(PQType type)(ubyte[] val)
     if(type == PQType.Int2)
 {
-    assert(val.length == 2);
+    assert(val.length == 2, text("Expected 2 bytes, but got ", val.length));
     return val.read!short;
 }
 
 int convert(PQType type)(ubyte[] val)
     if(type == PQType.Int4)
 {
-    assert(val.length == 4);
+    assert(val.length == 4, text("Expected 4 bytes, but got ", val.length));
     return val.read!int;
 }
 
 RegProc convert(PQType type)(ubyte[] val)
     if(type == PQType.RegProc)
 {
-    assert(val.length == 4);
+    assert(val.length == 4, text("Expected 4 bytes, but got ", val.length));
     return val.read!RegProc;
 }
 
@@ -114,7 +114,7 @@ Oid convert(PQType type)(ubyte[] val)
 PQTid convert(PQType type)(ubyte[] val)
     if(type == PQType.Tid)
 {
-    assert(val.length == 8);
+    assert(val.length == 8, text("Expected 8 bytes, but got ", val.length));
     PQTid res;
     res.blockId = val.read!uint;
     res.blockNumber = val.read!uint;
@@ -124,14 +124,14 @@ PQTid convert(PQType type)(ubyte[] val)
 Xid convert(PQType type)(ubyte[] val)
     if(type == PQType.Xid)
 {
-    assert(val.length == 4);
+    assert(val.length == 4, text("Expected 4 bytes, but got ", val.length));
     return val.read!uint;
 }
 
 Cid convert(PQType type)(ubyte[] val)
     if(type == PQType.Cid)
 {
-    assert(val.length == 4);
+    assert(val.length == 4, text("Expected 4 bytes, but got ", val.length));
     return val.read!uint;
 }
 
