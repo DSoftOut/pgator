@@ -9,6 +9,7 @@
 *   <li> Cheat casting functions </li>
 *   <li> String processing functions (the only one $(B fromStringz))</li>
 *   <li> Introspecting templates that cannot be found in Phobos </li> 
+*   <li> Functional styled utilities for optional values and lazy ranges</li> 
 *   </ul>
 *
 *   Copyright: © 2014 DSoftOut
@@ -655,6 +656,16 @@ struct Maybe(T)
         this.value = value;
     }
     
+    /**
+    *   Constructing empty Maybe.
+    *   If Maybe is created with the method, it is considred empty
+    *   and $(B isNothing) returns false.
+    */
+    static Maybe!T nothing()
+    {
+        return Maybe!T(null);
+    } 
+    
     /// Returns true if stored value is null
     bool isNothing() const
     {
@@ -854,4 +865,83 @@ unittest
     ncase = jcase = false;
     mb.map(() {ncase = true;}, (v) {jcase = true;});
     assert(!jcase && ncase);
+}
+
+/**
+*   Transforms delegate into lazy range. Generation is stopped, when
+*   $(B genfunc) returns $(B Maybe!T.nothing).
+*
+*   Example:
+*   --------
+*   assert( (() => Maybe!int(1)).generator.take(10).equal(1.repeat.take(10)) );
+*   assert( (() => Maybe!int.nothing).generator.empty);
+*   assert( (() 
+*           {
+*               static size_t i = 0;
+*               return i++ < 10 ? Maybe!int(1) : Maybe!int.nothing;
+*           }
+*           ).generator.equal(1.repeat.take(10)));
+*   
+*   class A {}
+*   auto a = new A();
+*   
+*   assert( (() => Maybe!A(a)).generator.take(10).equal(a.repeat.take(10)) );
+*   assert( (() => Maybe!A.nothing).generator.empty);
+*   assert( (() 
+*           {
+*               static size_t i = 0;
+*               return i++ < 10 ? Maybe!A(a) : Maybe!A.nothing;
+*           }
+*           ).generator.equal(a.repeat.take(10)));
+*   --------
+*/
+auto generator(T)(Maybe!T delegate() genfunc)
+{
+    struct Sequencer
+    {
+        private Maybe!T currvalue;
+        
+        T front()
+        {
+            assert(!currvalue.isNothing, "Generator range is empty!");
+            return currvalue.get;
+        }
+        
+        bool empty()
+        {
+            return currvalue.isNothing;
+        }
+        
+        void popFront()
+        {
+            currvalue = genfunc();
+        }
+    }
+    
+    auto s = Sequencer();
+    s.popFront;
+    return s;
+}
+unittest
+{
+    assert( (() => Maybe!int(1)).generator.take(10).equal(1.repeat.take(10)) );
+    assert( (() => Maybe!int.nothing).generator.empty);
+    assert( (() 
+            {
+                static size_t i = 0;
+                return i++ < 10 ? Maybe!int(1) : Maybe!int.nothing;
+            }
+            ).generator.equal(1.repeat.take(10)));
+    
+    class A {}
+    auto a = new A();
+    
+    assert( (() => Maybe!A(a)).generator.take(10).equal(a.repeat.take(10)) );
+    assert( (() => Maybe!A.nothing).generator.empty);
+    assert( (() 
+            {
+                static size_t i = 0;
+                return i++ < 10 ? Maybe!A(a) : Maybe!A.nothing;
+            }
+            ).generator.equal(a.repeat.take(10)));
 }
