@@ -394,3 +394,51 @@ unittest
     assert(Arbitrary!dstring.shrink("abc"d).take(3).equal(["bc"d, "c"d, ""d]));
     assert(Arbitrary!dstring.specialCases().equal([""d]));
 }
+
+/**
+*   Arbitrary template for char, dchar, wchar
+*/
+template Arbitrary(T)
+    if(isArray!T && HasArbitrary!(ElementType!T).HasGenerate!() && !isSomeString!T)
+{
+    static assert(CheckArbitrary!T);
+    
+    auto generate()
+    {
+        return (() => Maybe!T( Arbitrary!(ElementType!T).generate.take(uniform!"[]"(ArrayGenSizeMin,ArrayGenSizeMax)).array )).generator;
+    }
+    
+    auto shrink(T val)
+    {
+        class Shrinker
+        {
+            T saved;
+            
+            this(T startVal)
+            {
+                saved = startVal;
+            }
+            
+            auto shrink()
+            {
+                if(saved.length > 0)
+                {
+                    saved = saved[1..$];
+                    return Maybe!T(saved);
+                } else return Maybe!T.nothing;
+            }
+        }
+        return (&(new Shrinker(val)).shrink).generator;
+    }
+    
+    auto specialCases()
+    {
+        return [cast(T)[]];
+    }
+}
+unittest
+{
+    Arbitrary!(uint[]).generate;
+    assert(Arbitrary!(uint[]).shrink([1u, 2u, 3u]).take(3).equal([[2u, 3u], [3u], []]));
+    assert(Arbitrary!(uint[]).specialCases().equal([cast(uint[])[]]));
+}
