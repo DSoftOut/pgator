@@ -258,3 +258,33 @@ unittest
     assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!double.shrink(10.0).take(10).zip([9,8,7,6,5,4,3,2,1,0])));
     assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!double.shrink(-10.0).take(10).zip([-9,-8,-7,-6,-5,-4,-3,-2,-1,0])));
 }
+
+/**
+*   Arbitrary for bool
+*/
+template Arbitrary(T)
+    if(is(T == bool))
+{
+    static assert(CheckArbitrary!T);
+    
+    auto generate()
+    {
+        return [true, false];
+    }
+    
+    auto shrink(T val)
+    {
+        return takeNone!(T[]);
+    }
+    
+    auto specialCases()
+    {
+        return takeNone!(T[]);
+    }
+}
+unittest
+{
+    assert(Arbitrary!bool.generate.equal([true, false]));
+    assert(Arbitrary!bool.shrink(true).empty);
+    assert(Arbitrary!bool.shrink(false).empty);
+}
