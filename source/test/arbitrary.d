@@ -118,7 +118,6 @@ template CheckArbitrary(T)
     enum CheckArbitrary = HasArbitrary!T.isFullDefined!();
 }
 
-/// TODO: finish range generation from pure function
 /**
 *   Arbitrary for ubyte, byte, ushort, short, uing, int, ulong, long.
 */
@@ -145,6 +144,8 @@ template Arbitrary(T)
             
             Maybe!T shrink()
             {
+                if(saved == 0) return Maybe!T.nothing;
+                
                 if(saved > 0) saved--;
                 if(saved < 0) saved++;
                 
@@ -197,4 +198,63 @@ unittest
     Arbitrary!long.specialCases;
     assert(Arbitrary!long.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
     assert(Arbitrary!long.shrink(-10).take(10).equal([-9,-8,-7,-6,-5,-4,-3,-2,-1,0]));
+}
+
+/**
+*   Arbitrary for float, double
+*/
+template Arbitrary(T)
+    if(isFloatingPoint!T)
+{
+    static assert(CheckArbitrary!T);
+    
+    auto generate()
+    {
+        return (() => Maybe!T(uniform!"[]"(-T.max, T.max))).generator;
+    }
+    
+    auto shrink(T val)
+    {
+        class Shrinker
+        {
+            T saved;
+            
+            this(T firstVal)
+            {
+                saved = firstVal;
+            }
+            
+            Maybe!T shrink()
+            {
+                if(cast(long)saved == 0) return Maybe!T.nothing;
+                
+                if(saved > 0) saved--;
+                if(saved < 0) saved++;
+                
+                return Maybe!T(saved);
+            }
+        }
+        
+        return (&(new Shrinker(val)).shrink).generator;
+    }
+    
+    T[] specialCases()
+    {
+        return [-T.max, 0, T.max, T.nan, T.infinity, T.epsilon, T.min_normal];
+    }
+}
+unittest
+{
+    import std.math;
+    import std.algorithm;
+    
+    Arbitrary!float.generate;
+    Arbitrary!float.specialCases;
+    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!float.shrink(10.0).take(10).zip([9,8,7,6,5,4,3,2,1,0])));
+    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!float.shrink(-10.0).take(10).zip([-9,-8,-7,-6,-5,-4,-3,-2,-1,0])));
+    
+    Arbitrary!double.generate;
+    Arbitrary!double.specialCases;
+    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!double.shrink(10.0).take(10).zip([9,8,7,6,5,4,3,2,1,0])));
+    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!double.shrink(-10.0).take(10).zip([-9,-8,-7,-6,-5,-4,-3,-2,-1,0])));
 }
