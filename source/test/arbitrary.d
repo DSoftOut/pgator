@@ -67,9 +67,10 @@ template HasArbitrary(T)
             alias ReturnType!(Arbitrary!T.shrink) RetType;
             
             enum HasShrink = 
-                isInputRange!RetType && is(ElementType!RetType == T)
+                isInputRange!RetType 
+                && (is(ElementType!RetType == T) || isSomeChar!T && isSomeChar!(ElementType!RetType))
                 && Params.length == 1
-                && is(Params[0] == T);
+                && is(Params[0] == T);                
         } else
         {
             enum HasShrink = false;
@@ -84,7 +85,8 @@ template HasArbitrary(T)
             alias ReturnType!(Arbitrary!T.specialCases) RetType;
             
             enum HasSpecialCases = 
-                isInputRange!RetType && is(ElementType!RetType == T)
+                isInputRange!RetType 
+                && (is(ElementType!RetType == T) || isSomeChar!T && isSomeChar!(ElementType!RetType))
                 && Params.length == 0;
         } else
         {
@@ -287,4 +289,42 @@ unittest
     assert(Arbitrary!bool.generate.equal([true, false]));
     assert(Arbitrary!bool.shrink(true).empty);
     assert(Arbitrary!bool.shrink(false).empty);
+}
+
+/**
+*   Arbitrary template for char, dchar, wchar
+*/
+template Arbitrary(T)
+    if(isSomeChar!T)
+{
+    static assert(CheckArbitrary!T);
+    
+    auto generate()
+    {
+        return (() => Maybe!T(cast(T)uniform!"[]"('\u0000', '\U0010FFFF'))).generator;
+    }
+    
+    auto shrink(T val)
+    {
+        return takeNone!(dchar[]);
+    }
+    
+    auto specialCases()
+    {
+        return takeNone!(dchar[]);
+    }
+}
+unittest
+{
+    Arbitrary!char.generate;
+    assert(Arbitrary!char.shrink('a').empty);
+    assert(Arbitrary!char.specialCases().empty);
+    
+    Arbitrary!wchar.generate;
+    assert(Arbitrary!wchar.shrink('a').empty);
+    assert(Arbitrary!wchar.specialCases().empty);
+    
+    Arbitrary!dchar.generate;
+    assert(Arbitrary!dchar.shrink('a').empty);
+    assert(Arbitrary!dchar.specialCases().empty);
 }
