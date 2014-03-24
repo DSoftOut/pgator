@@ -35,6 +35,7 @@ module test.arbitrary;
 import std.traits;
 import std.range;
 import std.random;
+import util;
 
 /**
 *   Checks if $(B T) has Arbitrary template with
@@ -126,18 +127,74 @@ template Arbitrary(T)
 {
     static assert(CheckArbitrary!T);
     
-    T[] generate()
+    auto generate()
     {
-        return [];
+        return (() => Maybe!T(uniform!"[]"(T.min, T.max))).generator;
     }
     
-    T[] shrink(T val)
+    auto shrink(T val)
     {
-        return [];
+        class Shrinker
+        {
+            T saved;
+            
+            this(T firstVal)
+            {
+                saved = firstVal;
+            }
+            
+            Maybe!T shrink()
+            {
+                if(saved > 0) saved--;
+                if(saved < 0) saved++;
+                
+                return Maybe!T(saved);
+            }
+        }
+        
+        return (&(new Shrinker(val)).shrink).generator;
     }
     
     T[] specialCases()
     {
-        return [];
+        return [T.min, 0, T.max];
     }
+}
+unittest
+{
+    Arbitrary!ubyte.generate;
+    Arbitrary!ubyte.specialCases;
+    assert(Arbitrary!ubyte.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    
+    Arbitrary!byte.generate;
+    Arbitrary!byte.specialCases;
+    assert(Arbitrary!byte.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    assert(Arbitrary!byte.shrink(-10).take(10).equal([-9,-8,-7,-6,-5,-4,-3,-2,-1,0]));
+    
+    Arbitrary!ushort.generate;
+    Arbitrary!ushort.specialCases;
+    assert(Arbitrary!ushort.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    
+    Arbitrary!short.generate;
+    Arbitrary!short.specialCases;
+    assert(Arbitrary!short.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    assert(Arbitrary!short.shrink(-10).take(10).equal([-9,-8,-7,-6,-5,-4,-3,-2,-1,0]));
+    
+    Arbitrary!uint.generate;
+    Arbitrary!uint.specialCases;
+    assert(Arbitrary!ushort.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    
+    Arbitrary!int.generate;
+    Arbitrary!int.specialCases;
+    assert(Arbitrary!int.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    assert(Arbitrary!int.shrink(-10).take(10).equal([-9,-8,-7,-6,-5,-4,-3,-2,-1,0]));
+    
+    Arbitrary!ulong.generate;
+    Arbitrary!ulong.specialCases;
+    assert(Arbitrary!ushort.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    
+    Arbitrary!long.generate;
+    Arbitrary!long.specialCases;
+    assert(Arbitrary!long.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    assert(Arbitrary!long.shrink(-10).take(10).equal([-9,-8,-7,-6,-5,-4,-3,-2,-1,0]));
 }
