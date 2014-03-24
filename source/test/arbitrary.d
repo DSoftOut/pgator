@@ -35,8 +35,14 @@ module test.arbitrary;
 import std.traits;
 import std.range;
 import std.random;
+import std.conv;
 import util;
 
+/// Minimum size of generated arrays (and strings)
+enum ArrayGenSizeMin = 1;
+/// Maximum size of generated arrays (and strings)
+enum ArrayGenSizeMax = 32;
+ 
 /**
 *   Checks if $(B T) has Arbitrary template with
 *   $(B generate), $(B shrink) and $(B specialCases) functions.
@@ -327,4 +333,64 @@ unittest
     Arbitrary!dchar.generate;
     assert(Arbitrary!dchar.shrink('a').empty);
     assert(Arbitrary!dchar.specialCases().empty);
+}
+
+/**
+*   Arbitrary template for strings
+*/
+template Arbitrary(T)
+    if(isSomeString!T)
+{
+    static assert(CheckArbitrary!T);
+    
+    auto generate()
+    {
+        return (() => Maybe!T(Arbitrary!(Unqual!(ElementType!T)).generate
+                .take(uniform!"[]"(ArrayGenSizeMin, ArrayGenSizeMax)).array.idup.to!T)).generator;
+    }
+    
+    auto shrink(T val)
+    {
+        class Shrinker
+        {
+            T saved;
+            
+            this(T startVal)
+            {
+                saved = startVal;
+            }
+            
+            auto shrink()
+            {
+                if(saved.length > 0)
+                {
+                    saved = saved[1..$];
+                    return Maybe!T(saved);
+                } else return Maybe!T.nothing;
+            }
+        }
+        return (&(new Shrinker(val)).shrink).generator;
+    }
+    
+    T[] specialCases()
+    {
+        return [cast(T)""];
+    }
+}
+unittest
+{
+    Arbitrary!string.generate;
+    assert(Arbitrary!string.shrink("a").take(2).equal([""]));
+    assert(Arbitrary!string.shrink("abc").take(3).equal(["bc", "c", ""]));
+    assert(Arbitrary!string.specialCases().equal([""]));
+    
+    Arbitrary!wstring.generate;
+    assert(Arbitrary!wstring.shrink("a"w).take(2).equal([""w]));
+    assert(Arbitrary!wstring.shrink("abc"w).take(3).equal(["bc"w, "c"w, ""w]));
+    assert(Arbitrary!wstring.specialCases().equal([""w]));
+    
+    Arbitrary!dstring.generate;
+    assert(Arbitrary!dstring.shrink("a"d).take(2).equal([""d]));
+    assert(Arbitrary!dstring.shrink("abc"d).take(3).equal(["bc"d, "c"d, ""d]));
+    assert(Arbitrary!dstring.specialCases().equal([""d]));
 }
