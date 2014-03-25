@@ -917,6 +917,7 @@ auto generator(T)(Maybe!T delegate() genfunc)
             currvalue = genfunc();
         }
     }
+    static assert(isInputRange!Sequencer);
     
     auto s = Sequencer();
     s.popFront;

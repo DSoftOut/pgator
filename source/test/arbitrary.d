@@ -23,7 +23,46 @@
 *
 *   Example:
 *   ---------
-*
+*   template Arbitrary(T)
+*       if(isIntegral!T)
+*   {
+*       static assert(CheckArbitrary!T);
+*       
+*       auto generate()
+*       {
+*           return (() => Maybe!T(uniform!"[]"(T.min, T.max))).generator;
+*       }
+*       
+*       auto shrink(T val)
+*       {
+*           class Shrinker
+*           {
+*               T saved;
+*               
+*               this(T firstVal)
+*               {
+*                   saved = firstVal;
+*               }
+*               
+*               Maybe!T shrink()
+*               {
+*                   if(saved == 0) return Maybe!T.nothing;
+*                   
+*                   if(saved > 0) saved--;
+*                   if(saved < 0) saved++;
+*                   
+*                   return Maybe!T(saved);
+*               }
+*           }
+*           
+*           return (&(new Shrinker(val)).shrink).generator;
+*       }
+*       
+*       T[] specialCases()
+*       {
+*           return [T.min, 0, T.max];
+*       }
+*   }
 *   ---------
 *
 *   Copyright: © 2014 DSoftOut
@@ -36,6 +75,7 @@ import std.traits;
 import std.range;
 import std.random;
 import std.conv;
+import std.math;
 import util;
 
 /// Minimum size of generated arrays (and strings)
@@ -153,10 +193,8 @@ template Arbitrary(T)
             Maybe!T shrink()
             {
                 if(saved == 0) return Maybe!T.nothing;
-                
-                if(saved > 0) saved--;
-                if(saved < 0) saved++;
-                
+
+                saved = saved/2;
                 return Maybe!T(saved);
             }
         }
@@ -173,39 +211,39 @@ unittest
 {
     Arbitrary!ubyte.generate;
     Arbitrary!ubyte.specialCases;
-    assert(Arbitrary!ubyte.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    assert(Arbitrary!ubyte.shrink(100).take(10).equal([50, 25, 12, 6, 3, 1, 0]));
     
     Arbitrary!byte.generate;
     Arbitrary!byte.specialCases;
-    assert(Arbitrary!byte.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
-    assert(Arbitrary!byte.shrink(-10).take(10).equal([-9,-8,-7,-6,-5,-4,-3,-2,-1,0]));
+    assert(Arbitrary!byte.shrink(100).take(10).equal([50, 25, 12, 6, 3, 1, 0]));
+    assert(Arbitrary!byte.shrink(-100).take(10).equal([-50, -25, -12, -6, -3, -1, 0]));
     
     Arbitrary!ushort.generate;
     Arbitrary!ushort.specialCases;
-    assert(Arbitrary!ushort.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    assert(Arbitrary!ushort.shrink(100).take(10).equal([50, 25, 12, 6, 3, 1, 0]));
     
     Arbitrary!short.generate;
     Arbitrary!short.specialCases;
-    assert(Arbitrary!short.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
-    assert(Arbitrary!short.shrink(-10).take(10).equal([-9,-8,-7,-6,-5,-4,-3,-2,-1,0]));
+    assert(Arbitrary!short.shrink(100).take(10).equal([50, 25, 12, 6, 3, 1, 0]));
+    assert(Arbitrary!short.shrink(-100).take(10).equal([-50, -25, -12, -6, -3, -1, 0]));
     
     Arbitrary!uint.generate;
     Arbitrary!uint.specialCases;
-    assert(Arbitrary!ushort.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    assert(Arbitrary!ushort.shrink(100).take(10).equal([50, 25, 12, 6, 3, 1, 0]));
     
     Arbitrary!int.generate;
     Arbitrary!int.specialCases;
-    assert(Arbitrary!int.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
-    assert(Arbitrary!int.shrink(-10).take(10).equal([-9,-8,-7,-6,-5,-4,-3,-2,-1,0]));
+    assert(Arbitrary!int.shrink(100).take(10).equal([50, 25, 12, 6, 3, 1, 0]));
+    assert(Arbitrary!int.shrink(-100).take(10).equal([-50, -25, -12, -6, -3, -1, 0]));
     
     Arbitrary!ulong.generate;
     Arbitrary!ulong.specialCases;
-    assert(Arbitrary!ushort.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
+    assert(Arbitrary!ushort.shrink(100).take(10).equal([50, 25, 12, 6, 3, 1, 0]));
     
     Arbitrary!long.generate;
     Arbitrary!long.specialCases;
-    assert(Arbitrary!long.shrink(10).take(10).equal([9,8,7,6,5,4,3,2,1,0]));
-    assert(Arbitrary!long.shrink(-10).take(10).equal([-9,-8,-7,-6,-5,-4,-3,-2,-1,0]));
+    assert(Arbitrary!long.shrink(100).take(10).equal([50, 25, 12, 6, 3, 1, 0]));
+    assert(Arbitrary!long.shrink(-100).take(10).equal([-50, -25, -12, -6, -3, -1, 0]));
 }
 
 /**
@@ -234,11 +272,9 @@ template Arbitrary(T)
             
             Maybe!T shrink()
             {
-                if(cast(long)saved == 0) return Maybe!T.nothing;
+                if(approxEqual(saved, 0)) return Maybe!T.nothing;
                 
-                if(saved > 0) saved--;
-                if(saved < 0) saved++;
-                
+                saved = saved/2;
                 return Maybe!T(saved);
             }
         }
@@ -258,13 +294,13 @@ unittest
     
     Arbitrary!float.generate;
     Arbitrary!float.specialCases;
-    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!float.shrink(10.0).take(10).zip([9,8,7,6,5,4,3,2,1,0])));
-    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!float.shrink(-10.0).take(10).zip([-9,-8,-7,-6,-5,-4,-3,-2,-1,0])));
+    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!float.shrink(10.0).take(3).zip([5.0, 2.5, 1.25])));
+    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!float.shrink(-10.0).take(3).zip([-5.0, -2.5, -1.25])));
     
     Arbitrary!double.generate;
     Arbitrary!double.specialCases;
-    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!double.shrink(10.0).take(10).zip([9,8,7,6,5,4,3,2,1,0])));
-    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!double.shrink(-10.0).take(10).zip([-9,-8,-7,-6,-5,-4,-3,-2,-1,0])));
+    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!double.shrink(10.0).take(3).zip([5.0, 2.5, 1.25])));
+    assert(reduce!"a && approxEqual(b[0], b[1])"(true, Arbitrary!double.shrink(-10.0).take(3).zip([-5.0, -2.5, -1.25])));
 }
 
 /**
