@@ -104,6 +104,7 @@ else version(IntegrationTest2)
 {
     import std.getopt;
     import std.stdio;
+    import std.exception;
     import stdlog;
     import db.pq.libpq;
     import db.pq.connection;
@@ -142,9 +143,23 @@ else version(IntegrationTest2)
         scope(failure) pool.finalize();
         logger.logInfo("AssyncPool was created.");
         
-        pool.addServer(connString, connCount);
-        logger.logInfo(text(connCount, " new connections were added to the pool."));
+        pool.addServer(connString, 1);
+        logger.logInfo(text(1, " new connections were added to the pool."));
         
+        logger.logInfo("Testing rollback...");
+        assertThrown(pool.execTransaction(["select * from;"]));
+        
+        try
+        {
+            pool.execTransaction(["select 42::int8 as test_field;"]);
+        } catch(QueryProcessingException e)
+        {
+            assert(false, "Transaction wasn't rollbacked! All queries after block are ignored!");
+        }
+        
+        pool.addServer(connString, connCount-1);
+        logger.logInfo(text(connCount-1, " new connections were added to the pool."));
+        logger.logInfo("Testing binary protocol...");
         try
         {
             testConvertions(logger, pool);
