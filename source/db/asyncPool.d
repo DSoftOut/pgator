@@ -32,7 +32,7 @@
 module db.asyncPool;
 
 import log;
-import db.pool;
+public import db.pool;
 import db.connection;
 import db.pq.api;
 import derelict.pq.pq;
