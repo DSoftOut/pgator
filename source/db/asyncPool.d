@@ -171,7 +171,9 @@ class AsyncPool : IConnectionPool
     *
     *   Throws: ConnTimeoutException, QueryProcessingException
     */
-    InputRange!(immutable Bson) execTransaction(string[] commands, string[] params, uint[] argnums, string[string] vars) shared
+    InputRange!(immutable Bson) execTransaction(string[] commands
+        , string[] params = [], uint[] argnums = []
+        , string[string] vars = AssociativeArray!(string, string)()) shared
     {
         ///TODO: move to contract when issue with contracts is fixed
         assert(!finalized, "Pool was finalized!");
@@ -192,7 +194,9 @@ class AsyncPool : IConnectionPool
     *   See_Also: isTransactionReady, getTransaction.
     *   Throws: ConnTimeoutException
     */
-    immutable(ITransaction) postTransaction(string[] commands, string[] params, uint[] argnums, string[string] vars) shared
+    immutable(ITransaction) postTransaction(string[] commands
+        , string[] params = [], uint[] argnums = []
+        , string[string] vars = AssociativeArray!(string, string)()) shared
     {
         ///TODO: move to contract when issue with contracts is fixed
         assert(!finalized, "Pool was finalized!");
