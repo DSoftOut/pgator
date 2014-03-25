@@ -148,6 +148,7 @@ else version(IntegrationTest2)
         
         logger.logInfo("Testing rollback...");
         assertThrown(pool.execTransaction(["select * from;"]));
+        
         try
         {
             pool.execTransaction(["select 42::int8 as test_field;"]);

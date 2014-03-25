@@ -901,6 +901,8 @@ class AsyncPool : IConnectionPool
                     bool transStarted = false;
                     bool transEnded = false;
                     bool commandPosting = false;
+                    bool rollbackNeeded = false;
+                    bool rollbacked = false;
                }
                
                enum Stage
@@ -928,100 +930,88 @@ class AsyncPool : IConnectionPool
                {
                    assert(stage == Stage.MoreQueries); 
                    
-                   if(!transStarted)
+                   void wrapError(void delegate() func, bool startRollback = true)
                    {
-                       transStarted = true; 
-                       try conn.postQuery("BEGIN;", []);
+                       try func();
                        catch(QueryException e)
                        {
-                           respond = Respond(e);                
-                           stage = Stage.Finished;
+                           respond = Respond(e);         
+                           if(startRollback)
+                           {       
+                               rollbackNeeded = true; 
+                               stage = Stage.MoreQueries;
+                           } else
+                           {
+                                stage = Stage.Finished;
+                           }
                            return;
                        }
                        catch (Exception e)
                        {
                            respond = Respond(new QueryException("Internal error: "~e.msg));
-                           stage = Stage.Finished;
+                           if(startRollback)
+                           {       
+                               rollbackNeeded = true;
+                               stage = Stage.MoreQueries;
+                           } else
+                           {
+                                stage = Stage.Finished;
+                           }
                            return;
                        }
-                       stage = Stage.Proccessing;                
+                       
+                       stage = Stage.Proccessing;   
+                   }
+                   
+                   if(rollbackNeeded)
+                   {
+                       wrapError((){ conn.postQuery("rollback;", []); }, false);
+                       rollbacked = true;
+                       return;
+                   }
+                   
+                   if(!transStarted)
+                   {
+                       transStarted = true; 
+                       wrapError((){ conn.postQuery("begin;", []); });            
                        return;
                    }
                    
                    if(localVars < varsQueries.length)
                    {
-                       try 
-                       {    
-                           conn.postQuery(varsQueries[localVars], []); 
-                           localVars++; 
-                       }
-                       catch (QueryException e)
-                       {
-                          respond = Respond(e);                
-                          stage = Stage.Finished;
-                          return;
-                       }
-                       catch (Exception e)
-                       {
-                           respond = Respond(new QueryException("Internal error: "~e.msg));
-                           stage = Stage.Finished;
-                           return;
-                       }
-                       stage = Stage.Proccessing;                
+                       wrapError(()
+                           { 
+                               conn.postQuery(varsQueries[localVars], []); 
+                               localVars++;
+                           });              
                        return;
                    }
                    
                    if(transactPos < transaction.commands.length)
                    {
                        commandPosting = true;
-                       try 
-                       {
-                           assert(transactPos < transaction.commands.length);
-                           auto query = transaction.commands[transactPos];
-                           
-                           assert(transactPos < transaction.argnums.length);
-                           assert(transaction.argnums[transactPos] + paramsPassed <= transaction.params.length);
-                           auto params = transaction.params[paramsPassed .. paramsPassed + transaction.argnums[transactPos]].dup;
-                           
-                           conn.postQuery(query, params);  
-                           
-                           paramsPassed += transaction.argnums[transactPos];
-                           transactPos++; 
-                       }
-                       catch (QueryException e)
-                       {
-                          respond = Respond(e);                
-                          stage = Stage.Finished;
-                          return;
-                       }
-                       catch (Exception e)
-                       {
-                           respond = Respond(new QueryException("Internal error: "~e.msg));
-                           stage = Stage.Finished;
-                           return;
-                       }
-                       stage = Stage.Proccessing;                
+                       wrapError(()
+                           { 
+                               assert(transactPos < transaction.commands.length);
+                               auto query = transaction.commands[transactPos];
+                               
+                               assert(transactPos < transaction.argnums.length);
+                               assert(transaction.argnums[transactPos] + paramsPassed <= transaction.params.length);
+                               auto params = transaction.params[paramsPassed .. paramsPassed + transaction.argnums[transactPos]].dup;
+                               
+                               conn.postQuery(query, params);  
+                               
+                               paramsPassed += transaction.argnums[transactPos];
+                               transactPos++; 
+                           });             
                        return;
                    }
                    
                    if(!transEnded)
                    {
                        commandPosting = false;
-                       transEnded = true; 
-                       try conn.postQuery("COMMIT;", []);
-                       catch(QueryException e)
-                       {
-                           respond = Respond(e);                
-                           stage = Stage.Finished;
-                           return;
-                       }
-                       catch (Exception e)
-                       {
-                           respond = Respond(new QueryException("Internal error: "~e.msg));
-                           stage = Stage.Finished;
-                           return;
-                       }
-                       stage = Stage.Proccessing;                
+                       transEnded = true;
+                       wrapError((){ conn.postQuery("commit;", []); });           
                        return;
                    }
                    
@@ -1030,7 +1020,11 @@ class AsyncPool : IConnectionPool
                
                private bool hasMoreQueries()
                {
-                   return !transStarted || !transEnded || localVars < varsQueries.length || transactPos < transaction.commands.length;
+                    if(!rollbackNeeded)
+                    {
+                        return !transStarted || !transEnded || localVars < varsQueries.length || transactPos < transaction.commands.length;
+                    }
+                    return !rollbacked;
                }
                
                private bool needCollectResult()
@@ -1054,13 +1048,13 @@ class AsyncPool : IConnectionPool
                            catch(QueryException e)
                            {
                                respond = Respond(e);
-                               stage = Stage.Finished;
+                               rollbackNeeded = true;
                                return;
                            } 
                            catch (Exception e)
                            {
                                respond = Respond(new QueryException("Internal error: "~e.msg));
-                               stage = Stage.Finished;
+                               rollbackNeeded = true;
                                return;
                            }
                            break;
@@ -1069,12 +1063,18 @@ class AsyncPool : IConnectionPool
                        {
                            try 
                            {
+                               if(rollbackNeeded)
+                               {
+                                   rollbacked = true;
+                               }
+                               
                                auto resList = conn.getQueryResult;
                                if(needCollectResult) 
                                {
                                    if(!respond.collect(resList, conn))
                                    {
-                                       stage = Stage.Finished;
+                                       rollbackNeeded = true;  
+                                       stage = Stage.MoreQueries;
                                        return;
                                    }
                                } else // setting vars can fail
@@ -1085,7 +1085,8 @@ class AsyncPool : IConnectionPool
                                           res.resultStatus != ExecStatusType.PGRES_COMMAND_OK)
                                        {
                                            respond = Respond(new QueryException(res.resultErrorMessage));
-                                           stage = Stage.Finished;                            
+                                           rollbackNeeded = true;  
+                                           stage = Stage.MoreQueries;                         
                                            return;
                                        }
                                    }
@@ -1101,13 +1102,15 @@ class AsyncPool : IConnectionPool
                            catch(QueryException e)
                            {
                                respond = Respond(e);
-                               stage = Stage.Finished;                            
+                               rollbackNeeded = true;  
+                               stage = Stage.MoreQueries;                          
                                return;
                            } 
                            catch (Exception e)
                            {
                                respond = Respond(new QueryException("Internal error: "~e.msg));
-                               stage = Stage.Finished;
+                               rollbackNeeded = true; 
+                               stage = Stage.MoreQueries; 
                                return;
                            }
                            break;
