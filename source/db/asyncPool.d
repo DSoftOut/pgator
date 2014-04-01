@@ -522,7 +522,7 @@ class AsyncPool : IConnectionPool
                       exception = res.resultErrorMessage;
                       return false;
                   }
-                  result ~= cast(immutable)res.asColumnBson(conn);
+                  result ~= res.asColumnBson(conn);
                   res.clear();
                }
                return true;

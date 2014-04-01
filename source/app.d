@@ -219,8 +219,12 @@ else
 	import daemon;
 	import terminal;
 	
-	alias Tuple!(immutable AppConfig, "config", immutable Options, "options") LoadedConfig;
-	
+	immutable struct LoadedConfig
+    {
+        AppConfig config;
+        Options options;
+    }
+    
 	LoadedConfig loadConfig(immutable Options options)
 	{
         if(options.configName != "")
