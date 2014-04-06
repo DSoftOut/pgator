@@ -18,8 +18,7 @@ import db.pool;
 import db.asyncPool;
 import db.pq.libpq;
 import db.pq.connection;
-import log;
-import stdlog;
+import dlogg.strict;
 
 class RpcClient(T...)
 {
@@ -29,7 +28,7 @@ class RpcClient(T...)
         this.serverPid = serverPid;
         api = new RestInterfaceClient!IRpcApi(host);
         
-        logger = new shared CLogger("rpc-client.log");
+        logger = new shared StrictLogger("rpc-client.log");
         
         auto postgresApi = new shared PostgreSQL();
         auto connProvider = new shared PQConnProvider(logger, postgresApi);

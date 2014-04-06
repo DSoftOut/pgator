@@ -32,7 +32,7 @@ import server.cache;
 import server.config;
 import server.sql_json;
 
-import log;
+import dlogg.log;
 import util;
 
 
