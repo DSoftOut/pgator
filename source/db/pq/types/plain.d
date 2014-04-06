@@ -198,8 +198,8 @@ version(IntegrationTest2)
     import std.encoding;
     import std.math;
     import vibe.data.bson;
-    import log;
-    import bufflog;
+    import dlogg.log;
+    import dlogg.buffered;
     
      void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
          if(type == PQType.Bool)

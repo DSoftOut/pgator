@@ -19,8 +19,8 @@ import std.math;
 import vibe.data.bson;
 import derelict.pq.pq;
 import db.pool;
-import log;
-import bufflog;
+import dlogg.log;
+import dlogg.buffered;
 
 T id(T)(T val) {return val;}
 

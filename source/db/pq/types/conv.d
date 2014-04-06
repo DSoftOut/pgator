@@ -220,7 +220,7 @@ Bson pqToBson(PQType type, ubyte[] val, shared IConnection conn)
 version(IntegrationTest2)
 {
     import db.pool;
-    import log;
+    import dlogg.log;
     
     void testConvertions(shared ILogger logger, shared IConnectionPool pool)
     {
