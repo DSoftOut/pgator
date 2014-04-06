@@ -275,8 +275,8 @@ version(IntegrationTest2)
     import std.algorithm;
     import std.encoding;
     import std.math;
-    import log;
-    import bufflog;
+    import dlogg.log;
+    import dlogg.buffered;
     
     void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.MacAddress)

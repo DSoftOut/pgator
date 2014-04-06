@@ -635,8 +635,8 @@ version(IntegrationTest2)
     import std.random;
     import std.algorithm;
     import std.encoding;
-    import log;
-    import bufflog;
+    import dlogg.log;
+    import dlogg.buffered;
     
     void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
         if(type == PQType.Date)

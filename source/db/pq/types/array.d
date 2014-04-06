@@ -95,7 +95,7 @@ version(IntegrationTest2)
     import std.array;
     import std.random;
     import std.math;
-    import log;
+    import dlogg.log;
     
     string convertArray(T)(T[] ts)
     {

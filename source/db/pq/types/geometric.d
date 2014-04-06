@@ -226,7 +226,7 @@ version(IntegrationTest2)
     import db.pool;
     import std.random;
     import std.algorithm;
-    import log;
+    import dlogg.log;
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Point)
