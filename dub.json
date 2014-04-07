@@ -1,0 +1,33 @@
+{
+    "name": "pgator-backend",
+    "description": "Lightweight wrapper for PostgreSQL with binary protocol convertion to BSON and asynchronous connection pool",
+    "copyright": "Copyright © 2014, DSoftOut",
+    "license": "MIT",
+    "authors": [
+        "Anton Gushcha (NCrashed <ncrashed@gmail.com>)"
+       ,"Shamyan Roman (Zaramzan <shamyan.roman@gmail.com>)"
+       ,"denizzzka"
+       ],
+    "dependencies": {
+        "vibe-d" : "~master",
+        "derelict-pq": "~master",
+        "dunit": ">=1.0.0-beta",
+        "dlogg": ">=0.1.0"
+    }
+    "configurations": [
+        {
+            "name": "production",
+            "targetType": "library"
+        },
+        {
+            "name": "test1",
+            "targetType": "executable",
+            "versions": ["IntegrationTest1"]
+        },
+        {
+            "name": "test2",
+            "targetType": "executable",
+            "versions": ["IntegrationTest2"]
+        }
+    ]
+}
