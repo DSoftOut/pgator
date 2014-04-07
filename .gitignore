@@ -1,1 +1,11 @@
 /.project
+.dub
+.externalToolBuilders
+.buildpath
+.settings
+logs
+pgator-backend
+__test__production__
+*.a
+*.lib
+
