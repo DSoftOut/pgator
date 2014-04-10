@@ -359,6 +359,11 @@ shared interface IPostgreSQL
     shared(IPGconn) startConnect(string conninfo);
     
     /**
+    *   Prototype: PQping
+    */
+    PGPing ping(string conninfo) nothrow;
+    
+    /**
     *   Should be called to free libpq resources. The method
     *   unloads library from application memory.
     */

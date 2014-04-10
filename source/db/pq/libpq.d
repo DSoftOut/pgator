@@ -604,6 +604,19 @@ synchronized class PostgreSQL : IPostgreSQL
         return new shared CPGconn(conn);
     }
     
+    /**
+    *   Prototype: PQping
+    */
+    PGPing ping(string conninfo) nothrow
+    in
+    {
+        assert(PQping !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return PQping(cast(char*)conninfo.toStringz);
+    }
+    
     protected
     {
         /**
