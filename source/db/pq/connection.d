@@ -47,6 +47,7 @@ synchronized class PQConnection : IConnection
         {
             conn = api.startConnect(connString);
             reconnecting = false;
+            lastConnString = connString;
         } catch(PGException e)
         {
             logger.logError(text("Failed to connect to SQL server, reason:", e.msg));
@@ -69,8 +70,14 @@ synchronized class PQConnection : IConnection
         
         try
         {
-            conn.resetStart();
-            reconnecting = true;
+            /// reset cannot reset connection with restarted postgres server
+            /// replaced with plain connect for now
+            /// see issue #57 fo more info
+            //conn.resetStart();
+            //reconnecting = true;
+            
+            conn = api.startConnect(lastConnString);
+            reconnecting = false;
         } catch(PGReconnectException e)
         {
             logger.logError(text("Failed to reconnect to SQL server, reason:", e.msg));
@@ -333,6 +340,7 @@ synchronized class PQConnection : IConnection
     private
     {
         bool reconnecting = false;
+        string lastConnString;
         shared ILogger logger;
         shared IPostgreSQL api;
         shared IPGconn conn;
