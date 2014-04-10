@@ -255,7 +255,7 @@ shared class Database
 	private void init() //called once
 	{
 		Duration timeout = dur!"msecs"(appConfig.sqlTimeout);
-		
+		Duration aliveCheckTime = dur!"msecs"(appConfig.aliveCheckTime);
 		Duration reTime;
 		
 		if (appConfig.sqlReconnectTime > 0)
@@ -270,7 +270,7 @@ shared class Database
 		api = new shared PostgreSQL();
 		auto provider = new shared PQConnProvider(logger, api);
 		
-		pool = new shared AsyncPool(logger, provider, reTime, timeout);
+		pool = new shared AsyncPool(logger, provider, reTime, timeout, aliveCheckTime);
 	}
 	
 	private

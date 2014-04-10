@@ -45,6 +45,9 @@ struct AppConfig
 	@required
 	uint sqlTimeout; //ms
 	
+	@possible
+	uint aliveCheckTime = 3000; //ms
+	
 	@required
 	string sqlJsonTable;
 	

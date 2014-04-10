@@ -259,6 +259,23 @@ interface IConnection
     immutable(TimeZone) timeZone() @property;
     
     /**
+    *   Sending senseless query to the server to check if the connection is
+    *   actually alive (e.g. nothing can detect fail after postgresql restart but
+    *   query).
+    */
+    final bool testAlive() nothrow
+    {
+        try
+        {
+            execQuery("SELECT 1;");
+        } catch(Exception e)
+        {
+            return false;
+        }
+        return true;
+    }
+    
+    /**
     *   Blocking wrapper to one-command query execution.
     */
     final DList!(shared IPGresult) execQuery(string com, string[] params = [])

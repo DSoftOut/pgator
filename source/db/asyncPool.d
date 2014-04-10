@@ -55,16 +55,17 @@ import vibe.data.bson;
 */
 class AsyncPool : IConnectionPool
 {
-    this(shared ILogger logger, shared IConnectionProvider provider, Duration pReconnectTime, Duration pFreeConnTimeout) shared
+    this(shared ILogger logger, shared IConnectionProvider provider, Duration pReconnectTime, Duration pFreeConnTimeout, Duration pAliveCheckTime) shared
     {
         this.logger = logger;
         this.provider = provider;
 
         mReconnectTime   = pReconnectTime;
         mFreeConnTimeout = pFreeConnTimeout;      
+        mAliveCheckTime  = pAliveCheckTime;
         
         ids = shared ThreadIds(  spawn(&closedChecker, logger, reconnectTime)
-                        , spawn(&freeChecker, logger, reconnectTime)
+                        , spawn(&freeChecker, logger, reconnectTime, aliveCheckTime)
                         , spawn(&connectingChecker, logger, reconnectTime)
                         , spawn(&queringChecker, logger));
 
@@ -318,6 +319,21 @@ class AsyncPool : IConnectionPool
     }
     
     /**
+    *   Free connections are checked over the time by
+    *   sending senseless queries. Don't make this time
+    *   too small - huge overhead for network. Don't make
+    *   this time too big - you wouldn't able to detect
+    *   failed connections due server restarting or e.t.c.
+    */
+    Duration aliveCheckTime() @property shared
+    {
+        ///TODO: move to contract when issue with contracts is fixed
+        assert(!finalized, "Pool was finalized!");
+        
+        return mAliveCheckTime;
+    }
+    
+    /**
     *   Returns current alive connections number.
     *   Warning: The method displays count of active connections at the moment,
     *            returned value can become invalid as soon as it returned due
@@ -505,6 +521,7 @@ class AsyncPool : IConnectionPool
        IConnectionProvider provider;
        Duration mReconnectTime;
        Duration mFreeConnTimeout;
+       Duration mAliveCheckTime;
        
        /// Worker returns this as query result
        struct Respond
@@ -706,7 +723,7 @@ class AsyncPool : IConnectionPool
            }
        }
        
-       static void freeChecker(shared ILogger logger, Duration reconnectTime)
+       static void freeChecker(shared ILogger logger, Duration reconnectTime, Duration aliveCheckTime)
        {
            try 
            {
@@ -717,6 +734,7 @@ class AsyncPool : IConnectionPool
                ConnectionList list;
                auto ids = ThreadIds.receive();
                Tid exitTid;
+               auto nextCheckTime = Clock.currSystemTick + cast(TickDuration)aliveCheckTime;
                           
                bool exit = false;
                while(!exit)
@@ -759,23 +777,44 @@ class AsyncPool : IConnectionPool
                        , (Variant v) { assert(false, "Unhandled message!"); }
                    )) {}
                    
+                   bool checkAlive = Clock.currSystemTick > nextCheckTime;
                    foreach(conn; list)
                    {
+                       void processFailedConn()
+                       {
+                           
+                           logger.logInfo(text("Will retry to connect to server over "
+                                   , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds."));
+                           list.removeOne(conn);
+                       
+                           TickDuration whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
+                           ids.closedCheckerId.send("add", conn, whenRetry);
+                       }
+                       
                        if(conn.pollConnectionStatus == ConnectionStatus.Error)
                        {
                            try conn.pollConnectionException();
                            catch(ConnectException e)
                            {
                                logger.logError(e.msg);
-                               logger.logInfo(text("Will retry to connect to ", e.server, " over "
-                                       , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds."));
-                               list.removeOne(conn);
-                           
-                               TickDuration whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
-                               ids.closedCheckerId.send("add", conn, whenRetry);
+                               processFailedConn();
+                           }
+                       }
+                       
+                       if(checkAlive)
+                       {
+                           if(!conn.testAlive)
+                           {
+                               logger.logError("Connection test on its aliveness is failed!");
+                               processFailedConn();
                            }
                        }
                    }
+                   
+                    if(checkAlive)
+                    {
+                        nextCheckTime = Clock.currSystemTick + cast(TickDuration)aliveCheckTime;
+                    }
                }
                
                // also compiler don't allow to put this in scope(exit)
