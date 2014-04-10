@@ -79,6 +79,7 @@ shared class Application
 	/// restart the server
 	/**
 	*  Recreates new application object with refreshed config.
+	*  New app reuses old logger, old application is terminated.
 	*/
 	shared(Application) restart()
     in
@@ -90,9 +91,9 @@ shared class Application
         try
         {
             auto newConfig = immutable AppConfig(options.configName);
-            auto newLogger = new shared CLogger(newConfig.logname);
+            finalize(false);
             
-            return new shared Application(newLogger, options, newConfig);
+            return new shared Application(mLogger, options, newConfig);
         }
         catch(InvalidConfig e)
         {
@@ -107,15 +108,18 @@ shared class Application
 	}
 	
 	/**
-	* Stops the server from any thread
+	*  Stops the server from any thread.
+	*  Params:
+	*  finalizeLog = if true, then inner logger wouldn't be finalized
 	*/
-	void finalize()
+	void finalize(bool finalizeLog = true)
 	{
 	    if(finalized) return;
 	    
 	    scope(exit) 
 	    {
-	        logger.finalize();
+	        if(finalizeLog)
+	            logger.finalize();
 	        finalized = true;
         }
 		logger.logDebug("Called finalize");
