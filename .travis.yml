@@ -1,9 +1,6 @@
 language: d
 
-#compiler:
-#  - did
-
-adorns:
+addons:
   postgresql: 9.3
 
 services: postgresql
