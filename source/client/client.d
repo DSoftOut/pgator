@@ -34,7 +34,7 @@ class RpcClient(T...)
         auto postgresApi = new shared PostgreSQL();
         auto connProvider = new shared PQConnProvider(logger, postgresApi);
         
-        pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5));
+        pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5), dur!"seconds"(3));
         
         pool.addServer(connString, 2);
     }

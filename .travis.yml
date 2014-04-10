@@ -1,9 +1,9 @@
 language: d
 
 #compiler:
-#  - dmd
+#  - did
 
-addons:
+adorns:
   postgresql: 9.3
 
 services: postgresql
@@ -31,7 +31,6 @@ script:
   - ./bin/pgator --conn="dbname=pgator-test user=postgres"
   - dub build --config=test2 
   - ./bin/pgator --conn="dbname=pgator-test user=postgres"
-  # dub --config=unittest --build=unittest
-  - dub --build=unittest
+  - dub test
   - dub build --build=debug
   - dub build --build=release

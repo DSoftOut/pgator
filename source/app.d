@@ -38,10 +38,7 @@ import stdlog;
 
 version(unittest)
 {
-	void main()
-	{
-		
-	}
+
 }
 else version(IntegrationTest1)
 {
@@ -81,7 +78,7 @@ else version(IntegrationTest1)
         logger.logInfo("PostgreSQL was inited.");
         auto connProvider = new shared PQConnProvider(logger, api);
         
-        auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(5), dur!"seconds"(5));
+        auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(5), dur!"seconds"(5), dur!"seconds"(3));
         scope(exit) pool.finalize();
         logger.logInfo("AssyncPool was created.");
         
@@ -139,7 +136,7 @@ else version(IntegrationTest2)
         logger.logInfo("PostgreSQL was inited.");
         auto connProvider = new shared PQConnProvider(logger, api);
         
-        auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5));
+        auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5), dur!"seconds"(3));
         scope(failure) pool.finalize();
         logger.logInfo("AssyncPool was created.");
         

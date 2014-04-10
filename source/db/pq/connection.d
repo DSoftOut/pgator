@@ -193,6 +193,23 @@ synchronized class PQConnection : IConnection
     }
     
     /**
+    *   Sending senseless query to the server to check if the connection is
+    *   actually alive (e.g. nothing can detect fail after postgresql restart but
+    *   query).
+    */    
+    bool testAlive() nothrow
+    {
+        try
+        {
+            execQuery("SELECT 1;");
+        } catch(Exception e)
+        {
+            return false;
+        }
+        return true;
+    }
+    
+    /**
     *   If quering process is ended with error state, then
     *   throws QueryException, else do nothing.
     *

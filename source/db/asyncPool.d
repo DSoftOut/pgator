@@ -1337,6 +1337,11 @@ version(unittest)
             return UTC(); 
         }
         
+        bool testAlive() shared nothrow
+        {
+            return true;
+        }
+        
         protected ConnectionStatus currConnStatus;
         protected QueringStatus currQueringStatus;
         
@@ -1406,7 +1411,7 @@ unittest
     
     shared IConnectionProvider provider = new shared LocalProvider();
    
-    auto pool = new shared AsyncPool(logger, provider, dur!"msecs"(500), dur!"msecs"(500));
+    auto pool = new shared AsyncPool(logger, provider, dur!"msecs"(500), dur!"msecs"(500), dur!"seconds"(3));
     scope(exit) pool.finalize();
     pool.addServer("noserver", n);
     
@@ -1490,7 +1495,7 @@ unittest
     
     shared IConnectionProvider provider = new shared LocalProvider();
     
-    auto pool = new shared AsyncPool(logger, provider, dur!"seconds"(100), dur!"seconds"(100));
+    auto pool = new shared AsyncPool(logger, provider, dur!"seconds"(100), dur!"seconds"(100), dur!"seconds"(3));
     scope(exit) pool.finalize();
     pool.addServer("noserver", n);
     
@@ -1582,7 +1587,7 @@ unittest
     }
     
     shared IConnectionProvider provider = new shared LocalProvider();
-    auto pool = new shared AsyncPool(logger, provider, dur!"msecs"(100), dur!"msecs"(100));
+    auto pool = new shared AsyncPool(logger, provider, dur!"msecs"(100), dur!"msecs"(100), dur!"seconds"(3));
     scope(exit) pool.finalize();
     pool.addServer("noserver", n);
     
