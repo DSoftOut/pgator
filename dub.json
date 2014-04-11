@@ -37,6 +37,10 @@
 			"targetType": "executable",
 			"targetName": "pgator-client",
 			"versions": ["RpcClient"]
+		},
+		{
+		    "name": "unittest",
+		    "targetType": "executable"
 		}
 	]
 }

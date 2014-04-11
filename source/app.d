@@ -38,7 +38,7 @@ import stdlog;
 
 version(unittest)
 {
-
+    void main() {}
 }
 else version(IntegrationTest1)
 {
