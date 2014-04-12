@@ -3,4 +3,6 @@ rdmd bootDoc/generate.d ../source \
 -I~/.dub/packages/openssl-master \
 -I~/.dub/packages/derelict-pq-master/source \
 -I~/.dub/packages/derelict-util-1.0.0/source \
--I~/.dub/packages/dunit-1.0.8/source
+-I~/.dub/packages/dunit-1.0.9/source \
+-I~/.dub/packages/dlogg-0.1.0/source
+

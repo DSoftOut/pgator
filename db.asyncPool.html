@@ -59,10 +59,7 @@
 	<ul id="module-list-source" class="hidden">
 		
 	<li class="sidebar-list-entry tree-leaf"><a href="app.html" title="app"><i class="icon-th"></i>app</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="bufflog.html" title="bufflog"><i class="icon-th"></i>bufflog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="daemon.html" title="daemon"><i class="icon-th"></i>daemon</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="log.html" title="log"><i class="icon-th"></i>log</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="stdlog.html" title="stdlog"><i class="icon-th"></i>stdlog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="terminal.html" title="terminal"><i class="icon-th"></i>terminal</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="util.html" title="util"><i class="icon-th"></i>util</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="client.client.html" title="client.client"><i class="icon-th"></i>client.client</a></li>
@@ -127,10 +124,7 @@
 					<noscript>
 						
 	<li class="sidebar-list-entry tree-leaf"><a href="app.html" title="app"><i class="icon-th"></i>app</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="bufflog.html" title="bufflog"><i class="icon-th"></i>bufflog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="daemon.html" title="daemon"><i class="icon-th"></i>daemon</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="log.html" title="log"><i class="icon-th"></i>log</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="stdlog.html" title="stdlog"><i class="icon-th"></i>stdlog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="terminal.html" title="terminal"><i class="icon-th"></i>terminal</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="util.html" title="util"><i class="icon-th"></i>util</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="client.client.html" title="client.client"><i class="icon-th"></i>client.client</a></li>
@@ -227,7 +221,7 @@
     is dropped (or is down initially).</p>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>shared InputRange!(immutable(Bson)) <span class="symbol-target" id="execTransaction">&nbsp;</span><a class="symbol-link" href="#execTransaction">execTransaction</a>(string[] <i>commands</i>, string[] <i>params</i>, uint[] <i>argnums</i>, string[string] <i>vars</i>);
+<hr><div class="row-fluid declaration"><h3>shared InputRange!(immutable(Bson)) <span class="symbol-target" id="execTransaction">&nbsp;</span><a class="symbol-link" href="#execTransaction">execTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], uint[] <i>argnums</i> = [], string[string] <i>vars</i> = AssociativeArray!(string, string)());
 </h3></div>
 <div class="declaration-content"><dl><p>Performs several SQL <b><i>commands</i></b> on single connection
    wrapped in a transaction (BEGIN/COMMIT in PostgreSQL).
@@ -238,7 +232,7 @@
 <dt>Throws</dt><dd>ConnTimeoutException, QueryProcessingException</dd>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>shared immutable(ITransaction) <span class="symbol-target" id="postTransaction">&nbsp;</span><a class="symbol-link" href="#postTransaction">postTransaction</a>(string[] <i>commands</i>, string[] <i>params</i>, uint[] <i>argnums</i>, string[string] <i>vars</i>);
+<hr><div class="row-fluid declaration"><h3>shared immutable(ITransaction) <span class="symbol-target" id="postTransaction">&nbsp;</span><a class="symbol-link" href="#postTransaction">postTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], uint[] <i>argnums</i> = [], string[string] <i>vars</i> = AssociativeArray!(string, string)());
 </h3></div>
 <div class="declaration-content"><dl><p>Asynchronous way to execute transaction. User can check
    transaction status by calling <b>isTransactionReady</b> method.
@@ -293,6 +287,15 @@
     specified duration while trying to
     initialize SQL query, then the pool
     throws <b>ConnTimeoutException</b> exception.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>shared @property Duration <span class="symbol-target" id="aliveCheckTime">&nbsp;</span><a class="symbol-link" href="#aliveCheckTime">aliveCheckTime</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Free connections are checked over the time by
+   sending senseless queries. Don't make this time
+   too small - huge overhead for network. Don't make
+   this time too big - you wouldn't able to detect
+   failed connections due server restarting or e.t.c.</p>
 </dl>
 </div>
 <hr><div class="row-fluid declaration"><h3>shared @property size_t <span class="symbol-target" id="activeConnections">&nbsp;</span><a class="symbol-link" href="#activeConnections">activeConnections</a>();

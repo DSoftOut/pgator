@@ -59,10 +59,7 @@
 	<ul id="module-list-source" class="hidden">
 		
 	<li class="sidebar-list-entry tree-leaf"><a href="app.html" title="app"><i class="icon-th"></i>app</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="bufflog.html" title="bufflog"><i class="icon-th"></i>bufflog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="daemon.html" title="daemon"><i class="icon-th"></i>daemon</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="log.html" title="log"><i class="icon-th"></i>log</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="stdlog.html" title="stdlog"><i class="icon-th"></i>stdlog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="terminal.html" title="terminal"><i class="icon-th"></i>terminal</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="util.html" title="util"><i class="icon-th"></i>util</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="client.client.html" title="client.client"><i class="icon-th"></i>client.client</a></li>
@@ -127,10 +124,7 @@
 					<noscript>
 						
 	<li class="sidebar-list-entry tree-leaf"><a href="app.html" title="app"><i class="icon-th"></i>app</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="bufflog.html" title="bufflog"><i class="icon-th"></i>bufflog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="daemon.html" title="daemon"><i class="icon-th"></i>daemon</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="log.html" title="log"><i class="icon-th"></i>log</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="stdlog.html" title="stdlog"><i class="icon-th"></i>stdlog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="terminal.html" title="terminal"><i class="icon-th"></i>terminal</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="util.html" title="util"><i class="icon-th"></i>util</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="client.client.html" title="client.client"><i class="icon-th"></i>client.client</a></li>
@@ -211,12 +205,17 @@ Don't run at once more than one instance of server. Workaround for vibe.d lack o
 </h3></div>
 <div class="declaration-content"><dl><p><span class="symbol-target" id="restart">&nbsp;</span><a class="symbol-link" href="#restart">restart</a> the server
 </p>
-<p>Recreates new application object with refreshed config.</p>
+<p>Recreates new application object with refreshed config.
+  New app reuses old logger, old application is terminated.</p>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>shared void <span class="symbol-target" id="finalize">&nbsp;</span><a class="symbol-link" href="#finalize">finalize</a>();
+<hr><div class="row-fluid declaration"><h3>shared void <span class="symbol-target" id="finalize">&nbsp;</span><a class="symbol-link" href="#finalize">finalize</a>(bool <i>finalizeLog</i> = true);
 </h3></div>
-<div class="declaration-content"><dl><p>Stops the server from any thread</p>
+<div class="declaration-content"><dl><p>Stops the server from any thread.
+</p>
+<dt>Parameters</dt><dd><table class="table table-condensed table-bordered"><tr><td>bool <i>finalizeLog</i></td>
+<td>if <span class="d_keyword">true</span>, then inner logger wouldn't be finalized</td></tr>
+</table></dd>
 </dl>
 </div>
 <hr><div class="row-fluid declaration"><h3>shared shared(ILogger) <span class="symbol-target" id="logger">&nbsp;</span><a class="symbol-link" href="#logger">logger</a>();

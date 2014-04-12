@@ -59,10 +59,7 @@
 	<ul id="module-list-source" class="hidden">
 		
 	<li class="sidebar-list-entry tree-leaf"><a href="app.html" title="app"><i class="icon-th"></i>app</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="bufflog.html" title="bufflog"><i class="icon-th"></i>bufflog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="daemon.html" title="daemon"><i class="icon-th"></i>daemon</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="log.html" title="log"><i class="icon-th"></i>log</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="stdlog.html" title="stdlog"><i class="icon-th"></i>stdlog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="terminal.html" title="terminal"><i class="icon-th"></i>terminal</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="util.html" title="util"><i class="icon-th"></i>util</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="client.client.html" title="client.client"><i class="icon-th"></i>client.client</a></li>
@@ -127,10 +124,7 @@
 					<noscript>
 						
 	<li class="sidebar-list-entry tree-leaf"><a href="app.html" title="app"><i class="icon-th"></i>app</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="bufflog.html" title="bufflog"><i class="icon-th"></i>bufflog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="daemon.html" title="daemon"><i class="icon-th"></i>daemon</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="log.html" title="log"><i class="icon-th"></i>log</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="stdlog.html" title="stdlog"><i class="icon-th"></i>stdlog</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="terminal.html" title="terminal"><i class="icon-th"></i>terminal</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="util.html" title="util"><i class="icon-th"></i>util</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="client.client.html" title="client.client"><i class="icon-th"></i>client.client</a></li>
@@ -406,6 +400,13 @@ Will fallback to Int64 value if server protocol doesn't support acquiring of
 <dt>Note:</dt><dd>
 Will fallback to UTC value if server protocol doesn't support acquiring of
          'TimeZone' parameter or server returns invalid time zone name.</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>abstract shared nothrow bool <span class="symbol-target" id="testAlive">&nbsp;</span><a class="symbol-link" href="#testAlive">testAlive</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Sending senseless query to the server to check if the connection is
+   actually alive (e.g. nothing can detect fail after postgresql restart but
+   query).</p>
 </dl>
 </div>
 <hr><div class="row-fluid declaration"><h3>final shared DList!(shared(IPGresult)) <span class="symbol-target" id="execQuery">&nbsp;</span><a class="symbol-link" href="#execQuery">execQuery</a>(string <i>com</i>, string[] <i>params</i> = []);

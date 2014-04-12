@@ -1,9 +1,6 @@
 MODULES = 
 	$(MODULE app)
-	$(MODULE bufflog)
 	$(MODULE daemon)
-	$(MODULE log)
-	$(MODULE stdlog)
 	$(MODULE terminal)
 	$(MODULE util)
 	$(MODULE client.client)
