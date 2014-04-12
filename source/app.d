@@ -34,8 +34,6 @@
 */
 module app;
 
-import stdlog;
-
 version(unittest)
 {
     void main() {}
@@ -45,7 +43,7 @@ else version(IntegrationTest1)
     import std.getopt;
     import std.stdio;
     import std.range;
-    import stdlog;
+    import dlogg.strict;
     import db.pq.libpq;
     import db.pq.connection;
     import db.asyncPool;
@@ -71,7 +69,7 @@ else version(IntegrationTest1)
             return 0;
         }
         
-        auto logger = new shared CLogger(logName);
+        auto logger = new shared StrictLogger(logName);
         scope(exit) logger.finalize();
         
         auto api = new shared PostgreSQL();
@@ -102,7 +100,7 @@ else version(IntegrationTest2)
     import std.getopt;
     import std.stdio;
     import std.exception;
-    import stdlog;
+    import dlogg.strict;
     import db.pq.libpq;
     import db.pq.connection;
     import db.pq.types.conv;
@@ -129,7 +127,7 @@ else version(IntegrationTest2)
             return 0;
         }
         
-        auto logger = new shared CLogger(logName);
+        auto logger = new shared StrictLogger(logName);
         scope(exit) logger.finalize();
         
         auto api = new shared PostgreSQL();
@@ -230,6 +228,7 @@ else
 	
 	import daemon;
 	import terminal;
+	import dlogg.strict;
 	
 	immutable struct LoadedConfig
     {
@@ -269,7 +268,7 @@ else
 		try
 		{
 		    auto loadedConfig = loadConfig(options);
-            auto logger = new shared CLogger(loadedConfig.config.logname);
+            auto logger = new shared StrictLogger(loadedConfig.config.logname);
             auto app = new shared Application(logger, loadedConfig.options, loadedConfig.config);
             
             enum mainFunc = (string[] args)

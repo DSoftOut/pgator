@@ -12,7 +12,7 @@ import dunit.mockable;
 import derelict.pq.pq;
 import db.connection;
 import db.pq.api;
-import log;
+import dlogg.log;
 import std.algorithm;
 import std.conv;
 import std.container;

@@ -31,7 +31,7 @@
 */
 module db.asyncPool;
 
-import log;
+import dlogg.log;
 public import db.pool;
 import db.connection;
 import db.pq.api;
@@ -1256,7 +1256,7 @@ version(unittest)
     import std.stdio;
     import std.random;
     import core.thread;
-    import stdlog;
+    import dlogg.strict;
     import dunit.mockable;
     
     bool choose(float chance)
@@ -1357,7 +1357,7 @@ unittest
     scope(success) writeln("Finished!");
     scope(failure) writeln("Failed!");
     
-    auto logger = new shared CLogger("logs/asyncPool.unittest2.log");
+    auto logger = new shared StrictLogger("logs/asyncPool.unittest2.log");
     scope(exit) logger.finalize();
     logger.minOutputLevel = LoggingLevel.Muted;
     
@@ -1439,7 +1439,7 @@ unittest
     scope(success) writeln("Finished!");
     scope(failure) writeln("Failed!");
     
-    auto logger = new shared CLogger("logs/asyncPool.unittest1.log");
+    auto logger = new shared StrictLogger("logs/asyncPool.unittest1.log");
     scope(exit) logger.finalize();
     logger.minOutputLevel = LoggingLevel.Muted;
     
@@ -1523,7 +1523,7 @@ unittest
     scope(success) writeln("Finished!");
     scope(failure) writeln("Failed!");
     
-    auto logger = new shared CLogger("logs/asyncPool.unittest2.log");
+    auto logger = new shared StrictLogger("logs/asyncPool.unittest2.log");
     scope(exit) logger.finalize();
     logger.minOutputLevel = LoggingLevel.Fatal;
     

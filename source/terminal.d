@@ -16,7 +16,7 @@ import std.c.stdlib;
 import std.stdio;
 import std.conv;
 version (linux) import std.c.linux.linux;
-import log;
+import dlogg.log;
 
 private 
 {

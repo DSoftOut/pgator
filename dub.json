@@ -1,46 +1,43 @@
 {
-	"name": "pgator",
-	"description": "Server that transforms JSON-RPC calls into SQL queries for PostgreSQL",
-	"copyright": "Copyright © 2014, DSoftOut",
-	"license": "MIT",
-	"authors": [
-		 "Anton Gushcha (NCrashed <ncrashed@gmail.com>)"
-		,"Shamyan Roman (Zaramzan <shamyan.roman@gmail.com>)"
-		,"denizzzka"
-		],
-	"targetPath": "bin",
-	"versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
-	"dependencies": {
-		"vibe-d" : "~master",
-		"derelict-pq": "~master",
-		"dunit": ">=1.0.0-beta"
-	},
-	
-	"configurations": [
-		{
-			"name": "production",
-			"targetType": "executable"
-		},
-		{
-			"name": "test1",
-			"targetType": "executable",
-			"versions": ["IntegrationTest1"]
-		},
-		{
-			"name": "test2",
-			"targetType": "executable",
-			"versions": ["IntegrationTest2"]
-		},
-		{
-			"name": "testclient",
-			"description": "Simple json-rpc client to test the server",
-			"targetType": "executable",
-			"targetName": "pgator-client",
-			"versions": ["RpcClient"]
-		},
-		{
-		    "name": "unittest",
-		    "targetType": "executable"
-		}
-	]
+    "name": "pgator",
+    "description": "Server that transforms JSON-RPC calls into SQL queries for PostgreSQL",
+    "copyright": "Copyright © 2014, DSoftOut",
+    "license": "MIT",
+    "authors": [
+         "Anton Gushcha (NCrashed <ncrashed@gmail.com>)"
+        ,"Shamyan Roman (Zaramzan <shamyan.roman@gmail.com>)"
+        ,"denizzzka"
+        ],
+    "targetPath": "bin",
+    "versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
+    "dependencies": {
+        "vibe-d" : "~master",
+        "derelict-pq": "~master",
+        "dunit": ">=1.0.0-beta",
+        "dlogg": ">=0.1.0"
+    },
+    
+    "configurations": [
+        {
+            "name": "production",
+            "targetType": "executable"
+        },
+        {
+            "name": "test1",
+            "targetType": "executable",
+            "versions": ["IntegrationTest1"]
+        },
+        {
+            "name": "test2",
+            "targetType": "executable",
+            "versions": ["IntegrationTest2"]
+        },
+        {
+            "name": "testclient",
+            "description": "Simple json-rpc client to test the server",
+            "targetType": "executable",
+            "targetName": "pgator-client",
+            "versions": ["RpcClient"]
+        }
+    ]
 }

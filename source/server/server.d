@@ -36,8 +36,8 @@ import server.config;
 import server.options;
 
 import util;
-import log;
-import stdlog;
+import dlogg.log;
+import dlogg.strict;
 
 /**
 * Main program class
@@ -91,6 +91,7 @@ shared class Application
         try
         {
             auto newConfig = immutable AppConfig(options.configName);
+
             finalize(false);
             
             return new shared Application(mLogger, options, newConfig);
