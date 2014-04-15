@@ -201,7 +201,7 @@ synchronized class PQConnection : IConnection
     {
         try
         {
-            execQuery("SELECT 1;");
+            execQuery("SELECT 'pgator_ping';");
         } catch(Exception e)
         {
             return false;
