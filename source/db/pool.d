@@ -116,7 +116,7 @@ interface IConnectionPool
     */
     InputRange!(immutable Bson) execTransaction(string[] commands
         , string[] params = [], uint[] argnums = []
-        , string[string] vars = AssociativeArray!(string, string)()) shared
+        , string[string] vars = null) shared
     in
     {
         assert(commands && params && argnums, "null reference");
@@ -149,7 +149,7 @@ interface IConnectionPool
     */
     immutable(ITransaction) postTransaction(string[] commands
         , string[] params = [], uint[] argnums = []
-        , string[string] vars = AssociativeArray!(string, string)()) shared
+        , string[string] vars = null) shared
     in
     {
         assert(commands && params && argnums, "null reference");

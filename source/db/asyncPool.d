@@ -174,10 +174,17 @@ class AsyncPool : IConnectionPool
     */
     InputRange!(immutable Bson) execTransaction(string[] commands
         , string[] params = [], uint[] argnums = []
-        , string[string] vars = AssociativeArray!(string, string)()) shared
+        , string[string] vars = null) shared
     {
         ///TODO: move to contract when issue with contracts is fixed
         assert(!finalized, "Pool was finalized!");
+        
+        /// Workaround for gdc
+        if(vars is null)
+        {
+          string[string] empty;
+	  vars = empty;
+        }
         
         auto transaction = postTransaction(commands, params, argnums, vars);
         while(!isTransactionReady(transaction)) yield;
@@ -197,10 +204,17 @@ class AsyncPool : IConnectionPool
     */
     immutable(ITransaction) postTransaction(string[] commands
         , string[] params = [], uint[] argnums = []
-        , string[string] vars = AssociativeArray!(string, string)()) shared
+        , string[string] vars = null) shared
     {
         ///TODO: move to contract when issue with contracts is fixed
         assert(!finalized, "Pool was finalized!");
+        
+	/// Workaround for gdc
+        if(vars is null)
+        {
+          string[string] empty;
+	  vars = empty;
+        }
         
         if(params.length == 0 && argnums.length == 0)
         {
