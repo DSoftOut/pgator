@@ -19,7 +19,7 @@ import std.algorithm;
 import vibe.data.bson;
 
 import db.pool;
-import db.asyncPool;
+import db.async.pool;    
 import db.connection;
 import db.pq.connection;
 import db.pq.libpq;

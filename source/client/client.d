@@ -15,7 +15,7 @@ import vibe.http.rest;
 import client.rpcapi;
 import client.test.testcase;
 import db.pool;
-import db.asyncPool;
+import db.async.pool;    
 import db.pq.libpq;
 import db.pq.connection;
 import dlogg.strict;

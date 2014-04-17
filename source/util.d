@@ -18,8 +18,10 @@
 */
 module util;
 
+import std.algorithm;
 import std.string;
 import std.conv;
+import std.container;
 import std.traits;
 import std.range;
 import std.path;
@@ -606,4 +608,10 @@ unittest
         }
     }
     static assert(FieldNameTuple!S4 == ["dup"]);
+}
+
+void removeOne(T)(ref DList!T list, T elem)
+{
+   auto toRemove = list[].find(elem).take(1);
+   list.linearRemove(toRemove);
 }

@@ -46,7 +46,7 @@ else version(IntegrationTest1)
     import dlogg.strict;
     import db.pq.libpq;
     import db.pq.connection;
-    import db.asyncPool;
+    import db.async.pool;    
     import core.time;
     import core.thread;
     
@@ -104,7 +104,7 @@ else version(IntegrationTest2)
     import db.pq.libpq;
     import db.pq.connection;
     import db.pq.types.conv;
-    import db.asyncPool;
+    import db.async.pool;    
     import core.time;
     import core.thread;
     
