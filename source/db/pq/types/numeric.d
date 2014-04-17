@@ -291,7 +291,7 @@ version(IntegrationTest2)
             }
 
             logger.logInfo(query);
-            auto res = cast()pool.execTransaction([query]).front;
+            auto res = Bson.fromJson(pool.execTransaction([query]).front.toJson);
 
             logger.logInfo(text(res));
             auto node = res.get!(Bson[string])["test_field"][0];

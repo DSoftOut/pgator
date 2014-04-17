@@ -691,16 +691,16 @@ version(IntegrationTest2)
         scope(exit) logger.finalize;
         
         auto res = queryValue(logger, pool, "'Dec 20 20:45:53 1986 GMT'::abstime").deserializeBson!PGAbsTime;
-        assert(res == SysTime.fromSimpleString("1986-Dec-20 20:45:53Z"));
+        assert(res.time == SysTime.fromSimpleString("1986-Dec-20 20:45:53Z"));
         
         res = queryValue(logger, pool, "'Mar 8 03:14:04 2014 GMT'::abstime").deserializeBson!PGAbsTime;
-        assert(res == SysTime.fromSimpleString("2014-Mar-08 03:14:04Z"));
+        assert(res.time == SysTime.fromSimpleString("2014-Mar-08 03:14:04Z"));
         
         res = queryValue(logger, pool, "'Dec 20 20:45:53 1986 +3'::abstime").deserializeBson!PGAbsTime;
-        assert(res == SysTime.fromSimpleString("1986-Dec-20 20:45:53+03"));
+        assert(res.time == SysTime.fromSimpleString("1986-Dec-20 20:45:53+03"));
         
         res = queryValue(logger, pool, "'Mar 8 03:14:04 2014 +3'::abstime").deserializeBson!PGAbsTime;
-        assert(res == SysTime.fromSimpleString("2014-Mar-08 03:14:04+03"));
+        assert(res.time == SysTime.fromSimpleString("2014-Mar-08 03:14:04+03"));
         
     }
      
@@ -854,22 +854,22 @@ version(IntegrationTest2)
         scope(exit) logger.finalize;
         
         auto res = queryValue(logger, pool, "TIMESTAMP '2004-10-19 10:23:54'").deserializeBson!PGTimeStamp;
-        assert(res == SysTime.fromSimpleString("2004-Oct-19 10:23:54Z"));
+        assert(res.time == SysTime.fromSimpleString("2004-Oct-19 10:23:54Z"));
         
         res = queryValue(logger, pool, "TIMESTAMP '1999-01-08 04:05:06'").deserializeBson!PGTimeStamp;
-        assert(res == SysTime.fromSimpleString("1999-Jan-08 04:05:06Z"));
+        assert(res.time == SysTime.fromSimpleString("1999-Jan-08 04:05:06Z"));
         
         res = queryValue(logger, pool, "TIMESTAMP 'January 8 04:05:06 1999 PST'").deserializeBson!PGTimeStamp;
-        assert(res == SysTime.fromSimpleString("1999-Jan-08 04:05:06Z"));
+        assert(res.time == SysTime.fromSimpleString("1999-Jan-08 04:05:06Z"));
         
         res = queryValue(logger, pool, "TIMESTAMP 'epoch'").deserializeBson!PGTimeStamp;
-        assert(res == SysTime.fromSimpleString("1970-Jan-01 00:00:00Z"));
+        assert(res.time == SysTime.fromSimpleString("1970-Jan-01 00:00:00Z"));
         
         res = queryValue(logger, pool, "TIMESTAMP 'infinity'").deserializeBson!PGTimeStamp;
-        assert(res == SysTime.max);
+        assert(res.time == SysTime.max);
         
         res = queryValue(logger, pool, "TIMESTAMP '-infinity'").deserializeBson!PGTimeStamp;
-        assert(res == SysTime.min);
+        assert(res.time == SysTime.min);
     }
      
     void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
@@ -892,21 +892,21 @@ version(IntegrationTest2)
         scope(exit) logger.finalize;
         
         auto res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54+02'").deserializeBson!PGTimeStampWithZone;
-        assert(res == SysTime.fromSimpleString("2004-Oct-19 10:23:54+02"));
+        assert(res.time == SysTime.fromSimpleString("2004-Oct-19 10:23:54+02"));
         
         res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE '1999-01-08 04:05:06-04'").deserializeBson!PGTimeStampWithZone;
-        assert(res == SysTime.fromSimpleString("1999-Jan-08 04:05:06-04"));
+        assert(res.time == SysTime.fromSimpleString("1999-Jan-08 04:05:06-04"));
         
         res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE 'January 8 04:05:06 1999 -8:00'").deserializeBson!PGTimeStampWithZone;
-        assert(res == SysTime.fromSimpleString("1999-Jan-08 04:05:06-08"));
+        assert(res.time == SysTime.fromSimpleString("1999-Jan-08 04:05:06-08"));
         
         res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE 'epoch'").deserializeBson!PGTimeStampWithZone;
-        assert(res == SysTime.fromSimpleString("1970-Jan-01 00:00:00Z"));
+        assert(res.time == SysTime.fromSimpleString("1970-Jan-01 00:00:00Z"));
         
         res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE 'infinity'").deserializeBson!PGTimeStampWithZone;
-        assert(res == SysTime.max);
+        assert(res.time == SysTime.max);
         
         res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE '-infinity'").deserializeBson!PGTimeStampWithZone;
-        assert(res == SysTime.min);
+        assert(res.time == SysTime.min);
     }
 }
