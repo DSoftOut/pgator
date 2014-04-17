@@ -223,7 +223,7 @@ class AsyncPool : IConnectionPool
         
         auto conn = fetchFreeConnection();
         auto transaction = new immutable Transaction(commands, params, argnums, vars);
-        (cast()processingTransactions).insert(cast(shared)transaction); 
+        processingTransactions.insert(cast(shared)transaction); 
         
         ids.queringCheckerId.send(thisTid, conn, cast(shared)transaction);
         
@@ -247,7 +247,7 @@ class AsyncPool : IConnectionPool
         
         scope(failure) return true;
 
-        if((cast()processingTransactions)[].find(cast(shared)transaction).empty)
+        if(processingTransactions[].find(cast(shared)transaction).empty)
             return true; 
             
         fetchResponds();
@@ -271,14 +271,12 @@ class AsyncPool : IConnectionPool
         ///TODO: move to contract when issue with contracts is fixed
         assert(!finalized, "Pool was finalized!");
         
-        if((cast()processingTransactions)[].find(cast(shared)transaction).empty)
+        if(processingTransactions[].find(cast(shared)transaction).empty)
             throw new UnknownTransactionException();
              
         if(transaction in awaitingResponds) 
         {
-            auto tempList = (cast()processingTransactions);
-            tempList.removeOne(cast(shared)transaction);
-            processingTransactions = cast(shared)tempList;
+            processingTransactions.removeOne(cast(shared)transaction);
             
             auto respond = awaitingResponds[transaction];
             awaitingResponds.remove(transaction);
@@ -530,7 +528,7 @@ class AsyncPool : IConnectionPool
     private
     {
        shared ILogger logger;
-       shared DList!(shared ITransaction) processingTransactions;
+       __gshared DList!(shared ITransaction) processingTransactions;
        Respond[immutable ITransaction] awaitingResponds;
        IConnectionProvider provider;
        Duration mReconnectTime;
@@ -768,7 +766,8 @@ class AsyncPool : IConnectionPool
                                {
                                    auto reqTid = connRequests.front;
                                    connRequests.removeFront;
-                                   reqTid.send(thisTid, conn);
+                                   reqTid.send(thisTid, conn); /// TODO: Check case the requester is already gone
+                                                               /// then the conn is lost
                                }
                            }
                        }
@@ -1175,8 +1174,6 @@ class AsyncPool : IConnectionPool
                {
                    sender.send(thisTid, cast(shared)transaction, respond);            
                }
-               
-               private alias Tuple!(string, "query", string[], "params") RebasedQuery;
            }
            
            
@@ -1214,7 +1211,7 @@ class AsyncPool : IConnectionPool
                    )) {}
                    
                    DList!Element nextList;
-                   foreach(ref elem; list[])
+                   foreach(elem; list[])
                    {
                        final switch(elem.stage)
                        {
@@ -1222,23 +1219,23 @@ class AsyncPool : IConnectionPool
                            {
                                elem.postQuery();
                                nextList.insert(elem);
-                               break;
+                               break;             
                            }
                            case Element.Stage.Proccessing:
                            {
                                elem.stepQuery();
                                nextList.insert(elem);
-                               break;
+                               break;            
                            }
                            case Element.Stage.Finished:
                            {
                                elem.sendRespond();
-                               
                                if(exit) elem.conn.disconnect();
                                else ids.freeCheckerId.send("add", elem.conn);
                            }
                        }
                    }
+                   list.clear();
                    list = nextList;
                    last = list.length;
                }
