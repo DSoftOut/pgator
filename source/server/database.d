@@ -183,7 +183,7 @@ shared class Database
 				        "but got ", req.params.length, "!"));
 			}
 						
-			logger.logDebug("Querying pool");
+			logger.logDebug("Querying pool"); 
 			
 			try
 			{			
@@ -215,11 +215,10 @@ shared class Database
 			{
 				throw new RpcServerError(e.msg);
 			}
-
-			shared RpcResponse cacheRes = res.toShared();
 			
 			if (table.need_cache(req.method))
 			{
+			    shared RpcResponse cacheRes = res.toShared();
 				logger.logDebug("Adding to cache");
 				cache.add(req, cacheRes);
 			}
