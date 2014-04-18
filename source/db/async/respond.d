@@ -43,12 +43,14 @@ struct Respond
             {
                 failed = true;
                 exception = res.resultErrorMessage;
-                return false;
             }
-            result ~= res.asColumnBson(conn);
+            if(!failed)
+            {
+                result ~= res.asColumnBson(conn);
+            }
             res.clear();
         }
-        return true;
+        return !failed;
     }
     
     /// Flag to distinct error case from normal respond

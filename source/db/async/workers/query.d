@@ -286,6 +286,7 @@ private class Element
                         }
                     } else // setting vars can fail
                     {
+                        bool failed = false;
                         foreach(res; resList)
                         {
                             if(res.resultStatus != ExecStatusType.PGRES_TUPLES_OK &&
@@ -294,9 +295,11 @@ private class Element
                                 respond = Respond(new QueryException(res.resultErrorMessage));
                                 rollbackNeeded = true;  
                                 stage = Stage.MoreQueries;                         
-                                return;
+                                failed = true;
                             }
+                            res.clear();
                         }
+                        if(failed) return;
                     }
                                      
                     if(!hasMoreQueries)
