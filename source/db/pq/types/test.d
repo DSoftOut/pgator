@@ -36,7 +36,7 @@ Bson queryValue(shared ILogger logger, shared IConnectionPool pool, string val)
 {
     auto query = "SELECT "~val~" as test_field";
     logger.logInfo(query);
-    auto res = Bson.fromJson(pool.execTransaction([query]).front.toJson);
+    auto res = cast()pool.execTransaction([query]).front;
     
     logger.logInfo(text(res));
     return res.get!(Bson[string])["test_field"][0];

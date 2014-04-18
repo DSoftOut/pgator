@@ -133,7 +133,7 @@ private class Element
         } 
     }
        
-    private static void wrapError(alias func, bool startRollback = true)()
+    private void wrapError(void delegate() func, bool startRollback = true)
     {
         try func();
         catch(QueryException e)
@@ -172,7 +172,7 @@ private class Element
 
         if(rollbackNeeded)
         {
-            wrapError!((){ conn.postQuery("rollback;", []); }, false);
+            wrapError((){ conn.postQuery("rollback;", []); }, false);
             rollbacked = true;
             return;
         }
@@ -180,13 +180,13 @@ private class Element
         if(!transStarted)
         {
             transStarted = true; 
-            wrapError!((){ conn.postQuery("begin;", []); });            
+            wrapError((){ conn.postQuery("begin;", []); });            
             return;
         }
            
         if(localVars < varsQueries.length)
         {
-            wrapError!(()
+            wrapError(()
             { 
                 conn.postQuery(varsQueries[localVars], []); 
                 localVars++;
@@ -197,7 +197,7 @@ private class Element
         if(transactPos < transaction.commands.length)
         {
             commandPosting = true;
-            wrapError!(()
+            wrapError(()
             { 
                 assert(transactPos < transaction.commands.length);
                 auto query = transaction.commands[transactPos];
@@ -218,7 +218,7 @@ private class Element
         {
             commandPosting = false;
             transEnded = true;
-            wrapError!((){ conn.postQuery("commit;", []); });           
+            wrapError((){ conn.postQuery("commit;", []); });           
             return;
         }
            
