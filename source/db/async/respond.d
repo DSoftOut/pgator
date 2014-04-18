@@ -12,6 +12,7 @@ import db.connection;
 import db.pq.api;
 import vibe.data.bson;
 import std.container;
+import std.range;
 import derelict.pq.pq;
 
 /// Worker returns this as query result
@@ -33,7 +34,7 @@ struct Respond
     *   Transforms raw result from data base into BSON format. Also handles
     *   errors that was raised in the connection.
     */
-    bool collect(DList!(shared IPGresult) results, shared IConnection conn)
+    bool collect(InputRange!(shared IPGresult) results, shared IConnection conn)
     {
         foreach(res; results)
         {

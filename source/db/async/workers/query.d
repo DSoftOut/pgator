@@ -11,14 +11,13 @@ module db.async.workers.query;
 import dlogg.log;
 import db.connection;
 import db.async.transaction;
+import db.async.respond;
 import db.async.workers.handler;
 import std.concurrency;
 import std.container;
 import std.range;
 import core.thread;
 import derelict.pq.pq;
-
-import db.async.respond;
 
 static void queringChecker(shared ILogger logger)
 {
@@ -43,7 +42,7 @@ static void queringChecker(shared ILogger logger)
                 }
                 , (Tid sender, shared IConnection conn, shared Transaction transaction) 
                 {
-                    list.insert(Element(sender, conn, cast(immutable)transaction));
+                    list.insert(new Element(sender, conn, cast(immutable)transaction));
                 }
                 , (Tid sender, string com) 
                 {
@@ -94,7 +93,7 @@ static void queringChecker(shared ILogger logger)
     }
 }
 
-private struct Element
+private class Element
 {
     Tid sender;
     shared IConnection conn;
@@ -134,46 +133,46 @@ private struct Element
         } 
     }
        
+    private static void wrapError(alias func, bool startRollback = true)()
+    {
+        try func();
+        catch(QueryException e)
+        {
+            respond = Respond(e);         
+            if(startRollback)
+            {       
+                rollbackNeeded = true; 
+                stage = Stage.MoreQueries;
+            } else
+            {
+                stage = Stage.Finished;
+            }
+            return;
+        }
+        catch (Exception e)
+        {
+            respond = Respond(new QueryException("Internal error: "~e.msg));
+            if(startRollback)
+            {       
+                rollbackNeeded = true;
+                stage = Stage.MoreQueries;
+            } else
+            {
+                stage = Stage.Finished;
+            }
+            return;
+        }
+           
+        stage = Stage.Proccessing;   
+    }
+        
     void postQuery()
     {
         assert(stage == Stage.MoreQueries); 
-           
-        void wrapError(void delegate() func, bool startRollback = true)
-        {
-            try func();
-            catch(QueryException e)
-            {
-                respond = Respond(e);         
-                if(startRollback)
-                {       
-                    rollbackNeeded = true; 
-                    stage = Stage.MoreQueries;
-                } else
-                {
-                    stage = Stage.Finished;
-                }
-                return;
-            }
-            catch (Exception e)
-            {
-                respond = Respond(new QueryException("Internal error: "~e.msg));
-                if(startRollback)
-                {       
-                    rollbackNeeded = true;
-                    stage = Stage.MoreQueries;
-                } else
-                {
-                    stage = Stage.Finished;
-                }
-                return;
-            }
-               
-            stage = Stage.Proccessing;   
-        }
-           
+
         if(rollbackNeeded)
         {
-            wrapError((){ conn.postQuery("rollback;", []); }, false);
+            wrapError!((){ conn.postQuery("rollback;", []); }, false);
             rollbacked = true;
             return;
         }
@@ -181,13 +180,13 @@ private struct Element
         if(!transStarted)
         {
             transStarted = true; 
-            wrapError((){ conn.postQuery("begin;", []); });            
+            wrapError!((){ conn.postQuery("begin;", []); });            
             return;
         }
            
         if(localVars < varsQueries.length)
         {
-            wrapError(()
+            wrapError!(()
             { 
                 conn.postQuery(varsQueries[localVars], []); 
                 localVars++;
@@ -198,7 +197,7 @@ private struct Element
         if(transactPos < transaction.commands.length)
         {
             commandPosting = true;
-            wrapError(()
+            wrapError!(()
             { 
                 assert(transactPos < transaction.commands.length);
                 auto query = transaction.commands[transactPos];
@@ -219,7 +218,7 @@ private struct Element
         {
             commandPosting = false;
             transEnded = true;
-            wrapError((){ conn.postQuery("commit;", []); });           
+            wrapError!((){ conn.postQuery("commit;", []); });           
             return;
         }
            
@@ -275,7 +274,7 @@ private struct Element
                     {
                         rollbacked = true;
                     }
-                       
+                      
                     auto resList = conn.getQueryResult;
                     if(needCollectResult) 
                     {
@@ -287,7 +286,7 @@ private struct Element
                         }
                     } else // setting vars can fail
                     {
-                        foreach(res; resList[])
+                        foreach(res; resList)
                         {
                             if(res.resultStatus != ExecStatusType.PGRES_TUPLES_OK &&
                                res.resultStatus != ExecStatusType.PGRES_COMMAND_OK)
@@ -321,7 +320,6 @@ private struct Element
                     stage = Stage.MoreQueries; 
                     return;
                 }
-                break;
             }
         }
     }

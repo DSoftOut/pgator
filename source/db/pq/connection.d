@@ -229,7 +229,7 @@ synchronized class PQConnection : IConnection
     *   query is processed without errors, else blocks the caller
     *   until the answer is arrived.
     */
-    DList!(shared IPGresult) getQueryResult()
+    InputRange!(shared IPGresult) getQueryResult()
     in
     {
         assert(conn !is null, "Connection start wasn't established!");
@@ -248,8 +248,8 @@ synchronized class PQConnection : IConnection
             resList.insert(res);
             res = conn.getResult;
         }
-        
-        return resList;
+
+        return resList[].inputRangeObject;
     }
     
     /**
