@@ -95,8 +95,7 @@ synchronized class PQConnection : IConnection
     }
     body
     {
-        if(this in savedExceptions)
-            savedExceptions.remove(this);
+        savedException = null;
         PostgresPollingStatusType val;
         if(reconnecting) val = conn.resetPoll;
         else val = conn.poll;
@@ -113,12 +112,12 @@ synchronized class PQConnection : IConnection
                     }
                     case(ConnStatusType.CONNECTION_NEEDED):
                     {
-                        savedExceptions[this] = new ConnectException(server, "Connection wasn't tried to be established!");
+                        savedException = cast(shared)(new ConnectException(server, "Connection wasn't tried to be established!"));
                         return ConnectionStatus.Error;
                     }
                     case(ConnStatusType.CONNECTION_BAD):
                     {
-                        savedExceptions[this] = new ConnectException(server, conn.errorMessage);
+                        savedException = cast(shared)(new ConnectException(server, conn.errorMessage));
                         return ConnectionStatus.Error;
                     }
                     default:
@@ -129,7 +128,7 @@ synchronized class PQConnection : IConnection
             }
             case PostgresPollingStatusType.PGRES_POLLING_FAILED:
             {
-                savedExceptions[this] = new ConnectException(server, conn.errorMessage);
+                savedException = cast(shared)(new ConnectException(server, conn.errorMessage));
                 return ConnectionStatus.Error;
             }
             default:
@@ -147,7 +146,7 @@ synchronized class PQConnection : IConnection
     */    
     void pollConnectionException()
     {
-        if(this in savedExceptions) throw savedExceptions[this];
+        if(savedException !is null) throw cast()savedException;
     }
     
     /**
@@ -178,12 +177,11 @@ synchronized class PQConnection : IConnection
     }
     body
     {
-        if(this in savedQueryExceptions)
-            savedQueryExceptions.remove(this);
+        savedQueryException = null;
         try conn.consumeInput();
         catch (Exception e) // PGQueryException
         {
-            savedQueryExceptions[this] = new QueryException(e.msg);
+            savedQueryException = cast(shared)(new QueryException(e.msg));
             while(conn.getResult !is null) {}
             return QueringStatus.Error;
         }
@@ -201,7 +199,11 @@ synchronized class PQConnection : IConnection
     {
         try
         {
-            execQuery("SELECT 'pgator_ping';");
+            auto reses = execQuery("SELECT 'pgator_ping';");
+            foreach(res; reses)
+            {
+                res.clear();
+            }
         } catch(Exception e)
         {
             return false;
@@ -217,7 +219,7 @@ synchronized class PQConnection : IConnection
     */
     void pollQueryException()
     {
-        if (this in savedQueryExceptions) throw savedQueryExceptions[this];
+        if (savedQueryException !is null) throw cast()savedQueryException;
     }
     
     /**
@@ -225,7 +227,7 @@ synchronized class PQConnection : IConnection
     *   query is processed without errors, else blocks the caller
     *   until the answer is arrived.
     */
-    DList!(shared IPGresult) getQueryResult()
+    InputRange!(shared IPGresult) getQueryResult()
     in
     {
         assert(conn !is null, "Connection start wasn't established!");
@@ -237,15 +239,15 @@ synchronized class PQConnection : IConnection
             while(pollQueringStatus != QueringStatus.Finished) pollQueryException();
         }
         
-        DList!(shared IPGresult) resList;
+        auto builder = appender!(shared IPGresult[]);
         shared IPGresult res = conn.getResult;
         while(res !is null) 
         {
-            resList.insert(res);
+            builder.put(res);
             res = conn.getResult;
         }
         
-        return resList;
+        return builder.data[].inputRangeObject;
     }
     
     /**
@@ -265,10 +267,8 @@ synchronized class PQConnection : IConnection
         scope(failure) {}
         conn.finish;
         conn = null;
-        if(this in savedExceptions)
-            savedExceptions.remove(this);
-        if(this in savedQueryExceptions)
-            savedQueryExceptions.remove(this);
+        savedException = null;
+        savedQueryException = null;
     }
     
     /**
@@ -361,8 +361,8 @@ synchronized class PQConnection : IConnection
         shared ILogger logger;
         shared IPostgreSQL api;
         shared IPGconn conn;
-        __gshared ConnectException[shared PQConnection] savedExceptions;
-        __gshared QueryException[shared PQConnection]   savedQueryExceptions;
+        shared ConnectException savedException;
+        shared QueryException savedQueryException;
     }
     mixin Mockable!IConnection;
 }

@@ -12,6 +12,7 @@ import db.pq.api;
 import dunit.mockable;
 import std.container;
 import std.datetime;
+import std.range;
 
 /**
 *    The exception is thrown when connection attempt to SQL server is failed due some reason.
@@ -214,7 +215,7 @@ interface IConnection
     *   query is processed without errors, else blocks the caller
     *   until the answer is arrived.
     */
-    DList!(shared IPGresult) getQueryResult();
+    InputRange!(shared IPGresult) getQueryResult();
     
     /**
     *    Closes connection to the SQL server instantly.    
@@ -268,7 +269,7 @@ interface IConnection
     /**
     *   Blocking wrapper to one-command query execution.
     */
-    final DList!(shared IPGresult) execQuery(string com, string[] params = [])
+    final InputRange!(shared IPGresult) execQuery(string com, string[] params = [])
     {
         postQuery(com, params);
         
