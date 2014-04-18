@@ -547,7 +547,7 @@ version(unittest)
             throw new QueryException("Test query is failed!");
         }
         
-        DList!(shared IPGresult) getQueryResult()
+        InputRange!(shared IPGresult) getQueryResult()
         {
             assert(false, "Not used!");
         }
