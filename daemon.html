@@ -71,7 +71,14 @@
 	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.pool.html" title="db.async.pool"><i class="icon-th"></i>db.async.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.respond.html" title="db.async.respond"><i class="icon-th"></i>db.async.respond</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.transaction.html" title="db.async.transaction"><i class="icon-th"></i>db.async.transaction</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.closed.html" title="db.async.workers.closed"><i class="icon-th"></i>db.async.workers.closed</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.connecting.html" title="db.async.workers.connecting"><i class="icon-th"></i>db.async.workers.connecting</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.free.html" title="db.async.workers.free"><i class="icon-th"></i>db.async.workers.free</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.handler.html" title="db.async.workers.handler"><i class="icon-th"></i>db.async.workers.handler</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.query.html" title="db.async.workers.query"><i class="icon-th"></i>db.async.workers.query</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
@@ -136,7 +143,14 @@
 	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.pool.html" title="db.async.pool"><i class="icon-th"></i>db.async.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.respond.html" title="db.async.respond"><i class="icon-th"></i>db.async.respond</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.transaction.html" title="db.async.transaction"><i class="icon-th"></i>db.async.transaction</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.closed.html" title="db.async.workers.closed"><i class="icon-th"></i>db.async.workers.closed</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.connecting.html" title="db.async.workers.connecting"><i class="icon-th"></i>db.async.workers.connecting</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.free.html" title="db.async.workers.free"><i class="icon-th"></i>db.async.workers.free</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.handler.html" title="db.async.workers.handler"><i class="icon-th"></i>db.async.workers.handler</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.query.html" title="db.async.workers.query"><i class="icon-th"></i>db.async.workers.query</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
@@ -183,16 +197,28 @@
 </dd>
 <dt>Authors</dt><dd>NCrashed <ncrashed@gmail.com></dd>
 </dl>
-<hr><div class="row-fluid declaration"><h3>int <span class="symbol-target" id="runDaemon">&nbsp;</span><a class="symbol-link" href="#runDaemon">runDaemon</a>(shared ILogger <i>logger</i>, int delegate(string[]) <i>progMain</i>, string[] <i>args</i>, void delegate() <i>listener</i>, void delegate() <i>termListener</i>, void delegate(int) <i>usrListener</i>);
+<hr><div class="row-fluid declaration"><h3>int <span class="symbol-target" id="runDaemon">&nbsp;</span><a class="symbol-link" href="#runDaemon">runDaemon</a>(shared ILogger <i>logger</i>, int delegate(string[]) <i>progMain</i>, string[] <i>args</i>, void delegate() <i>listener</i>, void delegate() <i>termListener</i>, void delegate() <i>rotateListener</i>, string <i>pidfile</i>, string <i>lockfile</i>, int <i>groupid</i> = -1, int <i>userid</i> = -1);
 </h3></div>
 <div class="declaration-content"><dl><p>Forks daemon process with <b><i>progMain</i></b> main function and passes <b><i>args</i></b> to it. If daemon
    catches SIGHUP signal, <b><i>listener</i></b> delegate is called. If daemon catches SIGQUIT, SIGABRT,
    or any other terminating sygnal, the <i>termListener</i> is called.
 </p>
-<p>If USR1 or USR2 signal is caught, then <b><i>usrListener</i></b> is called with actual value of received signal.
+<p>If application receives "real-time" signal <b>SIGROTATE</b> defined as SIGRTMIN+10, then <b><i>rotateListener</i></b> is called
+   to handle 'logrotate' utility.
 <br><br>
 
-   Daemon writes log message into provided <b><i>logger</i></b> and will close it while exiting.</p>
+   Daemon writes log message into provided <b><i>logger</i></b> and will close it while exiting.
+<br><br>
+
+   File <b><i>pidfile</i></b> is used to write down PID of detached daemon. This file is usefull for interfacing with external
+   tools thus it is only way to know daemon PID (for this moment). This file is removed while exiting.
+<br><br>
+
+   File <b><i>lockfile</i></b> is used to track multiple daemon instances. If this file is exists, the another daemon is running
+   and pgator should exit immediately.
+<br><br>
+
+   <b><i>groupid</i></b> and <b><i>userid</i></b> are used to low privileges with run as root.</p>
 </dl>
 </div>
 

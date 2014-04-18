@@ -71,7 +71,14 @@
 	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.pool.html" title="db.async.pool"><i class="icon-th"></i>db.async.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.respond.html" title="db.async.respond"><i class="icon-th"></i>db.async.respond</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.transaction.html" title="db.async.transaction"><i class="icon-th"></i>db.async.transaction</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.closed.html" title="db.async.workers.closed"><i class="icon-th"></i>db.async.workers.closed</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.connecting.html" title="db.async.workers.connecting"><i class="icon-th"></i>db.async.workers.connecting</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.free.html" title="db.async.workers.free"><i class="icon-th"></i>db.async.workers.free</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.handler.html" title="db.async.workers.handler"><i class="icon-th"></i>db.async.workers.handler</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.query.html" title="db.async.workers.query"><i class="icon-th"></i>db.async.workers.query</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
@@ -136,7 +143,14 @@
 	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.pool.html" title="db.async.pool"><i class="icon-th"></i>db.async.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.respond.html" title="db.async.respond"><i class="icon-th"></i>db.async.respond</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.transaction.html" title="db.async.transaction"><i class="icon-th"></i>db.async.transaction</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.closed.html" title="db.async.workers.closed"><i class="icon-th"></i>db.async.workers.closed</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.connecting.html" title="db.async.workers.connecting"><i class="icon-th"></i>db.async.workers.connecting</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.free.html" title="db.async.workers.free"><i class="icon-th"></i>db.async.workers.free</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.handler.html" title="db.async.workers.handler"><i class="icon-th"></i>db.async.workers.handler</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.query.html" title="db.async.workers.query"><i class="icon-th"></i>db.async.workers.query</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
@@ -238,7 +252,7 @@ time = getTransaction(transaction).deserializeBson!PGTimeStamp;
     is dropped (or is down initially).</p>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>abstract shared InputRange!(immutable(Bson)) <span class="symbol-target" id="execTransaction">&nbsp;</span><a class="symbol-link" href="#execTransaction">execTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], uint[] <i>argnums</i> = [], string[string] <i>vars</i> = AssociativeArray!(string, string)());
+<hr><div class="row-fluid declaration"><h3>abstract shared InputRange!(immutable(Bson)) <span class="symbol-target" id="execTransaction">&nbsp;</span><a class="symbol-link" href="#execTransaction">execTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], uint[] <i>argnums</i> = [], string[string] <i>vars</i> = null);
 </h3></div>
 <div class="declaration-content"><dl><p>Performs several SQL <b><i>commands</i></b> on single connection
    wrapped in a transaction (BEGIN/COMMIT in PostgreSQL).
@@ -262,7 +276,7 @@ time = getTransaction(transaction).deserializeBson!PGTimeStamp;
 <dt>Throws</dt><dd>ConnTimeoutException, QueryProcessingException</dd>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>abstract shared immutable(ITransaction) <span class="symbol-target" id="postTransaction">&nbsp;</span><a class="symbol-link" href="#postTransaction">postTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], uint[] <i>argnums</i> = [], string[string] <i>vars</i> = AssociativeArray!(string, string)());
+<hr><div class="row-fluid declaration"><h3>abstract shared immutable(ITransaction) <span class="symbol-target" id="postTransaction">&nbsp;</span><a class="symbol-link" href="#postTransaction">postTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], uint[] <i>argnums</i> = [], string[string] <i>vars</i> = null);
 </h3></div>
 <div class="declaration-content"><dl><p>Asynchronous way to execute transaction. User can check
    transaction status by calling <b>isTransactionReady</b> method.

@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 	<meta charset="utf-8">
-	<title>db.asyncPool - pgator documentation</title>
+	<title>db.async.respond - pgator documentation</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="description" content="">
 	<meta name="author" content="">
@@ -34,7 +34,7 @@
 	
 	<!-- Introduce DDoc settings required by JavaScript -->
 	<script type="text/javascript">
-		var Title = 'db.asyncPool';
+		var Title = 'db.async.respond';
 		var SourceRepository = 'https://github.com/DSoftOut/pgator/tree/master';
 		var PackageSeparator = '.';
 	</script>
@@ -71,7 +71,14 @@
 	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.pool.html" title="db.async.pool"><i class="icon-th"></i>db.async.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.respond.html" title="db.async.respond"><i class="icon-th"></i>db.async.respond</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.transaction.html" title="db.async.transaction"><i class="icon-th"></i>db.async.transaction</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.closed.html" title="db.async.workers.closed"><i class="icon-th"></i>db.async.workers.closed</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.connecting.html" title="db.async.workers.connecting"><i class="icon-th"></i>db.async.workers.connecting</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.free.html" title="db.async.workers.free"><i class="icon-th"></i>db.async.workers.free</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.handler.html" title="db.async.workers.handler"><i class="icon-th"></i>db.async.workers.handler</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.query.html" title="db.async.workers.query"><i class="icon-th"></i>db.async.workers.query</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
@@ -106,7 +113,7 @@
 					</ul>
 					
 					<form id="gotosymbol" class="navbar-search pull-left hidden">
-						<input type="text" class="search-query" placeholder="Go to symbol in db.asyncPool" data-provide="typeahead" data-items="4">
+						<input type="text" class="search-query" placeholder="Go to symbol in db.async.respond" data-provide="typeahead" data-items="4">
 					</form>
 					
 					<p class="navbar-text pull-right"><a href="https://github.com/DSoftOut/pgator/tree/master">Github Page</a></p>
@@ -136,7 +143,14 @@
 	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.pool.html" title="db.async.pool"><i class="icon-th"></i>db.async.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.respond.html" title="db.async.respond"><i class="icon-th"></i>db.async.respond</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.transaction.html" title="db.async.transaction"><i class="icon-th"></i>db.async.transaction</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.closed.html" title="db.async.workers.closed"><i class="icon-th"></i>db.async.workers.closed</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.connecting.html" title="db.async.workers.connecting"><i class="icon-th"></i>db.async.workers.connecting</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.free.html" title="db.async.workers.free"><i class="icon-th"></i>db.async.workers.free</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.handler.html" title="db.async.workers.handler"><i class="icon-th"></i>db.async.workers.handler</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.query.html" title="db.async.workers.query"><i class="icon-th"></i>db.async.workers.query</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
@@ -155,7 +169,7 @@
 	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.request.html" title="json_rpc.request"><i class="icon-th"></i>json_rpc.request</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="json_rpc.response.html" title="json_rpc.response"><i class="icon-th"></i>json_rpc.response</a></li>
 					</noscript>
-					<li id="symbol-list" class="nav-header sidebar-list-entry hidden">db.asyncPool</li>
+					<li id="symbol-list" class="nav-header sidebar-list-entry hidden">db.async.respond</li>
 				</ul>
 				</div><!--/.well -->
 			</div><!--/span-->
@@ -164,7 +178,7 @@
 				<div class="row-fluid">
 					<div class="span11">
 						<ul id="module-breadcrumb" class="breadcrumb">
-							<noscript><h1>db.asyncPool</h1></noscript>
+							<noscript><h1>db.async.respond</h1></noscript>
 						</ul>
 						
 					</div>
@@ -173,198 +187,45 @@
 					</div>
 				</div>
 				<div id="declaration-list">
-					<!-- Generated by Ddoc from ../source/db/asyncPool.d -->
-<dl><p>Default implementation of IConnectionPool. It is consists of four worker thread that holding
-   corresponding connection lists: closed connections, connecting connections, free connections and
-   quering connections.
-</p>
-<p>Closed connections thread accepts connection to a SQL server and waits specified moment to
-   start establishing process. All failed connections are passed into the worker to try again
-   later.
-<br><br>
-
-   Connecting connections thread handles connection establishing procedure. Connection establishing
-   process is done in asynchronous way (non-blocking polling). All new connections are passed to
-   the worker. If connection is failed, it is passed to closed connections thread, else if it successes,
-   it is passed to free connections thread.
-<br><br>
-
-   Free connections thread watch after idle connections. If one want to make a query, pool asks the
-   free connections worker for one. If there is no free connection for specified amount of time,
-   timeout exception is thrown, else returned connection is binded with transaction information and
-   is sent to quering connections worker. Also free connections worker watches after health of each
-   connection, if a free connection dies, it is sent to closed connections process to try to open later.
-<br><br>
-
-   And finally the most interesting one is quering connections worker. The worker accepts all requested
-   transaction to be proceeded on a remote SQL server (several connection could be linked to different servers).
-   Worker starts the transaction, setups all needed local variables and proceeds all requested commands,
-   collects results and transfer them to pool inner queue of finished transactions. Transaction is ended with
-   "COMMIT;" before sending connection to free connections worker.
-
+					<!-- Generated by Ddoc from ../source/db/async/respond.d -->
+<dl><p>Part of asynchronous pool realization.
 </p>
 <dt>License</dt><dd>Subject to the terms of the MIT license, as written in the included LICENSE file.
 </dd>
 <dt>Authors</dt><dd>NCrashed <ncrashed@gmail.com></dd>
 </dl>
-<hr><div class="row-fluid declaration"><h3>class <span class="symbol-target" id="AsyncPool">&nbsp;</span><a class="symbol-link" href="#AsyncPool">AsyncPool</a>: db.pool.IConnectionPool;
+<hr><div class="row-fluid declaration"><h3>struct <span class="symbol-target" id="Respond">&nbsp;</span><a class="symbol-link" href="#Respond">Respond</a>;
 </h3></div>
-<div class="declaration-content"><dl><p>Describes asynchronous connection pool.</p>
+<div class="declaration-content"><dl><p>Worker returns this as query result</p>
 </dl>
-<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3>shared void <span class="symbol-target" id="addServer">&nbsp;</span><a class="symbol-link" href="#addServer">addServer</a>(string <i>connString</i>, size_t <i>connNum</i>);
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3> this(QueryException <i>e</i>);
 </h3></div>
-<div class="declaration-content"><dl><p>Adds connection string to a SQL server with
-    maximum connections count.
+<div class="declaration-content"><dl><p>Constructing from error
 </p>
-<p>The pool will try to reconnect to the sql
-    server every <b>reconnectTime</b> is connection
-    is dropped (or is down initially).</p>
+<p>The constructor is used when pool detects problem
+   at its own level. <b>collect</b> method handles other
+   cases.</p>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>shared InputRange!(immutable(Bson)) <span class="symbol-target" id="execTransaction">&nbsp;</span><a class="symbol-link" href="#execTransaction">execTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], uint[] <i>argnums</i> = [], string[string] <i>vars</i> = AssociativeArray!(string, string)());
+<hr><div class="row-fluid declaration"><h3>bool <span class="symbol-target" id="collect">&nbsp;</span><a class="symbol-link" href="#collect">collect</a>(InputRange!(shared(IPGresult)) <i>results</i>, shared IConnection <i>conn</i>);
 </h3></div>
-<div class="declaration-content"><dl><p>Performs several SQL <b><i>commands</i></b> on single connection
-   wrapped in a transaction (BEGIN/COMMIT in PostgreSQL).
-   Each command should use '$n' notation to refer <b><i>params</i></b>
-   values. Before any command occurs in transaction the
-   local SQL variables is set from <b><i>vars</i></b>.
-</p>
-<dt>Throws</dt><dd>ConnTimeoutException, QueryProcessingException</dd>
+<div class="declaration-content"><dl><p>Transforms raw result from data base into BSON format. Also handles
+   errors that was raised in the connection.</p>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>shared immutable(ITransaction) <span class="symbol-target" id="postTransaction">&nbsp;</span><a class="symbol-link" href="#postTransaction">postTransaction</a>(string[] <i>commands</i>, string[] <i>params</i> = [], uint[] <i>argnums</i> = [], string[string] <i>vars</i> = AssociativeArray!(string, string)());
+<hr><div class="row-fluid declaration"><h3>bool <span class="symbol-target" id="failed">&nbsp;</span><a class="symbol-link" href="#failed">failed</a>;
 </h3></div>
-<div class="declaration-content"><dl><p>Asynchronous way to execute transaction. User can check
-   transaction status by calling <b>isTransactionReady</b> method.
-   When <b>isTransactionReady</b> method returns <span class="d_keyword">true</span>, the
-   transaction can be finalized by <b>getTransaction</b> method.
-</p>
-<dt>Returns</dt><dd>Specific interface to distinct the query
-            among others.
-</dd>
-<dt>See Also</dt><dd>isTransactionReady, getTransaction.
-</dd>
-<dt>Throws</dt><dd>ConnTimeoutException</dd>
+<div class="declaration-content"><dl><p>Flag to distinct error case from normal respond</p>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>shared bool <span class="symbol-target" id="isTransactionReady">&nbsp;</span><a class="symbol-link" href="#isTransactionReady">isTransactionReady</a>(immutable ITransaction <i>transaction</i>);
+<hr><div class="row-fluid declaration"><h3>string <span class="symbol-target" id="exception">&nbsp;</span><a class="symbol-link" href="#exception">exception</a>;
 </h3></div>
-<div class="declaration-content"><dl><p>Returns <span class="d_keyword">true</span> if <i>transaction</i> processing is finished (doesn't
-   matter the actual reason, error or <i>transaction</i> object is invalid,
-   or successful completion).
-</p>
-<p>If the method returns <span class="d_keyword">true</span>, then <b>getTransaction</b> method
-   can be called in non-blocking manner.
-
-</p>
-<dt>See Also</dt><dd>postTransaction, getTransaction.</dd>
+<div class="declaration-content"><dl><p>Error stored in string</p>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>shared InputRange!(immutable(Bson)) <span class="symbol-target" id="getTransaction">&nbsp;</span><a class="symbol-link" href="#getTransaction">getTransaction</a>(immutable ITransaction <i>transaction</i>);
+<hr><div class="row-fluid declaration"><h3>immutable(Bson)[] <span class="symbol-target" id="result">&nbsp;</span><a class="symbol-link" href="#result">result</a>;
 </h3></div>
-<div class="declaration-content"><dl><p>Retrieves SQL result from specified <i>transaction</i>.
-</p>
-<p>If previously called <b>isTransactionReady</b> returns <span class="d_keyword">true</span>,
-   then the method is not blocking, else it falls back
-   to <b>execTransaction</b> behavior.
-
-</p>
-<dt>See Also</dt><dd>postTransaction, isTransactionReady
-</dd>
-<dt>Throws</dt><dd>UnknownTransactionException, QueryProcessingException</dd>
-</dl>
-</div>
-<hr><div class="row-fluid declaration"><h3>shared @property Duration <span class="symbol-target" id="reconnectTime">&nbsp;</span><a class="symbol-link" href="#reconnectTime">reconnectTime</a>();
-</h3></div>
-<div class="declaration-content"><dl><p>If connection to a SQL server is down,
-    the pool tries to reestablish it every
-    time units returned by the method.</p>
-</dl>
-</div>
-<hr><div class="row-fluid declaration"><h3>shared @property Duration <span class="symbol-target" id="freeConnTimeout">&nbsp;</span><a class="symbol-link" href="#freeConnTimeout">freeConnTimeout</a>();
-</h3></div>
-<div class="declaration-content"><dl><p>If there is no free connection for
-    specified duration while trying to
-    initialize SQL query, then the pool
-    throws <b>ConnTimeoutException</b> exception.</p>
-</dl>
-</div>
-<hr><div class="row-fluid declaration"><h3>shared @property Duration <span class="symbol-target" id="aliveCheckTime">&nbsp;</span><a class="symbol-link" href="#aliveCheckTime">aliveCheckTime</a>();
-</h3></div>
-<div class="declaration-content"><dl><p>Free connections are checked over the time by
-   sending senseless queries. Don't make this time
-   too small - huge overhead for network. Don't make
-   this time too big - you wouldn't able to detect
-   failed connections due server restarting or e.t.c.</p>
-</dl>
-</div>
-<hr><div class="row-fluid declaration"><h3>shared @property size_t <span class="symbol-target" id="activeConnections">&nbsp;</span><a class="symbol-link" href="#activeConnections">activeConnections</a>();
-</h3></div>
-<div class="declaration-content"><dl><p>Returns current alive connections number.
-</p>
-<dt>Warning:</dt><dd>
-The method displays count of active connections at the moment,
-            returned value can become invalid as soon as it returned due
-            async nature of the pool.</dd>
-</dl>
-</div>
-<hr><div class="row-fluid declaration"><h3>shared @property size_t <span class="symbol-target" id="inactiveConnections">&nbsp;</span><a class="symbol-link" href="#inactiveConnections">inactiveConnections</a>();
-</h3></div>
-<div class="declaration-content"><dl><p>Returns current frozen connections number.
-</p>
-<dt>Warning:</dt><dd>
-The method displays count of active connections at the moment,
-            returned value can become invalid as soon as it returned due
-            async nature of the pool.</dd>
-</dl>
-</div>
-<hr><div class="row-fluid declaration"><h3>shared void <span class="symbol-target" id="finalize">&nbsp;</span><a class="symbol-link" href="#finalize">finalize</a>();
-</h3></div>
-<div class="declaration-content"><dl><p>Awaits all queries to finish and then closes each connection.
-    Calls <b>callback</b> when connections are closed.</p>
-</dl>
-</div>
-<hr><div class="row-fluid declaration"><h3>protected shared shared(IConnection) <span class="symbol-target" id="fetchFreeConnection">&nbsp;</span><a class="symbol-link" href="#fetchFreeConnection">fetchFreeConnection</a>();
-</h3></div>
-<div class="declaration-content"><dl><p>Returns first free connection from the pool.
-</p>
-<dt>Throws</dt><dd>ConnTimeoutException</dd>
-</dl>
-</div>
-<hr><div class="row-fluid declaration"><h3>shared @property DateFormat <span class="symbol-target" id="dateFormat">&nbsp;</span><a class="symbol-link" href="#dateFormat">dateFormat</a>();
-</h3></div>
-<div class="declaration-content"><dl><p>Returns date format used in ONE OF sql servers.
-</p>
-<dt>Warning:</dt><dd>
-This method can be trust only the pool conns are connected
-            to the same sql server.
-</dd>
-<dt>TODO:</dt><dd>
-Make a way to get such configs for particular connection.</dd>
-</dl>
-</div>
-<hr><div class="row-fluid declaration"><h3>shared @property TimestampFormat <span class="symbol-target" id="timestampFormat">&nbsp;</span><a class="symbol-link" href="#timestampFormat">timestampFormat</a>();
-</h3></div>
-<div class="declaration-content"><dl><p>Returns timestamp format used in ONE OF sql servers.
-</p>
-<dt>Warning:</dt><dd>
-This method can be trust only the pool conns are connected
-            to the same sql server.
-</dd>
-<dt>TODO:</dt><dd>
-Make a way to get such configs for particular connection.</dd>
-</dl>
-</div>
-<hr><div class="row-fluid declaration"><h3>shared @property immutable(TimeZone) <span class="symbol-target" id="timeZone">&nbsp;</span><a class="symbol-link" href="#timeZone">timeZone</a>();
-</h3></div>
-<div class="declaration-content"><dl><p>Returns server time zone used in ONE OF sql servers.
-</p>
-<dt>Warning:</dt><dd>
-This method can be trusted only the pool conns are connected
-            to the same sql server.
-</dd>
-<dt>TODO:</dt><dd>
-Make a way to get such configs for particular connection.</dd>
+<div class="declaration-content"><dl><p>Collected <span class="symbol-target" id="result">&nbsp;</span><a class="symbol-link" href="#result">result</a></p>
 </dl>
 </div>
 </div>

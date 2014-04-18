@@ -71,7 +71,14 @@
 	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.pool.html" title="db.async.pool"><i class="icon-th"></i>db.async.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.respond.html" title="db.async.respond"><i class="icon-th"></i>db.async.respond</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.transaction.html" title="db.async.transaction"><i class="icon-th"></i>db.async.transaction</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.closed.html" title="db.async.workers.closed"><i class="icon-th"></i>db.async.workers.closed</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.connecting.html" title="db.async.workers.connecting"><i class="icon-th"></i>db.async.workers.connecting</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.free.html" title="db.async.workers.free"><i class="icon-th"></i>db.async.workers.free</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.handler.html" title="db.async.workers.handler"><i class="icon-th"></i>db.async.workers.handler</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.query.html" title="db.async.workers.query"><i class="icon-th"></i>db.async.workers.query</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
@@ -136,7 +143,14 @@
 	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.pool.html" title="db.async.pool"><i class="icon-th"></i>db.async.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.respond.html" title="db.async.respond"><i class="icon-th"></i>db.async.respond</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.transaction.html" title="db.async.transaction"><i class="icon-th"></i>db.async.transaction</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.closed.html" title="db.async.workers.closed"><i class="icon-th"></i>db.async.workers.closed</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.connecting.html" title="db.async.workers.connecting"><i class="icon-th"></i>db.async.workers.connecting</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.free.html" title="db.async.workers.free"><i class="icon-th"></i>db.async.workers.free</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.handler.html" title="db.async.workers.handler"><i class="icon-th"></i>db.async.workers.handler</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.query.html" title="db.async.workers.query"><i class="icon-th"></i>db.async.workers.query</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
@@ -183,6 +197,7 @@
    <li> Cheat casting functions </li>
    <li> String processing functions (the only one <b>fromStringz</b>)</li>
    <li> Introspecting templates that cannot be found in Phobos </li>
+   <li> Functional styled utilities for optional values and lazy ranges</li>
    </ul>
 
 </p>
@@ -336,6 +351,199 @@ Don't use this, if you want send object to another thread. It just dirty hack.</
 }
 
 <span class="d_keyword">static</span> <span class="d_keyword">assert</span>(<u>FieldNameTuple</u>!A == [<span class="d_string">"aField"</span>,<span class="d_string">"b"</span>,<span class="d_string">"c"</span>]);
+</pre>
+</dd>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>struct <span class="symbol-target" id="Maybe">&nbsp;</span><a class="symbol-link" href="#Maybe">Maybe</a>(T) if (is(T == class) || is(T == interface) || isPointer!T || isArray!T);
+</h3></div>
+<div class="declaration-content"><dl><p>Struct-wrapper to handle result of computations,
+   that can fail.
+</p>
+<dt>Example:</dt><dd>
+<pre class="d_code"><span class="d_keyword">class</span> A {}
+
+<span class="d_keyword">auto</span> a = <span class="d_keyword">new</span> A();
+<span class="d_keyword">auto</span> ma = <u>Maybe</u>!A(a);
+<span class="d_keyword">auto</span> mb = <u>Maybe</u>!A(<span class="d_keyword">null</span>);
+
+<span class="d_keyword">assert</span>(!ma.isNothing);
+<span class="d_keyword">assert</span>(mb.isNothing);
+
+<span class="d_keyword">assert</span>(ma.get == a);
+assertThrown!Error(mb.get);
+
+<span class="d_keyword">bool</span> ncase = <span class="d_keyword">false</span>, jcase = <span class="d_keyword">false</span>;
+ma.map(() {ncase = <span class="d_keyword">true</span>;}, (v) {jcase = <span class="d_keyword">true</span>;});
+<span class="d_keyword">assert</span>(jcase &amp;&amp; !ncase);
+
+ncase = jcase = <span class="d_keyword">false</span>;
+mb.map(() {ncase = <span class="d_keyword">true</span>;}, (v) {jcase = <span class="d_keyword">true</span>;});
+<span class="d_keyword">assert</span>(!jcase &amp;&amp; ncase);
+</pre>
+</dd>
+</dl>
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3>alias <span class="symbol-target" id="StoredType">&nbsp;</span><a class="symbol-link" href="#StoredType">StoredType</a> = T;
+</h3></div>
+<div class="declaration-content"><dl><p>Alias to stored type</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>pure  this(T <i>value</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Constructing Maybe from <b><i>value</i></b>.
+   If pointer is <b><span class="d_keyword">null</span></b> methods: <b>isNothing</b> returns <span class="d_keyword">true</span> and
+   <b>get</b> throws Error.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>Maybe!T <span class="symbol-target" id="nothing">&nbsp;</span><a class="symbol-link" href="#nothing">nothing</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Constructing empty Maybe.
+   If Maybe is created with the method, it is considred empty
+   and <b>isNothing</b> returns <span class="d_keyword">false</span>.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>const bool <span class="symbol-target" id="isNothing">&nbsp;</span><a class="symbol-link" href="#isNothing">isNothing</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns <span class="d_keyword">true</span> if stored value is <span class="d_keyword">null</span></p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>T <span class="symbol-target" id="get">&nbsp;</span><a class="symbol-link" href="#get">get</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Unwrap value from Maybe.
+   If stored value is <b><span class="d_keyword">null</span></b>, Error is thrown.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>const const(T) <span class="symbol-target" id="get">&nbsp;</span><a class="symbol-link" href="#get">get</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Unwrap value from Maybe.
+   If stored value is <b><span class="d_keyword">null</span></b>, Error is thrown.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>U <span class="symbol-target" id="map">&nbsp;</span><a class="symbol-link" href="#map">map</a>(U)(U delegate() <i>nothingCase</i>, U delegate(T) <i>justCase</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>If struct holds <b><span class="d_keyword">null</span></b>, then <b>nothingCase</b> result
+   is returned. If struct holds not <b><span class="d_keyword">null</span></b> value, then
+    result is returned. <b>justCase</b> is fed
+   with unwrapped value.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>const U <span class="symbol-target" id="map">&nbsp;</span><a class="symbol-link" href="#map">map</a>(U)(U delegate() <i>nothingCase</i>, U delegate(const T) <i>justCase</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>If struct holds <b><span class="d_keyword">null</span></b>, then <b>nothingCase</b> result
+   is returned. If struct holds not <b><span class="d_keyword">null</span></b> value, then
+    result is returned. <b>justCase</b> is fed
+   with unwrapped value.</p>
+</dl>
+</div>
+</div>
+</div>
+<hr><div class="row-fluid declaration"><h3>struct <span class="symbol-target" id="Maybe">&nbsp;</span><a class="symbol-link" href="#Maybe">Maybe</a>(T) if (is(T == struct) || isAssociativeArray!T || isBasicType!T);
+</h3></div>
+<div class="declaration-content"><dl><p>Struct-wrapper to handle result of computations,
+   that can fail.
+</p>
+<dt>Example:</dt><dd>
+<pre class="d_code"><span class="d_keyword">struct</span> A {}
+
+<span class="d_keyword">auto</span> ma = <u>Maybe</u>!A(A());
+<span class="d_keyword">auto</span> mb = <u>Maybe</u>!A.nothing;
+
+<span class="d_keyword">assert</span>(!ma.isNothing);
+<span class="d_keyword">assert</span>(mb.isNothing);
+
+<span class="d_keyword">assert</span>(ma.get == A());
+assertThrown!Error(mb.get);
+
+<span class="d_keyword">bool</span> ncase = <span class="d_keyword">false</span>, jcase = <span class="d_keyword">false</span>;
+ma.map(() {ncase = <span class="d_keyword">true</span>;}, (v) {jcase = <span class="d_keyword">true</span>;});
+<span class="d_keyword">assert</span>(jcase &amp;&amp; !ncase);
+
+ncase = jcase = <span class="d_keyword">false</span>;
+mb.map(() {ncase = <span class="d_keyword">true</span>;}, (v) {jcase = <span class="d_keyword">true</span>;});
+<span class="d_keyword">assert</span>(!jcase &amp;&amp; ncase);
+</pre>
+</dd>
+</dl>
+<div class="offset1 member-list"><hr><div class="row-fluid declaration"><h3>alias <span class="symbol-target" id="StoredType">&nbsp;</span><a class="symbol-link" href="#StoredType">StoredType</a> = T;
+</h3></div>
+<div class="declaration-content"><dl><p>Alias to stored type</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>Maybe!T <span class="symbol-target" id="nothing">&nbsp;</span><a class="symbol-link" href="#nothing">nothing</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Constructing empty Maybe.
+   If Maybe is created with the method, it is considred empty
+   and <b>isNothing</b> returns <span class="d_keyword">false</span>.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>pure  this(T <i>value</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Constructing Maybe from <b><i>value</i></b>.
+   If Maybe is created with the constructor, it is considered non empty
+   and <b>isNothing</b> returns <span class="d_keyword">false</span>.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>const bool <span class="symbol-target" id="isNothing">&nbsp;</span><a class="symbol-link" href="#isNothing">isNothing</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Returns <span class="d_keyword">true</span> if stored value is <span class="d_keyword">null</span></p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>T <span class="symbol-target" id="get">&nbsp;</span><a class="symbol-link" href="#get">get</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Unwrap value from Maybe.
+   If the Maybe is empty, Error is thrown.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>const const(T) <span class="symbol-target" id="get">&nbsp;</span><a class="symbol-link" href="#get">get</a>();
+</h3></div>
+<div class="declaration-content"><dl><p>Unwrap value from Maybe.
+   If the Maybe is empty, Error is thrown.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>U <span class="symbol-target" id="map">&nbsp;</span><a class="symbol-link" href="#map">map</a>(U)(U delegate() <i>nothingCase</i>, U delegate(T) <i>justCase</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>If struct holds <b><span class="d_keyword">null</span></b>, then <b>nothingCase</b> result
+   is returned. If struct holds not <b><span class="d_keyword">null</span></b> value, then
+    result is returned. <b>justCase</b> is fed
+   with unwrapped value.</p>
+</dl>
+</div>
+<hr><div class="row-fluid declaration"><h3>const U <span class="symbol-target" id="map">&nbsp;</span><a class="symbol-link" href="#map">map</a>(U)(U delegate() <i>nothingCase</i>, U delegate(const T) <i>justCase</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>If struct holds <b><span class="d_keyword">null</span></b>, then <b>nothingCase</b> result
+   is returned. If struct holds not <b><span class="d_keyword">null</span></b> value, then
+    result is returned. <b>justCase</b> is fed
+   with unwrapped value.</p>
+</dl>
+</div>
+</div>
+</div>
+<hr><div class="row-fluid declaration"><h3>auto <span class="symbol-target" id="generator">&nbsp;</span><a class="symbol-link" href="#generator">generator</a>(T)(Maybe!T delegate() <i>genfunc</i>);
+</h3></div>
+<div class="declaration-content"><dl><p>Transforms delegate into lazy range. Generation is stopped, when
+   <b>genfunc</b> returns <b>Maybe!T.nothing</b>.
+</p>
+<dt>Example:</dt><dd>
+<pre class="d_code"><span class="d_keyword">assert</span>( (() =&gt; Maybe!<span class="d_keyword">int</span>(1)).<u>generator</u>.take(10).equal(1.repeat.take(10)) );
+<span class="d_keyword">assert</span>( (() =&gt; Maybe!<span class="d_keyword">int</span>.nothing).<u>generator</u>.empty);
+<span class="d_keyword">assert</span>( (()
+        {
+            <span class="d_keyword">static</span> size_t i = 0;
+            <span class="d_keyword">return</span> i++ &lt; 10 ? Maybe!<span class="d_keyword">int</span>(1) : Maybe!<span class="d_keyword">int</span>.nothing;
+        }
+        ).<u>generator</u>.equal(1.repeat.take(10)));
+
+<span class="d_keyword">class</span> A {}
+<span class="d_keyword">auto</span> a = <span class="d_keyword">new</span> A();
+
+<span class="d_keyword">assert</span>( (() =&gt; Maybe!A(a)).<u>generator</u>.take(10).equal(a.repeat.take(10)) );
+<span class="d_keyword">assert</span>( (() =&gt; Maybe!A.nothing).<u>generator</u>.empty);
+<span class="d_keyword">assert</span>( (()
+        {
+            <span class="d_keyword">static</span> size_t i = 0;
+            <span class="d_keyword">return</span> i++ &lt; 10 ? Maybe!A(a) : Maybe!A.nothing;
+        }
+        ).<u>generator</u>.equal(a.repeat.take(10)));
 </pre>
 </dd>
 </dl>

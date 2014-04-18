@@ -71,7 +71,14 @@
 	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.pool.html" title="db.async.pool"><i class="icon-th"></i>db.async.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.respond.html" title="db.async.respond"><i class="icon-th"></i>db.async.respond</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.transaction.html" title="db.async.transaction"><i class="icon-th"></i>db.async.transaction</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.closed.html" title="db.async.workers.closed"><i class="icon-th"></i>db.async.workers.closed</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.connecting.html" title="db.async.workers.connecting"><i class="icon-th"></i>db.async.workers.connecting</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.free.html" title="db.async.workers.free"><i class="icon-th"></i>db.async.workers.free</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.handler.html" title="db.async.workers.handler"><i class="icon-th"></i>db.async.workers.handler</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.query.html" title="db.async.workers.query"><i class="icon-th"></i>db.async.workers.query</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
@@ -136,7 +143,14 @@
 	<li class="sidebar-list-entry tree-leaf"><a href="server.database.html" title="server.database"><i class="icon-th"></i>server.database</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.server.html" title="server.server"><i class="icon-th"></i>server.server</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="server.sql_json.html" title="server.sql_json"><i class="icon-th"></i>server.sql_json</a></li>
-	<li class="sidebar-list-entry tree-leaf"><a href="db.asyncPool.html" title="db.asyncPool"><i class="icon-th"></i>db.asyncPool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.pool.html" title="db.async.pool"><i class="icon-th"></i>db.async.pool</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.respond.html" title="db.async.respond"><i class="icon-th"></i>db.async.respond</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.transaction.html" title="db.async.transaction"><i class="icon-th"></i>db.async.transaction</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.closed.html" title="db.async.workers.closed"><i class="icon-th"></i>db.async.workers.closed</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.connecting.html" title="db.async.workers.connecting"><i class="icon-th"></i>db.async.workers.connecting</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.free.html" title="db.async.workers.free"><i class="icon-th"></i>db.async.workers.free</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.handler.html" title="db.async.workers.handler"><i class="icon-th"></i>db.async.workers.handler</a></li>
+	<li class="sidebar-list-entry tree-leaf"><a href="db.async.workers.query.html" title="db.async.workers.query"><i class="icon-th"></i>db.async.workers.query</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.connection.html" title="db.connection"><i class="icon-th"></i>db.connection</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pool.html" title="db.pool"><i class="icon-th"></i>db.pool</a></li>
 	<li class="sidebar-list-entry tree-leaf"><a href="db.pq.api.html" title="db.pq.api"><i class="icon-th"></i>db.pq.api</a></li>
@@ -347,7 +361,7 @@
 <dt>Throws</dt><dd>QueryException</dd>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>abstract shared DList!(shared(IPGresult)) <span class="symbol-target" id="getQueryResult">&nbsp;</span><a class="symbol-link" href="#getQueryResult">getQueryResult</a>();
+<hr><div class="row-fluid declaration"><h3>abstract shared InputRange!(shared(IPGresult)) <span class="symbol-target" id="getQueryResult">&nbsp;</span><a class="symbol-link" href="#getQueryResult">getQueryResult</a>();
 </h3></div>
 <div class="declaration-content"><dl><p>Returns query result, if <b>pollQueringStatus</b> shows that
    query is processed without errors, else blocks the caller
@@ -409,7 +423,7 @@ Will fallback to UTC value if server protocol doesn't support acquiring of
    query).</p>
 </dl>
 </div>
-<hr><div class="row-fluid declaration"><h3>final shared DList!(shared(IPGresult)) <span class="symbol-target" id="execQuery">&nbsp;</span><a class="symbol-link" href="#execQuery">execQuery</a>(string <i>com</i>, string[] <i>params</i> = []);
+<hr><div class="row-fluid declaration"><h3>final shared InputRange!(shared(IPGresult)) <span class="symbol-target" id="execQuery">&nbsp;</span><a class="symbol-link" href="#execQuery">execQuery</a>(string <i>com</i>, string[] <i>params</i> = []);
 </h3></div>
 <div class="declaration-content"><dl><p>Blocking wrapper to one-command query execution.</p>
 </dl>
