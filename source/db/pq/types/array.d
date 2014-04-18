@@ -227,27 +227,29 @@ private mixin template ArraySupport(PairsRaw...)
             enum genConvertFunctions = genConvertFunction!(TS[0]) ~"\n"~genConvertFunctions!(TS[1..$]);
         }
     }
-    static assert(is(ForeachType!(char[]) == char));
-//    pragma(msg, genConvertFunctions!Pairs);
+
     mixin(genConvertFunctions!Pairs);
 }   
 
 version(IntegrationTest2)
 {
     import db.pq.types.test;
+    import db.pq.types.plain;
     import db.pool;
     import std.array;
     import std.random;
     import std.math;
+    import std.traits;
     import log;
     
-    string convertArray(T)(T[] ts)
+    string convertArray(T, bool wrapQuotes = true)(T[] ts)
     {
         auto builder = appender!string;
         foreach(i,t; ts)
         {
-            static if(is(T == string)) builder.put("'");
-            static if(is(T == float))
+            enum needQuotes = (isSomeString!T || isSomeChar!T || is(T == Xid) || is(T == Cid)) && wrapQuotes;
+            static if(needQuotes) builder.put("'");
+            static if(isFloatingPoint!T)
             {
                if(t == T.infinity) builder.put("'Infinity'");
                else if(t == -T.infinity) builder.put("'-Infinity'");
@@ -257,28 +259,60 @@ version(IntegrationTest2)
             {
                 builder.put(t.to!string);
             }
-            static if(is(T == string)) builder.put("'");
+            static if(needQuotes) builder.put("'");
             if(i != ts.length-1)
                 builder.put(", ");
         }
         return "ARRAY["~builder.data~"]";
     } 
     
-    T[] randArray(T)(size_t n)
+    struct Name {};
+    
+    U[] randArray(T, U=T)(size_t n)
     {
-        auto builder = appender!(T[]);
+        auto builder = appender!(U[]);
         foreach(i; 0..n)
         {
-            static if(is(T == string))
+            static if(isSomeChar!T)
+            {
+                immutable alph = "1234567890asdfghjkklzxcvbnm,.?!@#$%^&*()+-|";
+                builder.put(alph[uniform(0,alph.length)]);
+            }
+            else static if(is(T == string))
             {
                 immutable alph = "1234567890asdfghjkklzxcvbnm,.?!@#$%^&*()+-|";
                 auto zbuilder = appender!string;
-                foreach(j; 0..uniform(0,100))
+                foreach(j; 0..n)
                     zbuilder.put(alph[uniform(0,alph.length)]);
                 builder.put(zbuilder.data);
-            } else static if(is(T == float))
+            }  
+            else static if(is(T == Name))
+            {
+                immutable alph = "1234567890asdfghjkklzxcvbnm,.?!@#$%^&*()+-|";
+                auto zbuilder = appender!string;
+                foreach(j; 0..63)
+                    zbuilder.put(alph[uniform(0,alph.length)]);
+                builder.put(zbuilder.data);
+            }
+            else static if(is(T == float))
             {
                 builder.put(uniform(-1000.0, 1000.0));
+            } 
+            else static if(is(T == bool))
+            {
+                builder.put(uniform!"[]"(0,1) != 0);
+            }
+            else static if(isArray!T)
+            {
+                builder.put(randArray!(ElementType!T)(n));
+            }
+            else static if(is(T == Cid))
+            {
+                builder.put(uniform(Cid.min/4, Cid.max/4));
+            }
+            else static if(isFloatingPoint!T)
+            {
+                builder.put(uniform(-T.max, T.max));
             }
             else
             {
@@ -288,11 +322,38 @@ version(IntegrationTest2)
         return builder.data;    
     }
     
-    void testArray(T)(shared ILogger logger, shared IConnectionPool pool, string tname)
+    void testArray(T, alias typeTrans = (n, name) => name)(shared ILogger logger, shared IConnectionPool pool, string tname, size_t bn = 0, size_t en = 100)
     {
         logger.logInfo("Testing "~tname~"...");
-        foreach(i; 0..100)
-            testValue!(T[], convertArray)(logger, pool, randArray!T(i), tname);
+        foreach(i; bn..en)
+        {
+            static if(is(T == ubyte[]))
+            {
+                testValue!(T[], (a) => a.map!(a => escapeBytea(a)).array.convertArray!(string, false), id)(logger, pool, randArray!T(i), typeTrans(i, tname));
+            } else static if(isSomeChar!T)
+            {
+                testValue!(string[], convertArray)(logger, pool, randArray!T(i).map!(a => [cast(char)a].idup).array, typeTrans(i, tname));
+            } else static if(is(T == Name))
+            {
+                testValue!(string[], convertArray)(logger, pool, randArray!(T, string)(i), typeTrans(i, tname));
+            } else static if(isArray!T && !isSomeString!T)
+            {
+                testValue!(T[], (a) 
+                    {
+                        auto builder = appender!(string[]);
+                        foreach(b; a)
+                        {
+                            builder.put(b.convertArray);
+                        }
+                        return builder.data.convertArray!(string, false);
+                    }
+                    )(logger, pool, randArray!T(i), typeTrans(i, tname));
+            }
+            else
+            {
+                testValue!(T[], convertArray)(logger, pool, randArray!T(i), typeTrans(i, tname));
+            }
+        }
     }
         
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
@@ -340,67 +401,69 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.BoolArray)
     {
-        //testArray!bool(logger, pool, "bool[]");
+        testArray!bool(logger, pool, "bool[]");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.ByteArrayArray)
     {
-        //testArray!string(logger, pool, "bytea[]");
+        testArray!(ubyte[])(logger, pool, "bytea[]");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.CharArray)
     {
-        //testArray!string(logger, pool, "char[]");
+        testArray!char(logger, pool, "char[]");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.NameArray)
     {
-        //testArray!string(logger, pool, "name[]");
+        testArray!Name(logger, pool, "name[]");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Int2VectorArray)
     {
-        //testArray!string(logger, pool, "int2vector[]");
+        logger.logInfo("Not testable");
+        //testArray!(short[])(logger, pool, "int2vector[]");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.XidArray)
     {
-        //testArray!string(logger, pool, "xid[]");
+        testArray!Xid(logger, pool, "xid[]");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.CidArray)
     {
-        //testArray!string(logger, pool, "cid[]");
+        testArray!Cid(logger, pool, "cid[]");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.OidVectorArray)
     {
-        //testArray!string(logger, pool, "oidvector[]");
+        logger.logInfo("Not testable");
+        //testArray!(Oid[])(logger, pool, "oidvector[]");
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.FixedStringArray)
     {
-        //testArray!string(logger, pool, "FixedString[]");
+        testArray!(string, (n, name) => text("char(",n,")[]"))(logger, pool, "char(n)[]", 1, 100);
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.VariableStringArray)
     {
-        //testArray!string(logger, pool, "varchar[]");
+        testArray!(string, (n, name) => text("varchar(",n,")[]"))(logger, pool, "varchar(n)[]", 1, 100);
     }
     
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Int8Array)
     {
-        //testArray!string(logger, pool, "int8[]");
+        testArray!long(logger, pool, "int8[]");
     }
         
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
@@ -430,7 +493,7 @@ version(IntegrationTest2)
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
         if(type == PQType.Float8Array)
     {
-        //testArray!string(logger, pool, "float8[]");
+        testArray!double(logger, pool, "float8[]");
     }
 
     void test(PQType type)(shared ILogger logger, shared IConnectionPool pool)
