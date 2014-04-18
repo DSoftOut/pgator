@@ -13,13 +13,14 @@ module daemon;
 import std.c.stdlib;
 import std.stdio;
 import std.conv;
+import std.exception;
 version (linux) import std.c.linux.linux;
 import dlogg.log;
 
 private 
 {
     void delegate() savedListener, savedTermListener;
-    void delegate(int) savedUsrListener;
+    void delegate() savedRotateListener;
     
     shared ILogger savedLogger;
     
@@ -43,25 +44,32 @@ private
             // Signal trapping in Linux
             alias void function(int) sighandler_t;
             sighandler_t signal(int signum, sighandler_t handler);
-    
-            void termsig(int sig) 
-            {
-                savedLogger.logInfo(text("Signal ", sig, " is caught!"));
-                savedTermListener();
-                terminate(EXIT_SUCCESS);
-            }
+            int __libc_current_sigrtmin();
             
-            void customHandler(int sig)
+            void signal_handler_daemon(int sig)
             {
-                savedLogger.logInfo(text("Signal ", sig, " is caught!"));
-                savedListener();
+                if(sig == SIGABRT || sig == SIGTERM || sig == SIGQUIT || sig == SIGINT || sig == SIGQUIT)
+                {
+                    savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
+                    savedTermListener();
+                } else if(sig == SIGHUP)
+                {
+                    savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
+                    savedListener();
+                } else if(sig == SIGROTATE)
+                {
+                    savedLogger.logInfo(text("User signal ", sig, " is caught!"));
+                    savedRotateListener();
+                }
             }
-            
-            void usrDaemonHandler(int sig)
-            {
-                savedLogger.logInfo(text("User signal ", sig, " is caught!"));
-                savedUsrListener(sig);
-            }
+        }
+    }
+    version(linux)
+    {
+        private immutable int SIGROTATE;
+        static this()
+        {
+            SIGROTATE = __libc_current_sigrtmin + 10;
         }
     }
 }
@@ -86,12 +94,13 @@ private void terminate(int code)
 *   catches SIGHUP signal, $(B listener) delegate is called. If daemon catches SIGQUIT, SIGABRT,
 *   or any other terminating sygnal, the termListener is called.
 *
-*   If USR1 or USR2 signal is caught, then $(B usrListener) is called with actual value of received signal.
+*   If application receives "real-time" signal $(B SIGROTATE) defined as SIGRTMIN+10, then $(B rotateListener) is called
+*   to handle 'logrotate' utility.
 * 
 *   Daemon writes log message into provided $(B logger) and will close it while exiting.
 */
 int runDaemon(shared ILogger logger, int delegate(string[]) progMain, string[] args, void delegate() listener,
-        void delegate() termListener, void delegate(int) usrListener)
+        void delegate() termListener, void delegate() rotateListener)
 {
     savedLogger = logger;
     
@@ -133,20 +142,23 @@ int runDaemon(shared ILogger logger, int delegate(string[]) progMain, string[] a
         close(1);
         close(2);
 
+        void bindSignal(int sig, sighandler_t handler)
+        {
+            enforce(signal(sig, handler) != SIG_ERR, text("Cannot catch signal ", sig));
+        }
+        
         savedTermListener = termListener;
-        signal(SIGABRT, &termsig);
-        signal(SIGTERM, &termsig);
-        signal(SIGQUIT, &termsig);
-        signal(SIGINT, &termsig);
-        signal(SIGQUIT, &termsig);
-        signal(SIGSEGV, &termsig);
+        bindSignal(SIGABRT, &signal_handler_daemon);
+        bindSignal(SIGTERM, &signal_handler_daemon);
+        bindSignal(SIGQUIT, &signal_handler_daemon);
+        bindSignal(SIGINT, &signal_handler_daemon);
+        bindSignal(SIGQUIT, &signal_handler_daemon);
         
         savedListener = listener;
-        signal(SIGHUP, &customHandler);
+        bindSignal(SIGHUP, &signal_handler_daemon);
         
-//        savedUsrListener = usrListener;
-//        signal(SIGUSR1, &usrDaemonHandler);
-//        signal(SIGUSR2, &usrDaemonHandler);
+        savedRotateListener = rotateListener;
+        bindSignal(SIGROTATE, &signal_handler_daemon);
     }
 
     savedLogger.logInfo("Server is starting in daemon mode...");

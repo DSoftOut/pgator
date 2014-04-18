@@ -268,7 +268,7 @@ else
 		try
 		{
 		    auto loadedConfig = loadConfig(options);
-            auto logger = new shared StrictLogger(loadedConfig.config.logname);
+            auto logger = new shared StrictLogger(loadedConfig.config.logname, StrictLogger.Mode.Append);
             auto app = new shared Application(logger, loadedConfig.options, loadedConfig.config);
             
             enum mainFunc = (string[] args)
@@ -292,10 +292,10 @@ else
                     
             if(options.daemon) 
                 return runDaemon(logger, mainFunc, args, termFunc,
-                    (){app.finalize;}, (int) {app.logger.reload;});
+                    (){app.finalize;}, () {app.logger.reload;});
             else 
                 return runTerminal(logger, mainFunc, args, termFunc,
-                    (){app.finalize;}, (int) {app.logger.reload;});
+                    (){app.finalize;}, () {app.logger.reload;});
 	    }
 	    catch(InvalidConfig e)
         {
