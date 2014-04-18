@@ -239,15 +239,15 @@ synchronized class PQConnection : IConnection
             while(pollQueringStatus != QueringStatus.Finished) pollQueryException();
         }
         
-        DList!(shared IPGresult) resList;
+        auto builder = appender!(shared IPGresult[]);
         shared IPGresult res = conn.getResult;
         while(res !is null) 
         {
-            resList.insert(res);
+            builder.put(res);
             res = conn.getResult;
         }
-
-        return resList[].inputRangeObject;
+        
+        return builder.data[].inputRangeObject;
     }
     
     /**
