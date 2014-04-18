@@ -36,6 +36,7 @@ struct Respond
     */
     bool collect(InputRange!(shared IPGresult) results, shared IConnection conn)
     {
+        bool localSucc = true;
         foreach(res; results)
         {
             if( res.resultStatus != ExecStatusType.PGRES_TUPLES_OK &&
@@ -43,14 +44,15 @@ struct Respond
             {
                 failed = true;
                 exception = res.resultErrorMessage;
+                localSucc = false;
             }
-            if(!failed)
+            if(localSucc)
             {
                 result ~= res.asColumnBson(conn);
             }
             res.clear();
         }
-        return !failed;
+        return localSucc;
     }
     
     /// Flag to distinct error case from normal respond
