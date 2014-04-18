@@ -15,15 +15,24 @@ module terminal;
 import std.c.stdlib;
 import std.stdio;
 import std.conv;
-version (linux) import std.c.linux.linux;
+import std.exception;
+version (linux) 
+{
+    import std.c.linux.linux;
+    import core.sys.linux.errno;
+}
 import dlogg.log;
+import util;
 
 private 
 {
     void delegate() savedListener, savedTermListener;
-    void delegate(int) savedUsrListener;
+    void delegate() savedRotateListener;
     
     shared ILogger savedLogger;
+    
+    string savedPidFile;
+    string savedLockFile;
     
     extern (C) 
     {
@@ -32,23 +41,58 @@ private
             // Signal trapping in Linux
             alias void function(int) sighandler_t;
             sighandler_t signal(int signum, sighandler_t handler);
+            int __libc_current_sigrtmin();
+            char* strerror(int errnum);
             
-            void termHandler(int sig)
+            void signal_handler_terminal(int sig)
             {
-                savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
-                savedTermListener();
+                if(sig == SIGABRT || sig == SIGTERM || sig == SIGQUIT || sig == SIGINT || sig == SIGQUIT)
+                {
+                    savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
+                    savedTermListener();
+                } else if(sig == SIGHUP)
+                {
+                    savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
+                    savedListener();
+                } else if(sig == SIGROTATE)
+                {
+                    savedLogger.logInfo(text("User signal ", sig, " is caught!"));
+                    savedRotateListener();
+                }
             }
-            
-            void sighandler(int sig)
+        }
+    }
+    version(linux)
+    {
+        private immutable int SIGROTATE;
+        static this()
+        {
+            SIGROTATE = __libc_current_sigrtmin + 10;
+        }
+        
+        void dropRootPrivileges(int groupid, int userid)
+        {
+            if (getuid() == 0) 
             {
-                savedLogger.logInfo(text("Signal ", to!string(sig), " caught..."));
-                savedListener();
-            }
-            
-            void usrTerminalHandler(int sig)
-            {
-                savedLogger.logInfo(text("User signal ", sig, " is caught!"));
-                savedUsrListener(sig);
+                if(groupid < 0 || userid < 0)
+                {
+                    savedLogger.logWarning("Running as root, but doesn't specified groupid and/or userid for"
+                        " privileges lowing!");
+                    return;
+                }
+                
+                savedLogger.logInfo("Running as root, dropping privileges...");
+                // process is running as root, drop privileges 
+                if (setgid(groupid) != 0)
+                {
+                    savedLogger.logError(text("setgid: Unable to drop group privileges: ", strerror(errno).fromStringz));
+                    assert(false);
+                }
+                if (setuid(userid) != 0)
+                {
+                    savedLogger.logError(text("setuid: Unable to drop user privileges: ", strerror(errno).fromStringz));
+                    assert(false);
+                }
             }
         }
     }
@@ -61,30 +105,40 @@ private
 *    If application receives some kind of terminating signal, the $(B termListener) is called. $(B termListener) should
 *    end $(B progMain) to be able to clearly shutdown the application.
 *
-*   If USR1 or USR2 signal is caught, then $(B usrListener) is called with actual value of received signal.
+*    If application receives "real-time" signal $(B SIGROTATE) defined as SIGRTMIN+10, then $(B rotateListener) is called
+*    to handle 'logrotate' utility.
 *
 *    Daemon writes log message into provided $(B logger).
+*
+*   $(B groupid) and $(B userid) are used to low privileges with run as root. 
 */
 int runTerminal(shared ILogger logger, int delegate(string[]) progMain, string[] args, void delegate() listener,
-    void delegate() termListener, void delegate(int) usrListener)
+    void delegate() termListener, void delegate() rotateListener, int groupid = -1, int userid = -1)
 {
     savedLogger = logger;
-        
+    
+    // dropping root
+    dropRootPrivileges(groupid, userid);
+    
     version (linux) 
     {
+        void bindSignal(int sig, sighandler_t handler)
+        {
+            enforce(signal(sig, handler) != SIG_ERR, text("Cannot catch signal ", sig));
+        }
+        
         savedTermListener = termListener;
-        signal(SIGABRT, &termHandler);
-        signal(SIGTERM, &termHandler);
-        signal(SIGQUIT, &termHandler);
-        signal(SIGINT, &termHandler);
-        signal(SIGQUIT, &termHandler);
+        bindSignal(SIGABRT, &signal_handler_terminal);
+        bindSignal(SIGTERM, &signal_handler_terminal);
+        bindSignal(SIGQUIT, &signal_handler_terminal);
+        bindSignal(SIGINT, &signal_handler_terminal);
+        bindSignal(SIGQUIT, &signal_handler_terminal);
         
         savedListener = listener;
-        signal(SIGHUP, &sighandler);
+        bindSignal(SIGHUP, &signal_handler_terminal);
         
-//        savedUsrListener = usrListener;
-//        signal(SIGUSR1, &usrTerminalHandler);
-//        signal(SIGUSR2, &usrTerminalHandler);
+        savedRotateListener = rotateListener;
+        bindSignal(SIGROTATE, &signal_handler_terminal);
     } 
     else
     {
