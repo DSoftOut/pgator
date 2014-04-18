@@ -289,13 +289,16 @@ else
                 
                 send(thisTid, newApp);
             };
-                    
+
             if(options.daemon) 
-                return runDaemon(logger, mainFunc, args, termFunc,
-                    (){app.finalize;}, () {app.logger.reload;});
+                return runDaemon(logger, mainFunc, args, termFunc
+                    , (){app.finalize;}, () {app.logger.reload;}
+                    , options.pidFile, options.lockFile
+                    , loadedConfig.config.groupid, loadedConfig.config.userid);
             else 
-                return runTerminal(logger, mainFunc, args, termFunc,
-                    (){app.finalize;}, () {app.logger.reload;});
+                return runTerminal(logger, mainFunc, args, termFunc
+                    , (){app.finalize;}, () {app.logger.reload;}
+                    , loadedConfig.config.groupid, loadedConfig.config.userid);
 	    }
 	    catch(InvalidConfig e)
         {

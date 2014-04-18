@@ -40,17 +40,23 @@ immutable class Options
 	{	
 	    bool pDaemon, pHelp;
 	    string pConfigName, pGenPath;
+	    string pPidFile = buildPath("/var/run", APPNAME, APPNAME~".pid");
+	    string pLockFile = buildPath("/var/run", APPNAME, APPNAME~".lock");
 	    
         getopt(args, std.getopt.config.passThrough,
                          "daemon",     &pDaemon,
                          "help|h",     &pHelp,
                          "config",     &pConfigName,
-                         "genConfig",  &pGenPath);
+                         "genConfig",  &pGenPath,
+                         "pidfile",    &pPidFile,
+                         "lockfile",   &pLockFile);
         
         mDaemon     = pDaemon;
         mHelp       = pHelp;
         mConfigName = pConfigName;
         mGenPath    = pGenPath;
+        mPidFile    = pPidFile;
+        mLockFile   = pLockFile;
 	}
 	
 	/**
@@ -61,12 +67,15 @@ immutable class Options
 	*  configName  = configuration file name
 	*  genPath     = is program should generate config at specified path and exit
 	*/
-	this(bool daemon, bool help, string configName, string genPath) pure nothrow
+	this(bool daemon, bool help, string configName, string genPath
+	    , string pidFile, string lockFile) pure nothrow
 	{
 	    mDaemon     = daemon;
 	    mHelp       = help;
 	    mConfigName = configName;
 	    mGenPath    = genPath;
+        mPidFile    = pidFile;
+        mLockFile   = lockFile;
 	}
 	
 	/**
@@ -93,47 +102,67 @@ immutable class Options
 		return builder.data.inputRangeObject;
 	}
 	
-	/// Configuration full file name
-	string configName() @property pure nothrow @safe
+	@property pure nothrow @safe
 	{
-		return buildNormalizedPath(mConfigName);
-	}
-	
-	/// Path where to generate configuration
-	string genConfigPath() @property pure nothrow @safe
-	{
-	    return buildNormalizedPath(mGenPath);
-	}
-	
-	/// Is application should run in daemon mode
-	bool daemon() @property pure nothrow @safe
-	{
-	    return mDaemon;
-	}
-	
-	/// Is application should show help message and exit
-	bool help() @property pure nothrow @safe
-	{
-	    return mHelp;
+    	/// Configuration full file name
+    	string configName() 
+    	{
+    		return buildNormalizedPath(mConfigName);
+    	}
+    	
+    	/// Path where to generate configuration
+    	string genConfigPath()
+    	{
+    	    return buildNormalizedPath(mGenPath);
+    	}
+    	
+    	/// Is application should run in daemon mode
+    	bool daemon()
+    	{
+    	    return mDaemon;
+    	}
+    	
+    	/// Is application should show help message and exit
+    	bool help()
+    	{
+    	    return mHelp;
+    	}
+    	
+    	/// Path to file where daemon puts it pid
+    	string pidFile()
+    	{
+    	    return mPidFile;
+    	}
+    	
+    	/// Path to file that checked to no exists in daemon mode
+    	string lockFile()
+    	{
+    	    return mLockFile;
+    	}
 	}
 	
 	/// Application help message
     enum helpMsg = "Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.\n\n"
     "   pgator [arguments]\n"
     "   arguments =\n"
-    "    --daemon - run in daemon mode (detached from tty).\n"
-    "        Linux only.\n\n"
+    "    --daemon          - runs in daemon mode (detached from tty).\n"
+    "                        Linux only.\n"
     "    --config=<string> - specifies config file name in\n"
-    "        config directory.\n\n"
-    "   --genConfig=<path> generate default config at the path\n\n"           
-    "   --help - prints this message";
+    "                        config directory.\n"
+    "   --genConfig=<path> - generates default config at the path\n"           
+    "   --help             - prints this message\n"
+    "   --pidfile=<path>   - specifies path to file where pid is written\n"
+    "                        to in daemon mode. Default: /var/run/pgator/pgator.pid\n"
+    "   --lockfile=<path>  - specifies path to file which prevents running\n"
+    "                        multiple instances in daemon mode.\n" 
+    "                        Default: /var/run/pgator/pgator.lock";
     
     /**
     *   Creates new options with updated configuration $(B path).
     */
 	immutable(Options) updateConfigPath(string path) pure nothrow
 	{
-	    return new immutable Options(daemon, help, path, genConfigPath);
+	    return new immutable Options(daemon, help, path, genConfigPath, pidFile, lockFile);
 	}
 	
 	private
@@ -145,5 +174,7 @@ immutable class Options
     
     	string mConfigName;
     	string mGenPath;
+    	string mPidFile;
+    	string mLockFile;
 	}
 }

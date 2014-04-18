@@ -16,8 +16,13 @@ import std.c.stdlib;
 import std.stdio;
 import std.conv;
 import std.exception;
-version (linux) import std.c.linux.linux;
+version (linux) 
+{
+    import std.c.linux.linux;
+    import core.sys.linux.errno;
+}
 import dlogg.log;
+import util;
 
 private 
 {
@@ -25,6 +30,9 @@ private
     void delegate() savedRotateListener;
     
     shared ILogger savedLogger;
+    
+    string savedPidFile;
+    string savedLockFile;
     
     extern (C) 
     {
@@ -34,6 +42,7 @@ private
             alias void function(int) sighandler_t;
             sighandler_t signal(int signum, sighandler_t handler);
             int __libc_current_sigrtmin();
+            char* strerror(int errnum);
             
             void signal_handler_terminal(int sig)
             {
@@ -60,6 +69,32 @@ private
         {
             SIGROTATE = __libc_current_sigrtmin + 10;
         }
+        
+        void dropRootPrivileges(int groupid, int userid)
+        {
+            if (getuid() == 0) 
+            {
+                if(groupid < 0 || userid < 0)
+                {
+                    savedLogger.logWarning("Running as root, but doesn't specified groupid and/or userid for"
+                        " privileges lowing!");
+                    return;
+                }
+                
+                savedLogger.logInfo("Running as root, dropping privileges...");
+                // process is running as root, drop privileges 
+                if (setgid(groupid) != 0)
+                {
+                    savedLogger.logError(text("setgid: Unable to drop group privileges: ", strerror(errno).fromStringz));
+                    assert(false);
+                }
+                if (setuid(userid) != 0)
+                {
+                    savedLogger.logError(text("setuid: Unable to drop user privileges: ", strerror(errno).fromStringz));
+                    assert(false);
+                }
+            }
+        }
     }
 }
 
@@ -74,12 +109,17 @@ private
 *    to handle 'logrotate' utility.
 *
 *    Daemon writes log message into provided $(B logger).
+*
+*   $(B groupid) and $(B userid) are used to low privileges with run as root. 
 */
 int runTerminal(shared ILogger logger, int delegate(string[]) progMain, string[] args, void delegate() listener,
-    void delegate() termListener, void delegate() rotateListener)
+    void delegate() termListener, void delegate() rotateListener, int groupid = -1, int userid = -1)
 {
     savedLogger = logger;
-        
+    
+    // dropping root
+    dropRootPrivileges(groupid, userid);
+    
     version (linux) 
     {
         void bindSignal(int sig, sighandler_t handler)
