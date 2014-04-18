@@ -246,12 +246,7 @@ version(unittest)
 }
 
 unittest
-{	
-	scope(failure)
-	{
-		assert(false, "Caching system unittest failed");
-	}
-	
+{		
 	initTable();
 	
 	initCache();

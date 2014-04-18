@@ -275,7 +275,7 @@ PGTimeWithZone convert(PQType type)(ubyte[] val)
 *   Libpq uses different represantation for $(B time), but i store only 
 *   in usecs format.
 */
-private struct TimeInterval
+struct TimeInterval
 {
     // in microseconds
     long        time;           /* all time units other than days, months and
