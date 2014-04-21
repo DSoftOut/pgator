@@ -68,7 +68,6 @@ private Vector!T readVec(T, PQType type)(ubyte[] arr, shared IConnection conn)
         
         static if(__traits(compiles, db.pq.types.all.convert!type(arr)))
         {
-            std.stdio.writeln(arr, " ", length);
             auto value = db.pq.types.all.convert!type(arr[0..length]); 
             builder.put(value);
             arr = arr[length..$];
