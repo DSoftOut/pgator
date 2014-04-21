@@ -32,7 +32,6 @@ private struct Vector(T)
 private Vector!T readVec(T, PQType type)(ubyte[] arr, shared IConnection conn)
 {
     if(arr.length == 0) return Vector!T();
-    std.stdio.writeln(arr);
     
     assert(arr.length >= 2*int.sizeof + Oid.sizeof, text(
             "Expected min array size ", 2*int.sizeof + Oid.sizeof, ", but got ", arr.length));
