@@ -32,6 +32,7 @@ private struct Vector(T)
 private Vector!T readVec(T, PQType type)(ubyte[] arr, shared IConnection conn)
 {
     if(arr.length == 0) return Vector!T();
+    std.stdio.writeln(arr);
     
     assert(arr.length >= 2*int.sizeof + Oid.sizeof, text(
             "Expected min array size ", 2*int.sizeof + Oid.sizeof, ", but got ", arr.length));
@@ -47,10 +48,27 @@ private Vector!T readVec(T, PQType type)(ubyte[] arr, shared IConnection conn)
     auto builder = appender!(T[]);
     while(arr.length > 0)
     {
-        auto length = cast(size_t)arr.read!int; 
+        auto maybeLength  = arr.read!uint;
+        // if got [255, 255, 255, 255] - there is special case for NULL in array
+        if(maybeLength == uint.max)
+        {
+            static if(is(T == class) || is(T == interface))
+            {
+               builder.put(null);
+            } 
+            else
+            {
+                builder.put(T.init);
+            }
+            continue;
+        }
+        
+        // can cast to array size
+        auto length = cast(size_t)maybeLength; 
         
         static if(__traits(compiles, db.pq.types.all.convert!type(arr)))
         {
+            std.stdio.writeln(arr, " ", length);
             auto value = db.pq.types.all.convert!type(arr[0..length]); 
             builder.put(value);
             arr = arr[length..$];
