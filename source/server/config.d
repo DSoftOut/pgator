@@ -60,6 +60,12 @@ struct AppConfig
 	@possible
 	int sqlReconnectTime = -1; //ms
 	
+	@possible
+	int groupid = -1; // to low root privileges
+	
+	@possible
+	int userid = -1; // to low root privileges
+	
 	@required
 	string vibelog = "/var/log/"~APPNAME~"/"~"http.txt";
 	
@@ -114,6 +120,7 @@ struct AppConfig
 		maxConn          = conf.maxConn;
 		sqlServers       = conf.sqlServers.idup;
 		sqlAuth          = conf.sqlAuth.idup;
+		aliveCheckTime   = conf.aliveCheckTime;
 		sqlTimeout       = conf.sqlTimeout;
 		sqlJsonTable     = conf.sqlJsonTable;
 		bindAddresses    = conf.bindAddresses.idup;
@@ -121,6 +128,8 @@ struct AppConfig
 		sqlReconnectTime = conf.sqlReconnectTime;
 		vibelog          = conf.vibelog;
 		logname          = conf.logname;
+		groupid          = conf.groupid;
+		userid           = conf.userid;
 	}
 }
 
