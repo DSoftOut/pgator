@@ -25,7 +25,7 @@ import vibe.http.server;
 import vibe.http.router;
 import vibe.core.driver;
 import vibe.core.core;
-import vibe.core.log;
+import vibe.core.log : setLogLevel, setLogFile, LogLevel;
 
 import json_rpc.request;
 import json_rpc.error;
