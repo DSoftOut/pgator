@@ -53,17 +53,18 @@ interface ITestCase
         pool.execTransaction(["INSERT INTO \""~tableName~"\" VALUES ($1, $2, $3, $4, $5, $6, $7, $8);"],
             [row.method, 
             row.sql_queries.convertArray, 
-            row.arg_num.to!string,
+            row.arg_nums.convertArray,
             row.set_username.to!string,
             row.need_cache.to!string,
             row.read_only.to!string,
             row.reset_caches.convertArray,
-            row.reset_by.convertArray]);
+            row.reset_by.convertArray],
+            [8]);
     }
     
     protected final void removeRow(shared IConnectionPool pool, string tableName, string method)
     {
-        pool.execTransaction(["DELETE FROM \""~tableName~"\" WHERE method = $1;"], [method]);
+        pool.execTransaction(["DELETE FROM \""~tableName~"\" WHERE method = $1;"], [method], [1]);
     }
 }
 
@@ -102,28 +103,28 @@ struct JsonRpcRow
 {
     string method;
     string[] sql_queries;
-    uint arg_num;
+    uint[] arg_nums;
     bool set_username;
     bool need_cache;
     bool read_only;
     string[] reset_caches;
     string[] reset_by;
     
-    this(string method, uint arg_num, string sql_query)
+    this(string method, uint[] arg_nums, string sql_query)
     {
         this.method = method;
-        this.arg_num = arg_num;
+        this.arg_nums = arg_nums;
         this.sql_queries = [sql_query];
     } 
     
-    this(string method, uint arg_num, string[] sql_queries,
+    this(string method, uint[] arg_nums, string[] sql_queries,
         bool set_username = false, bool need_cache = true,
         bool read_only = true, string[] reset_caches = [],
         string[] reset_by = [])
     {
         this.method = method;
         this.sql_queries = sql_queries;
-        this.arg_num = arg_num;
+        this.arg_nums = arg_nums;
         this.set_username = set_username;
         this.read_only = read_only;
         this.need_cache = need_cache;

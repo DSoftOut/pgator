@@ -173,6 +173,8 @@ else version(IntegrationTest2)
 else version(RpcClient)
 {
     import std.getopt;
+    import std.process;
+    import std.conv;
     import std.stdio;
     import client.client;
     import client.test.testcase;
@@ -181,16 +183,21 @@ else version(RpcClient)
     immutable helpStr =
     "JSON-RPC client for testing purposes of main rpc-server.\n"
     "   rpc-proxy-client [arguments]\n\n"
-    "   arguments = --host=<string> - rpc-server url"
-    "               --conn=<string> - postgres server conn string"
-    "               --tableName=<string> - json_rpc table"
-    "               --serverpid=<uint> - rpc server pid";
+    "   arguments = --host=<string> - rpc-server url\n"
+    "               --conn=<string> - postgres server conn string\n"
+    "               --tableName=<string> - json_rpc table\n"
+    "               --serverpid=<uint> - rpc server pid\n";
+    
+    uint getPid()
+    {
+        return parse!uint(executeShell("[ ! -f /var/run/pgator/pgator.pid ] || echo `cat /var/run/pgator/pgator.pid`").output);
+    }
     
     int main(string[] args)
     {
-        string host;
+        string host = "http://127.0.0.1:8080";
         string connString;
-        string tableName;
+        string tableName = "json_rpc";
         uint pid;
         bool help = false;
         
@@ -202,10 +209,21 @@ else version(RpcClient)
             "serverpid", &pid
         );
         
-        if(help || host == "" || connString == "" || tableName == "" || pid == 0)
+        if(help || connString == "")
         {
             writeln(helpStr);
             return 1;
+        }
+        
+        if(pid == 0)
+        {
+            writeln("Trying to read pid file at '/var/run/pgator/pgator.pid'");
+            try pid = getPid();
+            catch(Exception e)
+            {
+                writeln("Failed: ", e.msg);
+                return 1;
+            }
         }
         
         auto client = new RpcClient!(SimpleTestCase)(host, connString, tableName, pid);
