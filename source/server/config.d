@@ -229,17 +229,15 @@ LoadedConfig tryConfigPaths(R)(R paths)
 {
     foreach(path; paths)
     {
+        if(!path.exists) continue;
+        
         try
         {
             return LoadedConfig(immutable AppConfig(path), path);
         }
-        catch(InvalidConfig e)
-        {
-            throw e;
-        }
         catch(Exception e)
         {
-            continue;
+            throw new InvalidConfig(path, e.msg);
         }
     }
     
