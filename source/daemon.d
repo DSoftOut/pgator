@@ -176,12 +176,12 @@ private
                 
                 savedLogger.logInfo("Running as root, dropping privileges...");
                 // process is running as root, drop privileges 
-                if (setgid(groupid) != 0)
+                if (setegid(groupid) != 0)
                 {
                     savedLogger.logError(text("setgid: Unable to drop group privileges: ", strerror(errno).fromStringz));
                     assert(false);
                 }
-                if (setuid(userid) != 0)
+                if (seteuid(userid) != 0)
                 {
                     savedLogger.logError(text("setuid: Unable to drop user privileges: ", strerror(errno).fromStringz));
                     assert(false);
