@@ -19,6 +19,7 @@ public import db.pq.types.oids;
 import db.connection;
 import db.pq.types.conv;
 import vibe.data.bson;
+import dlogg.log;
 
 /**
 *   All exceptions thrown by postgres api is inherited from this exception.
@@ -184,7 +185,7 @@ interface IPGresult
             Bson[] rows;
             foreach(j; 0..ntuples)
             {
-                rows ~= pqToBson(ftype(i), asBytes(j, i), conn);
+                rows ~= pqToBson(ftype(i), asBytes(j, i), conn, logger);
             }
             fields[fname(i)] = Bson(rows);
         }
@@ -209,7 +210,7 @@ interface IPGresult
     		
     		foreach(j; 0..nfields)
     		{
-    			entry[fname(j)] = pqToBson(ftype(j), asBytes(i, j), conn);	
+    			entry[fname(j)] = pqToBson(ftype(j), asBytes(i, j), conn, logger);	
     		}
     		
     		arr ~= Bson(entry);
@@ -218,6 +219,9 @@ interface IPGresult
     	return Bson(arr);
     	
     }
+    
+    /// Getting local logger
+    protected shared(ILogger) logger() nothrow;
 }
 
 /**
@@ -344,6 +348,9 @@ interface IPGconn
     *   Throws: PGParamNotExistException
     */
     string parameterStatus(string param) const;
+    
+    /// Getting local logger
+    protected shared(ILogger) logger() nothrow;
 }
 
 /**
@@ -376,5 +383,8 @@ shared interface IPostgreSQL
         *   loads library in memory.
         */
         void initialize();
+        
+        /// Getting local logger
+        shared(ILogger) logger() nothrow;
     }
 }

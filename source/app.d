@@ -72,7 +72,7 @@ else version(IntegrationTest1)
         auto logger = new shared StrictLogger(logName);
         scope(exit) logger.finalize();
         
-        auto api = new shared PostgreSQL();
+        auto api = new shared PostgreSQL(logger);
         logger.logInfo("PostgreSQL was inited.");
         auto connProvider = new shared PQConnProvider(logger, api);
         
@@ -130,7 +130,7 @@ else version(IntegrationTest2)
         auto logger = new shared StrictLogger(logName);
         scope(exit) logger.finalize();
         
-        auto api = new shared PostgreSQL();
+        auto api = new shared PostgreSQL(logger);
         logger.logInfo("PostgreSQL was inited.");
         auto connProvider = new shared PQConnProvider(logger, api);
         

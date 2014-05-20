@@ -13,6 +13,7 @@ module db.pq.libpq;
 public import db.pq.api;
 public import derelict.pq.pq;
 import derelict.util.exception;
+import dlogg.log;
 import std.exception;
 import std.string;
 import std.regex;
@@ -22,9 +23,10 @@ import util;
 
 synchronized class CPGresult : IPGresult
 {
-    this(PGresult* result) nothrow
+    this(PGresult* result, shared ILogger plogger) nothrow
     {
         this.mResult = cast(shared)result;
+        this.mLogger = plogger;
     }
     
     private shared PGresult* mResult;
@@ -32,6 +34,13 @@ synchronized class CPGresult : IPGresult
     private PGresult* result() nothrow const
     {
         return cast(PGresult*)mResult;
+    }
+    
+    private shared(ILogger) mLogger;
+    
+    protected shared(ILogger) logger()
+    {
+        return mLogger;
     }
     
     /**
@@ -229,9 +238,10 @@ synchronized class CPGresult : IPGresult
 
 synchronized class CPGconn : IPGconn
 {
-    this(PGconn* conn) nothrow
+    this(PGconn* conn, shared ILogger plogger) nothrow
     {
         this.mConn = cast(shared)conn;
+        this.mLogger = plogger;
     }
     
     private shared PGconn* mConn;
@@ -239,6 +249,13 @@ synchronized class CPGconn : IPGconn
     private PGconn* conn() const nothrow
     {
         return cast(PGconn*)mConn;
+    }
+    
+    private shared(ILogger) mLogger;
+    
+    protected shared(ILogger) logger() nothrow
+    {
+        return mLogger;
     }
     
     /**
@@ -495,7 +512,7 @@ synchronized class CPGconn : IPGconn
     {
         auto res = PQgetResult(conn);
         if(res is null) return null;
-        return new shared CPGresult(res);
+        return new shared CPGresult(res, logger);
     }
     
     /**
@@ -583,9 +600,17 @@ synchronized class CPGconn : IPGconn
 
 synchronized class PostgreSQL : IPostgreSQL
 {
-    this()
+    this(shared ILogger plogger)
     {
+        this.mLogger = plogger;
         initialize();
+    }
+
+    private shared(ILogger) mLogger;
+    
+    protected shared(ILogger) logger()
+    {
+        return mLogger;
     }
     
     /**
@@ -611,7 +636,7 @@ synchronized class PostgreSQL : IPostgreSQL
     body
     {
         auto conn = enforceEx!PGMemoryLackException(PQconnectStart(cast(char*)conninfo.toStringz));
-        return new shared CPGconn(conn);
+        return new shared CPGconn(conn, logger);
     }
     
     /**
