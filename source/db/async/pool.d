@@ -178,6 +178,9 @@ class AsyncPool : IConnectionPool
             argnums = 0u.repeat.take(commands.length).array;
         }
         
+        logger.logInfo(text("Posting transaction: ", commands, ", params: ", params
+                , ", argnums: ", argnums, ", vars: ", vars));
+        
         auto conn = fetchFreeConnection();
         auto transaction = new immutable Transaction(commands, params, argnums, vars);
         processingTransactions.insert(cast(shared)transaction); 
@@ -238,9 +241,13 @@ class AsyncPool : IConnectionPool
             auto respond = awaitingResponds[transaction];
             awaitingResponds.remove(transaction);
             if(respond.failed)
+            {
                 throw new QueryProcessingException(respond.exception);
+            }
             else
+            {
                 return respond.result[].inputRangeObject;
+            }
         } else
         {
             while(!isTransactionReady(transaction)) yield;

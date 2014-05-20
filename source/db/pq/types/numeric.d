@@ -127,24 +127,30 @@ struct Numeric
     {
         auto builder = appender!string();
         
-        foreach(i,dig; digits)
+        if(digits.length == 0)
         {
-            foreach_reverse(j; 0..DEC_DIGITS)
+            mantis = 0;   
+        } else
+        {
+            foreach(i,dig; digits)
             {
-                auto d = dig / (10 ^^ j);
-                builder.put(d.to!string);
-                dig -= d * (10 ^^ j);
-            } 
-        }
-
-        // truncate besides zeros
-        auto str = builder.data.strip('0');
-        
-        if(sign)
-        	mantis = '-' ~ str;
-        else
-        	mantis = str;
-    	
+                foreach_reverse(j; 0..DEC_DIGITS)
+                {
+                    auto d = dig / (10 ^^ j);
+                    builder.put(d.to!string);
+                    dig -= d * (10 ^^ j);
+                } 
+            }
+    
+            // truncate besides zeros
+            auto str = builder.data.strip('0');
+            
+            
+            if(sign)
+            	mantis = '-' ~ str;
+            else
+            	mantis = str;
+    	}
     	isNan = false;
     }
     
@@ -330,6 +336,7 @@ version(IntegrationTest2)
             testValue(delayed, bigNumber(100) ~ "." ~ bigNumber(100));
         }
         // special cases
+        testValue(delayed, "0");
         testValue(delayed, "0.0146328");
         testValue(delayed, "42");
         testValue(delayed, "NaN");
