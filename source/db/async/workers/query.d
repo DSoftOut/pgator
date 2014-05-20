@@ -42,7 +42,7 @@ static void queringChecker(shared ILogger logger)
                 }
                 , (Tid sender, shared IConnection conn, shared Transaction transaction) 
                 {
-                    list.insert(new Element(sender, conn, cast(immutable)transaction));
+                    list.insert(new Element(sender, conn, cast(immutable)transaction, logger));
                 }
                 , (Tid sender, string com) 
                 {
@@ -110,6 +110,7 @@ private class Element
         bool commandPosting = false;
         bool rollbackNeeded = false;
         bool rollbacked = false;
+        shared(ILogger) logger;
     }
        
     enum Stage
@@ -121,11 +122,12 @@ private class Element
     Stage stage = Stage.MoreQueries;
     private Respond respond;
        
-    this(Tid sender, shared IConnection conn, immutable Transaction transaction)
+    this(Tid sender, shared IConnection conn, immutable Transaction transaction, shared ILogger logger)
     {
         this.sender = sender;
         this.conn = conn;
         this.transaction = transaction;
+        this.logger = logger;
            
         foreach(key, value; transaction.vars)
         {
@@ -170,58 +172,70 @@ private class Element
     {
         assert(stage == Stage.MoreQueries); 
 
-        if(rollbackNeeded)
+        try
         {
-            wrapError((){ conn.postQuery("rollback;", []); }, false);
-            rollbacked = true;
-            return;
+            if(rollbackNeeded)
+            {
+                wrapError((){ conn.postQuery("rollback;", []); }, false);
+                rollbacked = true;
+                return;
+            }
+               
+            if(!transStarted)
+            {
+                transStarted = true; 
+                wrapError((){ conn.postQuery("begin;", []); });            
+                return;
+            }
+               
+            if(localVars < varsQueries.length)
+            {
+                wrapError(()
+                { 
+                    conn.postQuery(varsQueries[localVars], []); 
+                    localVars++;
+                });              
+                return;
+            }
+               
+            if(transactPos < transaction.commands.length)
+            {
+                commandPosting = true;
+                wrapError(()
+                { 
+                    assert(transactPos < transaction.commands.length);
+                    auto query = transaction.commands[transactPos];
+                           
+                    assert(transactPos < transaction.argnums.length);
+                    assert(transaction.argnums[transactPos] + paramsPassed <= transaction.params.length);
+                    auto params = transaction.params[paramsPassed .. paramsPassed + transaction.argnums[transactPos]].dup;
+                           
+                    conn.postQuery(query, params);  
+                           
+                    paramsPassed += transaction.argnums[transactPos];
+                    transactPos++; 
+                });             
+                return;
+            }
+               
+            if(!transEnded)
+            {
+                commandPosting = false;
+                transEnded = true;
+                wrapError((){ conn.postQuery("commit;", []); });           
+                return;
+            }
         }
-           
-        if(!transStarted)
+        catch(Error err)
         {
-            transStarted = true; 
-            wrapError((){ conn.postQuery("begin;", []); });            
-            return;
+            logger.logError(text("Internal unrecoverable error with transaction: ", err.msg));
+            logger.logError(text("Commands: ", transaction.commands));
+            logger.logError(text("Params: ", transaction.params));
+            logger.logError(text("Argnums: ", transaction.argnums));
+            logger.logError(text("Vars: ", transaction.vars));
+            logger.logError(text("Stack trace: ", err));
+            throw err;
         }
-           
-        if(localVars < varsQueries.length)
-        {
-            wrapError(()
-            { 
-                conn.postQuery(varsQueries[localVars], []); 
-                localVars++;
-            });              
-            return;
-        }
-           
-        if(transactPos < transaction.commands.length)
-        {
-            commandPosting = true;
-            wrapError(()
-            { 
-                assert(transactPos < transaction.commands.length);
-                auto query = transaction.commands[transactPos];
-                       
-                assert(transactPos < transaction.argnums.length);
-                assert(transaction.argnums[transactPos] + paramsPassed <= transaction.params.length);
-                auto params = transaction.params[paramsPassed .. paramsPassed + transaction.argnums[transactPos]].dup;
-                       
-                conn.postQuery(query, params);  
-                       
-                paramsPassed += transaction.argnums[transactPos];
-                transactPos++; 
-            });             
-            return;
-        }
-           
-        if(!transEnded)
-        {
-            commandPosting = false;
-            transEnded = true;
-            wrapError((){ conn.postQuery("commit;", []); });           
-            return;
-        }
-           
         assert(false);
     }
        
@@ -242,88 +256,101 @@ private class Element
     void stepQuery()
     {
         assert(stage == Stage.Proccessing);                
-           
-        final switch(conn.pollQueringStatus())
-        {
-            case QueringStatus.Pending:
-            { 
-                return;                
-            }
-            case QueringStatus.Error:
+        
+        try
+        {   
+            final switch(conn.pollQueringStatus())
             {
-                try conn.pollQueryException();
-                catch(QueryException e)
-                {
-                    respond = Respond(e);
-                    rollbackNeeded = true;
-                    return;
-                } 
-                catch (Exception e)
-                {
-                    respond = Respond(new QueryException("Internal error: "~e.msg));
-                    rollbackNeeded = true;
-                    return;
+                case QueringStatus.Pending:
+                { 
+                    return;                
                 }
-                break;
-            }
-            case QueringStatus.Finished:
-            {
-                try 
+                case QueringStatus.Error:
                 {
-                    if(rollbackNeeded)
+                    try conn.pollQueryException();
+                    catch(QueryException e)
                     {
-                        rollbacked = true;
-                    }
-                      
-                    auto resList = conn.getQueryResult;
-                    if(needCollectResult) 
+                        respond = Respond(e);
+                        rollbackNeeded = true;
+                        return;
+                    } 
+                    catch (Exception e)
                     {
-                        if(!respond.collect(resList, conn))
-                        {
-                            rollbackNeeded = true;  
-                            stage = Stage.MoreQueries;
-                            return;
-                        }
-                    } else // setting vars can fail
-                    {
-                        bool failed = false;
-                        foreach(res; resList)
-                        {
-                            if(res.resultStatus != ExecStatusType.PGRES_TUPLES_OK &&
-                               res.resultStatus != ExecStatusType.PGRES_COMMAND_OK)
-                            {
-                                respond = Respond(new QueryException(res.resultErrorMessage));
-                                rollbackNeeded = true;  
-                                stage = Stage.MoreQueries;                         
-                                failed = true;
-                            }
-                            res.clear();
-                        }
-                        if(failed) return;
-                    }
-                                     
-                    if(!hasMoreQueries)
-                    {
-                        stage = Stage.Finished; 
+                        respond = Respond(new QueryException("Internal error: "~e.msg));
+                        rollbackNeeded = true;
                         return;
                     }
-                    stage = Stage.MoreQueries;
+                    break;
                 }
-                catch(QueryException e)
+                case QueringStatus.Finished:
                 {
-                    respond = Respond(e);
-                    rollbackNeeded = true;  
-                    stage = Stage.MoreQueries;                          
-                    return;
-                } 
-                catch (Exception e)
-                {
-                    respond = Respond(new QueryException("Internal error: "~e.msg));
-                    rollbackNeeded = true; 
-                    stage = Stage.MoreQueries; 
-                    return;
+                    try 
+                    {
+                        if(rollbackNeeded)
+                        {
+                            rollbacked = true;
+                        }
+                          
+                        auto resList = conn.getQueryResult;
+                        if(needCollectResult) 
+                        {
+                            if(!respond.collect(resList, conn))
+                            {
+                                rollbackNeeded = true;  
+                                stage = Stage.MoreQueries;
+                                return;
+                            }
+                        } else // setting vars can fail
+                        {
+                            bool failed = false;
+                            foreach(res; resList)
+                            {
+                                if(res.resultStatus != ExecStatusType.PGRES_TUPLES_OK &&
+                                   res.resultStatus != ExecStatusType.PGRES_COMMAND_OK)
+                                {
+                                    respond = Respond(new QueryException(res.resultErrorMessage));
+                                    rollbackNeeded = true;  
+                                    stage = Stage.MoreQueries;                         
+                                    failed = true;
+                                }
+                                res.clear();
+                            }
+                            if(failed) return;
+                        }
+                                         
+                        if(!hasMoreQueries)
+                        {
+                            stage = Stage.Finished; 
+                            return;
+                        }
+                        stage = Stage.MoreQueries;
+                    }
+                    catch(QueryException e)
+                    {
+                        respond = Respond(e);
+                        rollbackNeeded = true;  
+                        stage = Stage.MoreQueries;                          
+                        return;
+                    } 
+                    catch (Exception e)
+                    {
+                        respond = Respond(new QueryException("Internal error: "~e.msg));
+                        rollbackNeeded = true; 
+                        stage = Stage.MoreQueries; 
+                        return;
+                    }
                 }
             }
+        }
+        catch(Error err)
+        {
+            logger.logError(text("Internal unrecoverable error with transaction: ", err.msg));
+            logger.logError(text("Commands: ", transaction.commands));
+            logger.logError(text("Params: ", transaction.params));
+            logger.logError(text("Argnums: ", transaction.argnums));
+            logger.logError(text("Vars: ", transaction.vars));
+            logger.logError(text("Stack trace: ", err));
+            throw err;
         }
     }
        

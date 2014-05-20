@@ -11,6 +11,7 @@ module db.pq.types.conv;
 import db.pq.types.oids;
 import db.connection;
 import vibe.data.bson;
+import dlogg.log;
 import std.conv;
 import std.traits;
 import std.typetuple;
@@ -209,23 +210,42 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
     }
 }
 
-Bson pqToBson(PQType type, ubyte[] val, shared IConnection conn)
+Bson pqToBson(PQType type, ubyte[] val, shared IConnection conn, shared ILogger logger)
 {
-    foreach(ts; __traits(allMembers, PQType))
+    try
     {
-        enum t = mixin("PQType."~ts);
-        if(type == t)
+        foreach(ts; __traits(allMembers, PQType))
         {
-            static if(nonConvertable(t))
+            enum t = mixin("PQType."~ts);
+            if(type == t)
             {
-                enum errMsg = ts ~ " is not supported!";
-                pragma(msg, errMsg);
-                assert(false,errMsg);
-            } else
-            {
-                return toBson!t(val, conn); 
+                static if(nonConvertable(t))
+                {
+                    enum errMsg = ts ~ " is not supported!";
+                    pragma(msg, errMsg);
+                    assert(false,errMsg);
+                } else
+                {
+                    return toBson!t(val, conn); 
+                }
             }
         }
+    }
+    catch(Exception e)
+    {
+        logger.logError(text("Binary protocol exception: ", e.msg));
+        logger.logError(text("Converting from: ", type));
+        logger.logError(text("Payload: ", val));
+        logger.logError(text("Stack trace: ", e));
+        throw e;
+    }
+    catch(Error err)
+    {
+        logger.logError(text("Binary protocol error (logic error): ", err.msg));
+        logger.logError(text("Converting from: ", type));
+        logger.logError(text("Payload: ", val));
+        logger.logError(text("Stack trace: ", err));
+        throw err;
     }
     
     debug assert(false, "Unknown type "~to!string(type)~"!");

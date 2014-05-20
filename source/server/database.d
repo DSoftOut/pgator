@@ -266,7 +266,7 @@ shared class Database
 			reTime = timeout;
 		}
 
-		api = new shared PostgreSQL();
+		api = new shared PostgreSQL(logger);
 		auto provider = new shared PQConnProvider(logger, api);
 		
 		pool = new shared AsyncPool(logger, provider, reTime, timeout, aliveCheckTime);

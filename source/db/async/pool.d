@@ -178,9 +178,6 @@ class AsyncPool : IConnectionPool
             argnums = 0u.repeat.take(commands.length).array;
         }
         
-        logger.logInfo(text("Posting transaction: ", commands, ", params: ", params
-                , ", argnums: ", argnums, ", vars: ", vars));
-        
         auto conn = fetchFreeConnection();
         auto transaction = new immutable Transaction(commands, params, argnums, vars);
         processingTransactions.insert(cast(shared)transaction); 
@@ -233,7 +230,7 @@ class AsyncPool : IConnectionPool
         
         if(processingTransactions[].find(cast(shared)transaction).empty)
             throw new UnknownTransactionException();
-             
+                
         if(transaction in awaitingResponds) 
         {
             processingTransactions.removeOne(cast(shared)transaction);
@@ -242,6 +239,10 @@ class AsyncPool : IConnectionPool
             awaitingResponds.remove(transaction);
             if(respond.failed)
             {
+                auto tr = cast(Transaction)transaction;
+                assert(tr);      
+                logger.logInfo(text("Transaction fail: ", tr.commands, ", params: ", tr.params
+                    , ", argnums: ", tr.argnums, ", vars: ", tr.vars));
                 throw new QueryProcessingException(respond.exception);
             }
             else
