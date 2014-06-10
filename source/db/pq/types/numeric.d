@@ -121,6 +121,7 @@ struct Numeric
 {
     BigInt mantis;
     size_t scale;
+    size_t weight;
     bool isNan = true; // deafault is nan
     
     this(bool sign, NumericDigit[] digits)
@@ -142,9 +143,20 @@ struct Numeric
                 } 
             }
     
-            // truncate besides zeros
-            auto str = builder.data.strip('0');
+            foreach(i; 0 .. weight)
+            {
+                enum zeros = '0'.repeat(DEC_DIGITS).array.idup;
+                builder.put(zeros);
+            }
             
+            // truncate besides zeros
+            // only if exponent part is zero
+            // unless 7000 => 7
+            string str = builder.data;
+            if(scale != 0)
+            {
+                str = str.strip('0');
+            }            
             
             if(sign)
             	mantis = '-' ~ str;
@@ -158,15 +170,15 @@ struct Numeric
     {
         bool sign  = (num.n_header & NUMERIC_SHORT_SIGN_MASK) != 0;
         scale = (num.n_header & NUMERIC_SHORT_DSCALE_MASK) >> NUMERIC_SHORT_DSCALE_SHIFT;
-
+        
         this(sign, num.n_data);
     }
     
-    this(NumericLong num)
+    this(NumericLong num, ushort weight)
     {
         bool sign  = NUMERIC_FLAGBITS(num.n_sign_dscale) != 0;
-        // weight = n_header & NUMERIC_DSCALE_MASK; // weight and scale are swapped
-        scale = num.n_weight;                       // don't know why
+        this.weight = weight;      
+        scale = num.n_weight;
         
         this(sign, num.n_data);
     }
@@ -238,10 +250,13 @@ struct Numeric
 
 Numeric convert(PQType type)(ubyte[] val)
     if(type == PQType.Numeric)
-{   
+{
     assert(val.length >= 2*ushort.sizeof);
-    val.read!int; // varlena go away! i hate you!
+    val.read!ushort; // always 1
     
+    auto weight = val.read!ushort; 
+    if(weight == ushort.max) weight = 0;
+
     auto n_header = val.read!ushort;
     NumericData raw;
     raw.choice.n_header = n_header;
@@ -259,7 +274,7 @@ Numeric convert(PQType type)(ubyte[] val)
         while(val.length > 0)
             raw.choice.n_long.n_data ~= val.read!NumericDigit;
             
-        return Numeric(raw.choice.n_long);
+        return Numeric(raw.choice.n_long, weight);
     } else
     {
         return Numeric();
@@ -340,5 +355,14 @@ version(IntegrationTest2)
         testValue(delayed, "0.0146328");
         testValue(delayed, "42");
         testValue(delayed, "NaN");
+        testValue(delayed, "0.0007");
+        testValue(delayed, "0.007");
+        testValue(delayed, "0.07");
+        testValue(delayed, "0.7");
+        testValue(delayed, "7");
+        testValue(delayed, "70");
+        testValue(delayed, "700");
+        testValue(delayed, "7000");
+        testValue(delayed, "70000");
     }
 }
