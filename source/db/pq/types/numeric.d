@@ -16,6 +16,7 @@ import std.format;
 import std.conv;
 import std.exception;
 import std.bigint;
+import std.range;
 
 private // inner representation
 {
