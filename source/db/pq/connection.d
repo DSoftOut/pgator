@@ -239,9 +239,9 @@ synchronized class PQConnection : IConnection
             while(pollQueringStatus != QueringStatus.Finished) pollQueryException();
         }
         
-        auto builder = appender!(shared IPGresult[]);
+        auto builder = appender!(shared(IPGresult)[]);
         shared IPGresult res = conn.getResult;
-        while(res !is null) 
+        while(res !is null)
         {
             builder.put(res);
             res = conn.getResult;

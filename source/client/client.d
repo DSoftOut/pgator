@@ -30,7 +30,7 @@ class RpcClient(T...)
         
         logger = new shared StrictLogger("rpc-client.log");
         
-        auto postgresApi = new shared PostgreSQL();
+        auto postgresApi = new shared PostgreSQL(logger);
         auto connProvider = new shared PQConnProvider(logger, postgresApi);
         
         pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5), dur!"seconds"(3));

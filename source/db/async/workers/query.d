@@ -16,6 +16,7 @@ import db.async.workers.handler;
 import std.concurrency;
 import std.container;
 import std.range;
+import std.array;
 import core.thread;
 import derelict.pq.pq;
 
@@ -128,11 +129,13 @@ private class Element
         this.conn = conn;
         this.transaction = transaction;
         this.logger = logger;
-           
+        
+        auto builder = appender!(string[]);   
         foreach(key, value; transaction.vars)
         {
-            varsQueries ~= `SET LOCAL "`~key~`" = '`~value~`';`; 
+            builder.put(`SET LOCAL "` ~ key ~ `" = '` ~ value ~ `';`);
         } 
+        varsQueries = builder.data.idup;
     }
        
     private void wrapError(void delegate() func, bool startRollback = true)
