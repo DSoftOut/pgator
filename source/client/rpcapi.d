@@ -13,6 +13,7 @@ import vibe.data.serialization;
 import std.array;
 import std.random;
 import std.conv;
+import std.typecons;
 
 interface IRpcApi
 {
@@ -99,15 +100,35 @@ unittest
 struct RpcOk(Cols...)
 {
     static assert(checkTypes!Cols, "RpcOk compile arguments have to be of type kind: Column!(ColumnType, string ColumnName)");
-     
+    
     mixin(genColFields!Cols());
     
     this(Json result)
     {
+        template column(alias T) { enum column = "columns[\""~T.name~"\"]"; }
+        
         auto columns = result.get!(Json[string]);
         foreach(ColInfo; Cols)
         {
-            mixin(ColInfo.name~" = columns[\""~ColInfo.name~"\"].deserializeJson!("~ColInfo.type.stringof~"[]);");
+            static if(is(ColInfo.type T : Nullable!T))
+            {
+                mixin(ColInfo.name) = [];
+                foreach(json; mixin(column!ColInfo).get!(Json[]))
+                {
+                    if(json.type == Json.Type.null_)
+                    {
+                        mixin(ColInfo.name) ~= Nullable!T();
+                    }
+                    else
+                    {
+                        mixin(ColInfo.name) ~= Nullable!T(mixin(column!ColInfo).deserializeJson!T);
+                    }                    
+                }
+            }
+            else
+            {
+                mixin(ColInfo.name) = mixin(column!ColInfo).deserializeJson!(ColInfo.type[]);
+            }
         }
     }
     
