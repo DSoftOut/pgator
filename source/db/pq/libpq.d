@@ -443,9 +443,33 @@ synchronized class CPGconn : IPGconn
         {
             auto ptrs = new char*[arr.length];
             foreach(i, ref p; ptrs)
-                p = cast(char*) arr[i].toStringz;
+            {
+                // special case to handle SQL null values
+                if(arr[i].toLower == "null")
+                {
+                    p = null;
+                }
+                else
+                {
+                    p = cast(char*) arr[i].toStringz;
+                }
+            }
             return cast(const(ubyte)**)ptrs.ptr;
         }
+        
+        const(int)* genFormatArray(string[] params)
+        {
+            auto formats = new int[params.length];
+            foreach(i, p; params)
+            {
+                if(p.toLower == "null")
+                {
+                    formats[i] = 1;
+                }
+            }
+            return formats.ptr;
+        }
+        
         // type error in bindings int -> size_t, const(char)* -> const(char*), const(ubyte)** -> const(ubyte**)
         auto res = PQsendQueryParams(conn, command.toStringz, cast(int)paramValues.length, null
             , toPlainArray(paramValues), null, null, 1);

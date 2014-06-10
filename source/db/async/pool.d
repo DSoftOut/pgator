@@ -163,7 +163,7 @@ class AsyncPool : IConnectionPool
         , string[] params = [], uint[] argnums = []
         , string[string] vars = null) shared
     {
-        ///TODO: move to contract when issue with contracts is fixed
+        ///TODO: move to contract when issue with contracts are fixed
         assert(!finalized, "Pool was finalized!");
         
         /// Workaround for gdc
