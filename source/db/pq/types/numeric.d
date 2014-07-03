@@ -17,174 +17,187 @@ import std.conv;
 import std.exception;
 import std.bigint;
 import std.range;
+import core.memory;
+import util;
 
-private // inner representation
+private // inner representation from libpq sources
 {
-    /* From libpq docs
-     * The Numeric type as stored on disk.
-     *
-     * If the high bits of the first word of a NumericChoice (n_header, or
-     * n_short.n_header, or n_long.n_sign_dscale) are NUMERIC_SHORT, then the
-     * numeric follows the NumericShort format; if they are NUMERIC_POS or
-     * NUMERIC_NEG, it follows the NumericLong format.  If they are NUMERIC_NAN,
-     * it is a NaN.  We currently always store a NaN using just two bytes (i.e.
-     * only n_header), but previous releases used only the NumericLong format,
-     * so we might find 4-byte NaNs on disk if a database has been migrated using
-     * pg_upgrade.  In either case, when the high bits indicate a NaN, the
-     * remaining bits are never examined.  Currently, we always initialize these
-     * to zero, but it might be possible to use them for some other purpose in
-     * the future.
-     *
-     * In the NumericShort format, the remaining 14 bits of the header word
-     * (n_short.n_header) are allocated as follows: 1 for sign (positive or
-     * negative), 6 for dynamic scale, and 7 for weight.  In practice, most
-     * commonly-encountered values can be represented this way.
-     *
-     * In the NumericLong format, the remaining 14 bits of the header word
-     * (n_long.n_sign_dscale) represent the display scale; and the weight is
-     * stored separately in n_weight.
-     *
-     * NOTE: by convention, values in the packed form have been stripped of
-     * all leading and trailing zero digits (where a "digit" is of base NBASE).
-     * In particular, if the value is zero, there will be no digits at all!
-     * The weight is arbitrary in that case, but we normally set it to zero.
-     */
-
-    enum HALF_NBASE = 5000;
+	alias ushort NumericDigit;
     enum DEC_DIGITS = 4;
-    
-    struct NumericShort
-    {
-        ushort       n_header;       /* Sign + display scale + weight */
-        NumericDigit n_data[];      /* Digits */
-    };
-    
-    struct NumericLong
-    {
-        ushort      n_sign_dscale;  /* Sign + display scale */
-        short       n_weight;       /* Weight of 1st digit  */
-        NumericDigit n_data[];      /* Digits */
-    };
-    
-    union NumericChoice
-    {
-        ushort      n_header;       /* Header word */
-        NumericLong n_long;         /* Long form (4-byte header) */
-        NumericShort n_short;       /* Short form (2-byte header) */
-    };
-    
-    struct NumericData
-    {
-        int           vl_len_;        /* varlena header (do not touch directly!) */
-        NumericChoice choice;         /* choice of format */
-    };
-    
-    enum NUMERIC_SHORT_SIGN_MASK = 0x2000;
-    enum NUMERIC_SHORT_DSCALE_MASK  = 0x1F80;
-    enum NUMERIC_SHORT_DSCALE_SHIFT = 7;
-    enum NUMERIC_SHORT_WEIGHT_SIGN_MASK = 0x0040;
-    enum NUMERIC_SHORT_WEIGHT_MASK      = 0x003F;
-    
-    enum NUMERIC_DSCALE_MASK = 0x3FFF;
-    
-    enum NUMERIC_SIGN_MASK = 0xC000;
-    enum NUMERIC_POS       = 0x0000;
     enum NUMERIC_NEG       = 0x4000;
-    enum NUMERIC_SHORT     = 0x8000;
     enum NUMERIC_NAN       = 0xC000;
     
-    auto NUMERIC_FLAGBITS(ushort n_header) 
+    struct NumericVar
     {
-        return n_header & NUMERIC_SIGN_MASK;
+    	int			weight;
+    	int 		sign;
+    	int			dscale;
+    	NumericDigit[] digits;
     }
     
-    bool NUMERIC_IS_NAN(ushort n)
+    string numeric_out(ref NumericVar num)
     {
-        return NUMERIC_FLAGBITS(n) == NUMERIC_NAN;
+    	string str;
+    	
+    	if(num.sign == NUMERIC_NAN)
+    	{
+    		return "NaN";
+    	}
+    	
+    	str = get_str_from_var(num);
+    	
+    	return str;
     }
     
-    bool NUMERIC_IS_SHORT(ushort n)
-    {
-        return NUMERIC_FLAGBITS(n) == NUMERIC_SHORT;
-    }
+	/*
+	 * get_str_from_var() -
+	 *
+	 *  Convert a var to text representation (guts of numeric_out).
+	 *  The var is displayed to the number of digits indicated by its dscale.
+	 *  Returns a palloc'd string.
+	 */
+	string get_str_from_var(ref NumericVar var)
+	{
+	    int         dscale;
+	    char*       str;
+	    char*       cp;
+	    char*       endcp;
+	    int         i;
+	    int         d;
+	    NumericDigit dig;
+	
+		static if(DEC_DIGITS > 1)
+		{
+			NumericDigit d1;
+		}
+	
+	    dscale = var.dscale;
+	
+	    /*
+	     * Allocate space for the result.
+	     *
+	     * i is set to the # of decimal digits before decimal point. dscale is the
+	     * # of decimal digits we will print after decimal point. We may generate
+	     * as many as DEC_DIGITS-1 excess digits at the end, and in addition we
+	     * need room for sign, decimal point, null terminator.
+	     */
+	    i = (var.weight + 1) * DEC_DIGITS;
+	    if (i <= 0)
+	        i = 1;
+	        
+	    str = cast(char*)GC.malloc(i + dscale + DEC_DIGITS + 2);
+	    cp = str;
+	
+	    /*
+	     * Output a dash for negative values
+	     */
+	    if (var.sign == NUMERIC_NEG)
+	        *cp++ = '-';
+	
+	    /*
+	     * Output all digits before the decimal point
+	     */
+	    if (var.weight < 0)
+	    {
+	        d = var.weight + 1;
+	        *cp++ = '0';
+	    }
+	    else
+	    {
+	        for (d = 0; d <= var.weight; d++)
+	        {
+	            dig = (d < var.digits.length) ? var.digits[d] : 0;
+	            /* In the first digit, suppress extra leading decimal zeroes */
+	            static if(DEC_DIGITS == 4)
+	            {
+	                bool putit = (d > 0);
+	
+	                d1 = dig / 1000;
+	                dig -= d1 * 1000;
+	                putit |= (d1 > 0);
+	                if (putit)
+	                    *cp++ = cast(char)(d1 + '0');
+	                d1 = dig / 100;
+	                dig -= d1 * 100;
+	                putit |= (d1 > 0);
+	                if (putit)
+	                    *cp++ = cast(char)(d1 + '0');
+	                d1 = dig / 10;
+	                dig -= d1 * 10;
+	                putit |= (d1 > 0);
+	                if (putit)
+	                    *cp++ = cast(char)(d1 + '0');
+	                *cp++ = cast(char)(dig + '0');
+	            }
+	            else static if(DEC_DIGITS == 2)
+	            {
+		            d1 = dig / 10;
+		            dig -= d1 * 10;
+		            if (d1 > 0 || d > 0)
+		                *cp++ = cast(char)(d1 + '0');
+		            *cp++ = cast(char)(dig + '0');
+	            }
+	            else static if(DEC_DIGITS == 1)
+	            {
+	            	*cp++ = cast(char)(dig + '0');
+	            }
+	            else pragma(error, "unsupported NBASE");
+	        }
+	    }
+	
+	    /*
+	     * If requested, output a decimal point and all the digits that follow it.
+	     * We initially put out a multiple of DEC_DIGITS digits, then truncate if
+	     * needed.
+	     */
+	    if (dscale > 0)
+	    {
+	        *cp++ = '.';
+	        endcp = cp + dscale;
+	        for (i = 0; i < dscale; d++, i += DEC_DIGITS)
+	        {
+	            dig = (d >= 0 && d < var.digits.length) ? var.digits[d] : 0;
+	            static if(DEC_DIGITS == 4)
+	            {
+		            d1 = dig / 1000;
+		            dig -= d1 * 1000;
+		            *cp++ = cast(char)(d1 + '0');
+		            d1 = dig / 100;
+		            dig -= d1 * 100;
+		            *cp++ = cast(char)(d1 + '0');
+		            d1 = dig / 10;
+		            dig -= d1 * 10;
+		            *cp++ = cast(char)(d1 + '0');
+		            *cp++ = cast(char)(dig + '0');
+	            }
+	            else static if(DEC_DIGITS == 2)
+	            {
+		            d1 = dig / 10;
+		            dig -= d1 * 10;
+		            *cp++ = cast(char)(d1 + '0');
+		            *cp++ = cast(char)(dig + '0');
+	            }
+	            else static if(DEC_DIGITS == 1)
+	            {
+	            	*cp++ = cast(char)(dig + '0');
+            	}
+            	else pragma(error, "unsupported NBASE");
+	        }
+	        cp = endcp;
+	    }
+	
+	    /*
+	     * terminate the string and return it
+	     */
+	    *cp = '\0';
+	    return str.fromStringz;
+	}
 }
 
-alias ushort NumericDigit;
-enum NBASE      = 10000;
-
-/**
-*   Temporary structure to hold PostgreSQL arbitrary precision numbers.
-*   
-*   Warning: When the number can fit into double type, backend automatically
-*       converting it to double while serializing into Bson/Json.  
-*/    
-struct Numeric
+struct PGNumeric 
 {
-    BigInt mantis;
-    size_t scale;
-    size_t weight;
-    bool isNan = true; // deafault is nan
-    
-    this(bool sign, NumericDigit[] digits)
-    {
-        auto builder = appender!string();
-        
-        if(digits.length == 0)
-        {
-            mantis = 0;   
-        } else
-        {
-            foreach(i,dig; digits)
-            {
-                foreach_reverse(j; 0..DEC_DIGITS)
-                {
-                    auto d = dig / (10 ^^ j);
-                    builder.put(d.to!string);
-                    dig -= d * (10 ^^ j);
-                } 
-            }
-    
-            foreach(i; 0 .. weight)
-            {
-                enum zeros = '0'.repeat(DEC_DIGITS).array.idup;
-                builder.put(zeros);
-            }
-            
-            // truncate besides zeros
-            // only if exponent part is zero
-            // unless 7000 => 7
-            string str = builder.data;
-            if(scale != 0)
-            {
-                str = str.strip('0');
-            }            
-            
-            if(sign)
-            	mantis = '-' ~ str;
-            else
-            	mantis = str;
-    	}
-    	isNan = false;
-    }
-    
-    this(NumericShort num)
-    {
-        bool sign  = (num.n_header & NUMERIC_SHORT_SIGN_MASK) != 0;
-        scale = (num.n_header & NUMERIC_SHORT_DSCALE_MASK) >> NUMERIC_SHORT_DSCALE_SHIFT;
-        
-        this(sign, num.n_data);
-    }
-    
-    this(NumericLong num, ushort weight)
-    {
-        bool sign  = NUMERIC_FLAGBITS(num.n_sign_dscale) != 0;
-        this.weight = weight;      
-        scale = num.n_weight;
-        
-        this(sign, num.n_data);
-    }
-    
-    
+	string payload;
+	
     /**
     *   If the numeric fits double boundaries, stores it 
     *   into $(B val) and returns true, else returns false
@@ -194,12 +207,11 @@ struct Numeric
     {
         try
         {
-            val = cast(double)this;
-            auto orig = toString;
+            val = payload.to!double;
             
             auto builder = appender!string;
-            formattedWrite(builder, "%."~orig.find('.').length.to!string~"f", val);
-            enforce(builder.data.strip('0') == orig);
+            formattedWrite(builder, "%."~payload.find('.').length.to!string~"f", val);
+            enforce(builder.data.strip('0') == payload);
         } catch(Exception e)
         {
             val = double.nan;
@@ -208,78 +220,32 @@ struct Numeric
         return true;
     }
     
-    /**
-    *   Transforming numeric into double.
-    *   Dangerous, returns valid result when
-    *	it can fit in double.
-    *
-    *	See_Also: canBeNative
-    */
-    T opCast(T)() if(is(T == double))
+    void toString(scope void delegate(const(char)[]) sink) const
     {
-        return toString.to!double;
-    }
-    
-    /**
-    *	Converting the numeric into string.
-    */
-    string toString()
-    {
-        if(isNan) return "nan";
-        
-        string str;
-        mantis.toString((chars) {str = chars.idup;}, "d");
-
-        // putting decimal point
-        if(scale > 0)
-        {
-            if(str.length <= scale)
-            {
-                auto zbuilder = appender!string;
-                zbuilder.put("0.");
-                foreach(i; 0 .. scale - str.length)
-                	zbuilder.put('0');
-                str = zbuilder.data ~ str;    
-            }
-            else str = str[0 .. $-scale] ~ '.' ~ str[$-scale .. $];
-        } 
-        // returning sign in place
-        if(mantis < 0) str = '-' ~ str;
-        return str;
+    	sink(payload);
     }
 }
 
-Numeric convert(PQType type)(ubyte[] val)
+PGNumeric convert(PQType type)(ubyte[] val)
     if(type == PQType.Numeric)
 {
-    assert(val.length >= 2*ushort.sizeof);
-    val.read!ushort; // always 1
-    
-    auto weight = val.read!ushort; 
-    if(weight == ushort.max) weight = 0;
-
-    auto n_header = val.read!ushort;
-    NumericData raw;
-    raw.choice.n_header = n_header;
-    assert(val.length % NumericDigit.sizeof == 0);
-    
-    if(NUMERIC_IS_SHORT(n_header))
-    {
-        while(val.length > 0)
-            raw.choice.n_short.n_data ~= val.read!NumericDigit;
-            
-        return Numeric(raw.choice.n_short);
-    } else if(!NUMERIC_IS_NAN(n_header))
-    {
-        raw.choice.n_long.n_weight = val.read!short;
-        while(val.length > 0)
-            raw.choice.n_long.n_data ~= val.read!NumericDigit;
-            
-        return Numeric(raw.choice.n_long, weight);
-    } else
-    {
-        return Numeric();
-    }
+	assert(val.length >= 4*ushort.sizeof);
+	
+	NumericVar	value;
+	val.read!ushort; // num of digits
+	value.weight = val.read!short;
+	value.sign = val.read!ushort;
+	value.dscale = val.read!ushort;
+	
+	auto len = val.length / NumericDigit.sizeof;
+	value.digits = new NumericDigit[len];
+	foreach(i; 0 .. len)
+	{
+		NumericDigit d = val.read!NumericDigit;
+		value.digits[i] = d;
+	}
+	
+	return PGNumeric(numeric_out(value));
 }
 
 version(IntegrationTest2)
@@ -306,7 +272,6 @@ version(IntegrationTest2)
             if(val == "NaN") 
             {
                 query = "SELECT '"~val~"'::NUMERIC as test_field";
-                val = "nan";
             } else
             {
                 query = "SELECT "~val~"::NUMERIC as test_field";
@@ -371,5 +336,9 @@ version(IntegrationTest2)
         testValue(delayed, "700.0");
         testValue(delayed, "7000.0");
         testValue(delayed, "70000.000");
+        
+        testValue(delayed, "2354877787627192443");
+        testValue(delayed, "2354877787627192443.0");
+        testValue(delayed, "2354877787627192443.00000");
     }
 }
