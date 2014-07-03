@@ -20,140 +20,19 @@ import std.range;
 import core.memory;
 import util;
 
-private // inner representation
+private // inner representation from libpq sources
 {
-    /* From libpq docs
-     * The Numeric type as stored on disk.
-     *
-     * If the high bits of the first word of a NumericChoice (n_header, or
-     * n_short.n_header, or n_long.n_sign_dscale) are NUMERIC_SHORT, then the
-     * numeric follows the NumericShort format; if they are NUMERIC_POS or
-     * NUMERIC_NEG, it follows the NumericLong format.  If they are NUMERIC_NAN,
-     * it is a NaN.  We currently always store a NaN using just two bytes (i.e.
-     * only n_header), but previous releases used only the NumericLong format,
-     * so we might find 4-byte NaNs on disk if a database has been migrated using
-     * pg_upgrade.  In either case, when the high bits indicate a NaN, the
-     * remaining bits are never examined.  Currently, we always initialize these
-     * to zero, but it might be possible to use them for some other purpose in
-     * the future.
-     *
-     * In the NumericShort format, the remaining 14 bits of the header word
-     * (n_short.n_header) are allocated as follows: 1 for sign (positive or
-     * negative), 6 for dynamic scale, and 7 for weight.  In practice, most
-     * commonly-encountered values can be represented this way.
-     *
-     * In the NumericLong format, the remaining 14 bits of the header word
-     * (n_long.n_sign_dscale) represent the display scale; and the weight is
-     * stored separately in n_weight.
-     *
-     * NOTE: by convention, values in the packed form have been stripped of
-     * all leading and trailing zero digits (where a "digit" is of base NBASE).
-     * In particular, if the value is zero, there will be no digits at all!
-     * The weight is arbitrary in that case, but we normally set it to zero.
-     */
-
-    enum HALF_NBASE = 5000;
+	alias ushort NumericDigit;
     enum DEC_DIGITS = 4;
-    
-    struct NumericShort
-    {
-        ushort       n_header;       /* Sign + display scale + weight */
-        NumericDigit n_data[];      /* Digits */
-    };
-    
-    struct NumericLong
-    {
-        ushort      n_sign_dscale;  /* Sign + display scale */
-        short       n_weight;       /* Weight of 1st digit  */
-        NumericDigit n_data[];      /* Digits */
-    };
-    
-    union NumericChoice
-    {
-        ushort      n_header;       /* Header word */
-        NumericLong n_long;         /* Long form (4-byte header) */
-        NumericShort n_short;       /* Short form (2-byte header) */
-    };
-    
-    struct NumericData
-    {
-        int           vl_len_;        /* varlena header (do not touch directly!) */
-        NumericChoice choice;         /* choice of format */
-    };
-    
-    enum NUMERIC_SHORT_SIGN_MASK = 0x2000;
-    enum NUMERIC_SHORT_DSCALE_MASK  = 0x1F80;
-    enum NUMERIC_SHORT_DSCALE_SHIFT = 7;
-    enum NUMERIC_SHORT_WEIGHT_SIGN_MASK = 0x0040;
-    enum NUMERIC_SHORT_WEIGHT_MASK      = 0x003F;
-    
-    enum NUMERIC_DSCALE_MASK = 0x3FFF;
-    
-    enum NUMERIC_SIGN_MASK = 0xC000;
-    enum NUMERIC_POS       = 0x0000;
     enum NUMERIC_NEG       = 0x4000;
-    enum NUMERIC_SHORT     = 0x8000;
     enum NUMERIC_NAN       = 0xC000;
-    
-    
-	uint NUMERIC_FLAGBITS(Numeric n) 
-	{
-		return n.choice.n_header & NUMERIC_SIGN_MASK;
-	}
-	
-	bool NUMERIC_IS_NAN(Numeric n)
-	{
-		return NUMERIC_FLAGBITS(n) == NUMERIC_NAN;
-	}
-	
-	bool NUMERIC_IS_SHORT(Numeric n)
-	{
-		return NUMERIC_FLAGBITS(n) == NUMERIC_SHORT;
-	}
-    
-    int NUMERIC_WEIGHT(Numeric n)
-    {
-    	return NUMERIC_IS_SHORT(n) ?
-    		((n.choice.n_short.n_header & NUMERIC_SHORT_SIGN_MASK) ?
-    		NUMERIC_NEG : NUMERIC_POS) : NUMERIC_FLAGBITS(n);
-    }
-    
-    int NUMERIC_SIGN(Numeric n)
-    {
-    	return NUMERIC_IS_SHORT(n) ?
-    		((n.choice.n_short.n_header & NUMERIC_SHORT_SIGN_MASK) ?
-    		NUMERIC_NEG : NUMERIC_POS) : NUMERIC_FLAGBITS(n);
-    }
-    
-    int NUMERIC_DSCALE(Numeric n)
-    {
-    	return NUMERIC_IS_SHORT(n) ? 
-    		(n.choice.n_short.n_header & NUMERIC_SHORT_DSCALE_MASK) 
-    			>> NUMERIC_SHORT_DSCALE_SHIFT 
-			: (n.choice.n_long.n_sign_dscale & NUMERIC_DSCALE_MASK);
-    }
-    
-    NumericDigit[] NUMERIC_DIGITS(Numeric num)
-    {
-    	return NUMERIC_IS_SHORT(num) ? 
-    		num.choice.n_short.n_data : num.choice.n_long.n_data;
-    }
     
     struct NumericVar
     {
     	int			weight;
     	int 		sign;
     	int			dscale;
-    	NumericDigit[] buf;
     	NumericDigit[] digits;
-    }
-    
-    void init_var_from_num(Numeric num, NumericVar* dest)
-    {
-    	dest.weight = NUMERIC_WEIGHT(num);
-    	dest.sign   = NUMERIC_SIGN(num);
-	    dest.dscale = NUMERIC_DSCALE(num);
-	    dest.digits = NUMERIC_DIGITS(num);
     }
     
     string numeric_out(ref NumericVar num)
@@ -315,11 +194,37 @@ private // inner representation
 	}
 }
 
-alias ushort NumericDigit;
-enum NBASE = 10000;
-alias Numeric = NumericData*;
-
-alias PGNumeric = string;
+struct PGNumeric 
+{
+	string payload;
+	
+    /**
+    *   If the numeric fits double boundaries, stores it 
+    *   into $(B val) and returns true, else returns false
+    *   and fills $(B val) with NaN.
+    */
+    bool canBeNative(out double val)
+    {
+        try
+        {
+            val = payload.to!double;
+            
+            auto builder = appender!string;
+            formattedWrite(builder, "%."~payload.find('.').length.to!string~"f", val);
+            enforce(builder.data.strip('0') == payload);
+        } catch(Exception e)
+        {
+            val = double.nan;
+            return false;
+        }
+        return true;
+    }
+    
+    void toString(scope void delegate(const(char)[]) sink) const
+    {
+    	sink(payload);
+    }
+}
 
 PGNumeric convert(PQType type)(ubyte[] val)
     if(type == PQType.Numeric)
@@ -340,7 +245,7 @@ PGNumeric convert(PQType type)(ubyte[] val)
 		value.digits[i] = d;
 	}
 	
-	return numeric_out(value);
+	return PGNumeric(numeric_out(value));
 }
 
 version(IntegrationTest2)

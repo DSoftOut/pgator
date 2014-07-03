@@ -192,7 +192,7 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
     {
         return serializeToBson(convVal.stdTime);
     } 
-    else static if(is(T == Numeric))
+    else static if(is(T == PGNumeric))
     {
         double store;
         if(convVal.canBeNative(store))
