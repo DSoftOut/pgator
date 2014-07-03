@@ -365,5 +365,11 @@ version(IntegrationTest2)
         testValue(delayed, "700");
         testValue(delayed, "7000");
         testValue(delayed, "70000");
+        
+        testValue(delayed, "7.0");
+        testValue(delayed, "70.0");
+        testValue(delayed, "700.0");
+        testValue(delayed, "7000.0");
+        testValue(delayed, "70000.000");
     }
 }
