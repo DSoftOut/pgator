@@ -180,6 +180,7 @@ else version(RpcClient)
     import client.test.testcase;
     import client.test.simple;
     import client.test.nullcase;
+    import client.test.numeric;
     
     immutable helpStr =
     "JSON-RPC client for testing purposes of main rpc-server.\n"
@@ -227,7 +228,11 @@ else version(RpcClient)
             }
         }
         
-        auto client = new RpcClient!(SimpleTestCase, NullTestCase)(host, connString, tableName, pid);
+        auto client = new RpcClient!(
+        	SimpleTestCase, 
+        	NullTestCase,
+        	NumericTestCase,
+        	)(host, connString, tableName, pid);
         scope(exit) client.finalize;
         
         client.runTests();
