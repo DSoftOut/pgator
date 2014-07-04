@@ -38,7 +38,7 @@ class NumericTestCase : ITestCase
         auto result1 = api.runRpc!"numeric_test_1"(2354877787627192443).assertOk!(Column!(long, "test_field"));
         assert(result1.test_field[0] == 2354877787627192443);
         
-        auto result2 = api.runRpc!"numeric_test_2".assertOk!(Column!(string, "bigint_value"));
-        assert(result2.bigint_value[0] == "2354877787627192443");
+        auto result2 = api.runRpc!"numeric_test_2".assertOk!(Column!(long, "bigint_value"));
+        assert(result2.bigint_value[0] == 2354877787627192443);
     }
 }
