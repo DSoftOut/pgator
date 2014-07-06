@@ -30,6 +30,26 @@ class PGException : Exception
     {
         super(msg, file, line); 
     }
+    
+    @safe pure nothrow this(string msg, string hint, string detail, string errorcode,
+    	string file = __FILE__, size_t line = __LINE__)
+    {
+    	data = PGErrorData(hint, detail, errorcode);
+    	
+    	super(msg, file, line);
+    }
+    
+    PGErrorData data;
+}
+
+/// Stores additional error data
+struct PGErrorData
+{
+	string hint;
+	
+	string detail;
+	
+	string errorcode;
 }
 
 /**

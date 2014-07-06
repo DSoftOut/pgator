@@ -92,6 +92,13 @@ struct RpcError
 		this(code, message);
 	}
 	
+	this(T)(RPC_ERROR_CODE code, string message, T errorData)
+	{
+		this.data = serializeToJson(errorData);
+		
+		this(code, message);
+	}
+	
 	this(RpcException ex)
 	{
 		this(ex.code, ex.msg);
