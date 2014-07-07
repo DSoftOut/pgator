@@ -190,7 +190,7 @@ private // inner representation from libpq sources
 	     * terminate the string and return it
 	     */
 	    *cp = '\0';
-	    return str.fromStringz;
+	    return str.fromStringz.idup;
 	}
 }
 
