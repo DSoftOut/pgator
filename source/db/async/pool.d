@@ -104,9 +104,14 @@ class AsyncPool : IConnectionPool
             {
                 failed = true;
                 logger.logError(e.msg);
-                logger.logDebug("Will retry to connect to ", e.server, " over "
-                       , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds.");
-               
+                static if (__VERSION__ < 2066) {
+	                logger.logDebug("Will retry to connect to ", e.server, " over "
+	                       , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds.");
+                } else {
+	                logger.logDebug("Will retry to connect to ", e.server, " over "
+	                       , reconnectTime.total!"seconds", ".", reconnectTime.split!("seconds", "msecs").msecs, " seconds.");
+                }
+                
                 auto whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
                 failedList.insert(TimedConnListElem(conn, whenRetry));
             }

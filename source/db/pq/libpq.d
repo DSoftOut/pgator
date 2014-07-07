@@ -62,7 +62,7 @@ synchronized class CPGresult : IPGresult
     *   Note: same as resultStatus, but converts 
     *         the enum to human-readable string.
     */
-    string resStatus() nothrow const
+    string resStatus() const
     in
     {
         assert(result !is null, "PGconn was finished!");
@@ -71,13 +71,13 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return fromStringz(PQresStatus(PQresultStatus(result)));
+    	return fromStringz(PQresStatus(PQresultStatus(result))).idup;
     }
     
     /**
     *   Prototype: PQresultErrorMessage
     */
-    string resultErrorMessage() nothrow const
+    string resultErrorMessage() const
     in
     {
         assert(result !is null, "PGconn was finished!");
@@ -85,7 +85,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return fromStringz(PQresultErrorMessage(result));
+        return fromStringz(PQresultErrorMessage(result)).idup;
     }
     
     /**
@@ -142,7 +142,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return enforceEx!RangeError(fromStringz(PQfname(result, cast(uint)colNumber)));
+        return enforceEx!RangeError(fromStringz(PQfname(result, cast(uint)colNumber)).idup);
     }
     
     /**
@@ -362,7 +362,7 @@ synchronized class CPGconn : IPGconn
     body
     {
         scope(failure) return "";
-        return fromStringz(PQhost(conn));
+        return fromStringz(PQhost(conn)).idup;
     }    
 
     /**
@@ -377,7 +377,7 @@ synchronized class CPGconn : IPGconn
     body
     {
         scope(failure) return "";
-        return fromStringz(PQdb(conn));
+        return fromStringz(PQdb(conn)).idup;
     }     
 
     /**
@@ -392,7 +392,7 @@ synchronized class CPGconn : IPGconn
     body
     {
         scope(failure) return "";
-        return fromStringz(PQuser(conn));
+        return fromStringz(PQuser(conn)).idup;
     } 
     
     /**
@@ -407,7 +407,7 @@ synchronized class CPGconn : IPGconn
     body
     {
         scope(failure) return "";
-        return fromStringz(PQport(conn));
+        return fromStringz(PQport(conn)).idup;
     } 
     
     /**
@@ -422,7 +422,7 @@ synchronized class CPGconn : IPGconn
     body
     {
         scope(failure) return "";
-        return fromStringz(PQerrorMessage(conn));
+        return fromStringz(PQerrorMessage(conn)).idup;
     }
     
     /**
@@ -584,7 +584,7 @@ synchronized class CPGconn : IPGconn
     {
         auto res = PQescapeLiteral(conn, msg.toStringz, msg.length);
         if(res is null) throw new PGEscapeException(errorMessage);
-        return fromStringz(res);
+        return fromStringz(res).idup;
     }
     
     /**
@@ -618,7 +618,7 @@ synchronized class CPGconn : IPGconn
         if(res is null)
             throw new PGParamNotExistException(param);
         
-        return res.fromStringz;
+        return res.fromStringz.idup;
     }
 }
 
@@ -643,9 +643,14 @@ synchronized class PostgreSQL : IPostgreSQL
     */
     void finalize() nothrow
     {
-        scope(failure) {}
-        GC.collect();
-        DerelictPQ.unload();
+        try
+        {
+        	GC.collect();
+        	DerelictPQ.unload();
+    	} catch(Throwable th)
+        {
+        	
+        }
     }
     
     /**

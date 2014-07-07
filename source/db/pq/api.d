@@ -115,12 +115,12 @@ interface IPGresult
     *   Note: same as resultStatus, but converts 
     *         the enum to human-readable string.
     */
-    string resStatus() nothrow const;
+    string resStatus() const;
     
     /**
     *   Prototype: PQresultErrorMessage
     */
-    string resultErrorMessage() nothrow const;
+    string resultErrorMessage() const;
     
     /**
     *   Prototype: PQclear

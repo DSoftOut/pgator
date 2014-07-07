@@ -72,8 +72,13 @@ void connectingChecker(shared ILogger logger, Duration reconnectTime)
                         catch(ConnectException e)
                         {
                             logger.logError(e.msg);
-                            logger.logDebug(text("Will retry to connect to ", e.server, " over "
-                                , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds."));
+			                static if (__VERSION__ < 2066) {
+				                logger.logDebug("Will retry to connect to ", e.server, " over "
+				                       , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds.");
+			                } else {
+				                logger.logDebug("Will retry to connect to ", e.server, " over "
+				                       , reconnectTime.total!"seconds", ".", reconnectTime.split!("seconds", "msecs").msecs, " seconds.");
+			                }
                             list.removeOne(conn);
                            
                             TickDuration whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;

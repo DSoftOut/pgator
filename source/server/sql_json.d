@@ -247,7 +247,8 @@ shared class SqlJsonTable
 			dropMap[val.method] = arr.dup;
 		}
 		
-		dropMap.rehash();
+		// TODO: Check if it regression in 2.066-b1
+		(cast(shared(string[])[string])dropMap).rehash();
 	}
 	
 	private:
