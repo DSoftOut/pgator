@@ -367,40 +367,29 @@ unittest
 	assertThrown!TestException(tryEx!TestException(thrower()));
 }
 
-/// fromStringz
-/**
-*   Returns new string formed from C-style (null-terminated) string $(D msg). Usefull
-*   when interfacing with C libraries. For D-style to C-style convertion use std.string.toStringz
-*
-*   Example:
-*   ----------
-*   char[] cstring = "some string".dup ~ cast(char)0;
-*
-*   assert(fromStringz(cstring.ptr) == "some string");
-*   ----------
-*/
-string fromStringz(const char* msg) nothrow
-{
-    try
-    {
-        if(msg is null) return "";
-
-        auto buff = new char[0];
-        uint i = 0;
-            while(msg[i]!=cast(char)0)
-                buff ~= msg[i++];
-        return buff.idup;
-    } catch(Exception e)
-    {
-        return "";
-    }
-}
-
-unittest
-{
-    char[] cstring = "some string".dup ~ cast(char)0;
-
-    assert(fromStringz(cstring.ptr) == "some string");
+static if (__VERSION__ < 2066) { // from phobos 2.066-b1
+	import std.c.string;
+	
+	/++
+	    Returns a D-style array of $(D char) given a zero-terminated C-style string.
+	    The returned array will retain the same type qualifiers as the input.
+	
+	    $(RED Important Note:) The returned array is a slice of the original buffer.
+	    The original data is not changed and not copied.
+	+/
+	
+	inout(char)[] fromStringz(inout(char)* cString) @system pure {
+	    return cString ? cString[0 .. strlen(cString)] : null;
+	}
+	
+	///
+	@system pure unittest
+	{
+	    assert(fromStringz(null) == null);
+	    assert(fromStringz("foo") == "foo");
+	}
+} else {
+	public import std.string: fromStringz;
 }
 
 /// getMemberType

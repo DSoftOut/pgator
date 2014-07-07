@@ -188,10 +188,15 @@ class NoConfigLoaded : Exception
         mConfPaths = confPaths;
         
         string msg;
+        try
         {
-            scope(failure) msg = "<Internal error while collecting error message, report this bug!>";
             msg = text("Failed to load configuration file from one of following paths: ", confPaths);
+        } 
+        catch(Exception th)
+        {
+        	 msg = "<Internal error while collecting error message, report this bug!>";
         }
+        
         super(msg, file, line);
     }
     

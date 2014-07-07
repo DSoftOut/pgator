@@ -76,8 +76,13 @@ static void closedChecker(shared ILogger logger, Duration reconnectTime)
                         conn.reconnect();      
                     } catch(ConnectException e)
                     {
-                        logger.logDebug("Connection to server ",e.server," is still failing! Will retry over "
-                            , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds.");
+                    	static if (__VERSION__ < 2066) {
+	                        logger.logDebug("Connection to server ",e.server," is still failing! Will retry over "
+	                            , reconnectTime.total!"seconds", ".", reconnectTime.fracSec.msecs, " seconds.");
+                        } else {
+	                        logger.logDebug("Connection to server ",e.server," is still failing! Will retry over "
+	                            , reconnectTime.total!"seconds", ".", reconnectTime.split!("seconds", "msecs").msecs, " seconds.");
+                        }
                         elem.duration = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
                         nextList.insert(elem);
                     }

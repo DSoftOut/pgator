@@ -246,7 +246,11 @@ struct PGTimeWithZone
         minute = tm.minute;
         second = tm.second;
         
-        timeZoneOffset = cast(int)tz.utcOffset.dur!"minutes".total!"seconds";
+        static if (__VERSION__ < 2066) {
+        	timeZoneOffset = cast(int)tz.utcOffset.dur!"minutes".total!"seconds";
+    	} else {
+    		timeZoneOffset = cast(int)tz.utcOffset.total!"seconds";
+    	}
     }
     
     T opCast(T)() const if(is(T == TimeOfDay))

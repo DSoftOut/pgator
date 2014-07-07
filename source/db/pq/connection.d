@@ -239,15 +239,15 @@ synchronized class PQConnection : IConnection
             while(pollQueringStatus != QueringStatus.Finished) pollQueryException();
         }
         
-        auto builder = appender!(shared(IPGresult)[]);
+        auto builder = appender!(IPGresult[]);
         shared IPGresult res = conn.getResult;
         while(res !is null)
         {
-            builder.put(res);
+            builder.put(cast()res);
             res = conn.getResult;
         }
         
-        return builder.data[].inputRangeObject;
+        return (cast(shared(IPGresult)[])builder.data[]).inputRangeObject;
     }
     
     /**
@@ -288,11 +288,11 @@ synchronized class PQConnection : IConnection
     */
     DateFormat dateFormat() @property
     {
-        auto result = execQuery("SHOW DateStyle;").array;
+        auto result = execQuery("SHOW DateStyle;");
         
-        if(result.length == 0) throw new QueryException("DateFormat query expected result!");
+        if(result.empty) throw new QueryException("DateFormat query expected result!");
         
-        auto res = result[0].asColumnBson(this)["DateStyle"].deserializeBson!(string[]);
+        auto res = result.front.asColumnBson(this)["DateStyle"].deserializeBson!(string[]);
         assert(res.length == 1);
         auto vals = res[0].split(", ");
         assert(vals.length == 2);
