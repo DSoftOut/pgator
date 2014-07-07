@@ -201,7 +201,7 @@ shared class Database
 				auto builder = appender!(Bson[]);
 				foreach(ibson; irange)
 				{
-				    builder.put(Bson.fromJson(ibson.toJson));
+				    builder.put(cast()ibson);
 				}
 				
 				RpcResult result = RpcResult(Bson(builder.data));

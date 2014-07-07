@@ -121,7 +121,7 @@ mixin ArraySupport!(
     PQType.TimeArray,               PGTime[],               PQType.Time,
     PQType.TimeStampWithZoneArray,  PGTimeStampWithZone[],  PQType.TimeStampWithZone,
     PQType.TimeIntervalArray,       TimeInterval[],         PQType.TimeInterval,
-    PQType.NumericArray,            Numeric[],              PQType.Numeric,
+    PQType.NumericArray,            PGNumeric[],            PQType.Numeric,
     PQType.TimeWithZoneArray,       PGTimeWithZone[],       PQType.TimeWithZone,
     );
 
