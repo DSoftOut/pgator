@@ -770,18 +770,35 @@ version(IntegrationTest2)
         scope(failure) logger.minOutputLevel = LoggingLevel.Notice;
         scope(exit) logger.finalize;
         
-        auto res = queryValue(logger, pool, "'04:05:06.789-8'::time with time zone").deserializeBson!PGTimeWithZone;
-        assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
-        res = queryValue(logger, pool, "'04:05:06-08:00'::time with time zone").deserializeBson!PGTimeWithZone;
-        assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
-        res = queryValue(logger, pool, "'04:05-08:00'::time with time zone").deserializeBson!PGTimeWithZone;
-        assert((cast(TimeOfDay)res).toISOExtString == "04:05:00" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
-        res = queryValue(logger, pool, "'040506-08'::time with time zone").deserializeBson!PGTimeWithZone;
-        assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
-        res = queryValue(logger, pool, "'04:05:06 PST'::time with time zone").deserializeBson!PGTimeWithZone;
-        assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
-        res = queryValue(logger, pool, "'2003-04-12 04:05:06 America/New_York'::time with time zone").deserializeBson!PGTimeWithZone;
-        assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -4);
+        static if (__VERSION__ < 2066) 
+        {
+            auto res = queryValue(logger, pool, "'04:05:06.789-8'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
+            res = queryValue(logger, pool, "'04:05:06-08:00'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
+            res = queryValue(logger, pool, "'04:05-08:00'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:00" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
+            res = queryValue(logger, pool, "'040506-08'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
+            res = queryValue(logger, pool, "'04:05:06 PST'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -8);
+            res = queryValue(logger, pool, "'2003-04-12 04:05:06 America/New_York'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.dur!"minutes".total!"hours" == -4);
+        } else
+        {
+            auto res = queryValue(logger, pool, "'04:05:06.789-8'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.total!"hours" == -8);
+            res = queryValue(logger, pool, "'04:05:06-08:00'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.total!"hours" == -8);
+            res = queryValue(logger, pool, "'04:05-08:00'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:00" && (cast(immutable SimpleTimeZone)res).utcOffset.total!"hours" == -8);
+            res = queryValue(logger, pool, "'040506-08'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.total!"hours" == -8);
+            res = queryValue(logger, pool, "'04:05:06 PST'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.total!"hours" == -8);
+            res = queryValue(logger, pool, "'2003-04-12 04:05:06 America/New_York'::time with time zone").deserializeBson!PGTimeWithZone;
+            assert((cast(TimeOfDay)res).toISOExtString == "04:05:06" && (cast(immutable SimpleTimeZone)res).utcOffset.total!"hours" == -4);
+        }
     }
     
     void test(PQType type)(shared ILogger strictLogger, shared IConnectionPool pool)
