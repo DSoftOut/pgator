@@ -19,6 +19,9 @@ import std.range;
 import core.thread;
 import util;
 
+
+import std.stdio;
+
 private alias DList!(shared IConnection) ConnectionList;
 
 void connectingChecker(shared ILogger logger, Duration reconnectTime)
@@ -58,16 +61,18 @@ void connectingChecker(shared ILogger logger, Duration reconnectTime)
                 , (Variant v) { assert(false, "Unhandled message!"); }
             )) {}
 
+            ConnectionList newList; 
             foreach(conn; list)
             {
                 final switch(conn.pollConnectionStatus())
                 {
                     case ConnectionStatus.Pending:
                     {
+                        newList.insert = conn;
                         break;
                     }
                     case ConnectionStatus.Error:
-                    {  
+                    {
                         try conn.pollConnectionException();
                         catch(ConnectException e)
                         {
@@ -79,7 +84,6 @@ void connectingChecker(shared ILogger logger, Duration reconnectTime)
 				                logger.logDebug("Will retry to connect to ", e.server, " over "
 				                       , reconnectTime.total!"seconds", ".", reconnectTime.split!("seconds", "msecs").msecs, " seconds.");
 			                }
-                            list.removeOne(conn);
                            
                             TickDuration whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
                             ids.closedCheckerId.send("add", conn, whenRetry);
@@ -88,12 +92,13 @@ void connectingChecker(shared ILogger logger, Duration reconnectTime)
                     }
                     case ConnectionStatus.Finished:
                     {
-                        list.removeOne(conn);
                         ids.freeCheckerId.send("add", conn);
                         break;
                     }
                 }
             }
+            list.clear();
+            list = newList;
         }
 
         scope(exit)

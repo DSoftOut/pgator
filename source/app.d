@@ -301,16 +301,17 @@ else
                 do
                 {
                     res = app.run;
-                } while(receiveTimeout(dur!"msecs"(100), 
-                        (shared Application newApp) {app = newApp;}));
+                } while(receiveTimeout(dur!"msecs"(1000), 
+                          (shared(Application) newApp) {app = newApp; logger.logInfo("Received app!");}
+                        , (Variant v) { assert(false, "Unhandled message!"); }));
                 
+                logger.logDebug("Exiting main");
                 return res;
             };
             
             enum termFunc = ()
             {
                 auto newApp = app.restart;
-                
                 send(thisTid, newApp);
             };
 
