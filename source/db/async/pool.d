@@ -514,6 +514,7 @@ version(unittest)
     import std.stdio;
     import std.random;
     import core.thread;
+    import core.atomic;
     import dlogg.strict;
     import dunit.mockable;
     
@@ -654,11 +655,11 @@ unittest
         {
             if(succs < succConns)
             {
-                succs++;
+                succs.atomicOp!"+="(1);
                 return new shared ConnectionCheckConn(false);
             } else if(fails < failConns)
             {
-                fails++;
+                fails.atomicOp!"+="(1);
                 return new shared ConnectionCheckConn(true);
             }
             assert(0);
@@ -721,7 +722,7 @@ unittest
                     currConnStatus = ConnectionStatus.Error;
                 }
             }
-            currTicks++;
+            currTicks.atomicOp!"+="(1);
             return super.pollConnectionStatus();
         }
         
@@ -738,11 +739,11 @@ unittest
         {
             if(succs < succConns)
             {
-                succs++;
+                succs.atomicOp!"+="(1);
                 return new shared ConnectionCheckConn(uniform(0, maxTicks), maxTicks);
             } else if(fails < failConns)
             {
-                fails++;
+                fails.atomicOp!"+="(1);
                 return new shared ConnectionCheckConn(maxTicks, uniform(0, maxTicks));
             }
             assert(0);
@@ -815,7 +816,7 @@ unittest
                     failAfter = uint.max;
                 }
             }
-            currTicks++;
+            currTicks.atomicOp!"+="(1);
             return super.pollConnectionStatus();
         }
         
@@ -832,11 +833,11 @@ unittest
         {
             if(succs < succConns)
             {
-                succs++;
+                succs.atomicOp!"+="(1);
                 return new shared ConnectionCheckConn(uniform(0, maxTicks), uint.max);
             } else if(fails < failConns)
             {
-                fails++;
+                fails.atomicOp!"+="(1);
                 return new shared ConnectionCheckConn(uniform(0, maxTicks), uniform(0, maxFailTicks));
             }
             assert(0);
