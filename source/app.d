@@ -302,8 +302,13 @@ else
                 {
                     res = app.run;
                 } while(receiveTimeout(dur!"msecs"(1000), 
-                          (shared(Application) newApp) {app = newApp; logger.logInfo("Received app!");}
-                        , (Variant v) { assert(false, "Unhandled message!"); }));
+                        // bug, should be fixed in 2.067
+                        //  (shared(Application) newApp) {app = newApp;}
+                        (Variant v) 
+                        {
+                            auto newAppPtr = v.peek!(shared(Application)); assert(newAppPtr);
+                            app = *newAppPtr;
+                        }));
                 
                 logger.logDebug("Exiting main");
                 return res;
