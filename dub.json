@@ -13,7 +13,6 @@
     "dependencies": {
         "vibe-d" : "~master",
         "derelict-pq": "~master",
-        "dunit": ">=1.0.0-beta",
         "dlogg": ">=0.3.3"
     },
     "subConfigurations":

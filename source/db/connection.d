@@ -9,7 +9,6 @@
 module db.connection;
 
 import db.pq.api;
-import dunit.mockable;
 import std.container;
 import std.datetime;
 import std.range;
@@ -283,8 +282,6 @@ interface IConnection
         
         return getQueryResult;
     }
-    
-    mixin Mockable!IConnection;
 }
 
 /**
@@ -298,6 +295,4 @@ interface IConnectionProvider
     *   Allocates new connection shared across threads.
     */
     synchronized shared(IConnection) allocate();
-    
-    mixin Mockable!IConnection;
 }
