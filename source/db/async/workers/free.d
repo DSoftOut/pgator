@@ -75,7 +75,8 @@ void freeChecker(shared ILogger logger, Duration reconnectTime, Duration aliveCh
                     }
                     , (Variant v) { assert(false, "Unhandled message!"); }
             )) {}
-                   
+            
+            ConnectionList newList;     
             bool checkAlive = Clock.currSystemTick > nextCheckTime;
             foreach(conn; list)
             {
@@ -89,8 +90,6 @@ void freeChecker(shared ILogger logger, Duration reconnectTime, Duration aliveCh
 	                        , reconnectTime.total!"seconds", ".", reconnectTime.split!("seconds", "msecs").msecs, " seconds."));
                     }
                     
-                    list.removeOne(conn);
-                   
                     TickDuration whenRetry = TickDuration.currSystemTick + cast(TickDuration)reconnectTime;
                     ids.closedCheckerId.send("add", conn, whenRetry);
                 }
@@ -102,6 +101,7 @@ void freeChecker(shared ILogger logger, Duration reconnectTime, Duration aliveCh
                     {
                         logger.logError(e.msg);
                         processFailedConn();
+                        continue;
                     }
                 }
                    
@@ -111,9 +111,14 @@ void freeChecker(shared ILogger logger, Duration reconnectTime, Duration aliveCh
                     {
                         logger.logError("Connection test on its aliveness is failed!");
                         processFailedConn();
+                        continue;
                     }
                 }
+                
+                newList.insert = conn;
             }
+            list.clear;
+            list = newList;
                
             if(checkAlive)
             {

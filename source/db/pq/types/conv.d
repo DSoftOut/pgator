@@ -15,6 +15,7 @@ import dlogg.log;
 import std.conv;
 import std.traits;
 import std.typetuple;
+import std.datetime : SysTime;
 import util;
 
 import db.pq.types.all;
@@ -134,7 +135,7 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
     
     bool checkNullValues(T)(out Bson bson)
     {
-        static if(is(T == string))
+        static if(is(T == string) || is(T == char[]))
         {
             if(val.length == 0)
             {
@@ -146,7 +147,7 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
         {
             if(val.length == 0) 
             {
-                bson = serializeToBson(cast(T[])[]);
+                bson = serializeToBson(cast(T)[]);
                 return true;
             }
         } else

@@ -262,16 +262,11 @@ unittest
 	cache.add(invalidParamsReq, invalidParasmRes.toShared);
 	
 	import std.concurrency;
+	import core.thread;
+	import core.time;
 	
-	Tid tid;
-	
-	for(int i = 0; i < 10; i++)
-	{
-		tid = spawn(&foo);
-	}
-	
-	receiveOnly!int();
-	
-	std.stdio.writeln("Caching system test finished");
-		
+	enum count = 10;
+	foreach(i; 0 .. count) spawn(&foo);
+	foreach(i; 0 .. count) receiveOnly!int();
+	Thread.sleep(10.dur!"msecs"); // wait to last thread die
 }

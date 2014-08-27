@@ -301,16 +301,22 @@ else
                 do
                 {
                     res = app.run;
-                } while(receiveTimeout(dur!"msecs"(100), 
-                        (shared Application newApp) {app = newApp;}));
+                } while(receiveTimeout(dur!"msecs"(1000), 
+                        // bug, should be fixed in 2.067
+                        //  (shared(Application) newApp) {app = newApp;}
+                        (Variant v) 
+                        {
+                            auto newAppPtr = v.peek!(shared(Application)); assert(newAppPtr);
+                            app = *newAppPtr;
+                        }));
                 
+                logger.logDebug("Exiting main");
                 return res;
             };
             
             enum termFunc = ()
             {
                 auto newApp = app.restart;
-                
                 send(thisTid, newApp);
             };
 

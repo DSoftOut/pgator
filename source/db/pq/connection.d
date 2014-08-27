@@ -8,7 +8,6 @@
 */
 module db.pq.connection;
 
-import dunit.mockable;
 import derelict.pq.pq;
 import db.connection;
 import db.pq.api;
@@ -364,7 +363,6 @@ synchronized class PQConnection : IConnection
         shared ConnectException savedException;
         shared QueryException savedQueryException;
     }
-    mixin Mockable!IConnection;
 }
 
 synchronized class PQConnProvider : IConnectionProvider

@@ -601,6 +601,10 @@ unittest
     static assert(FieldNameTuple!S4 == ["dup"]);
 }
 
+/// Removes one element from the list
+/**
+*   NEVER use while iterating the $(B list).
+*/
 void removeOne(T)(ref DList!T list, T elem)
 {
    auto toRemove = list[].find(elem).take(1);
