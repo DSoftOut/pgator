@@ -72,6 +72,9 @@ struct AppConfig
 	@required
 	string logname = "/var/log/"~APPNAME~"/"~APPNAME~".txt";
 	
+	@possible
+	bool logAllTransactions = false;
+	
     /**	
     *   Deserializing config from provided $(B json) object.
     *
@@ -130,6 +133,7 @@ struct AppConfig
 		logname          = conf.logname;
 		groupid          = conf.groupid;
 		userid           = conf.userid;
+		logAllTransactions = conf.logAllTransactions;
 	}
 }
 
@@ -363,7 +367,9 @@ version(unittest)
 
 	    \"logname\" : \"log.txt\",
 
-	    \"vibelog\" : \"http.txt\"
+	    \"vibelog\" : \"http.txt\",
+
+	    \"logAllTransactions\" : true
 	    }";
 }
 
