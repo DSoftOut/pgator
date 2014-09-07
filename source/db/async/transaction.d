@@ -66,10 +66,10 @@ class Transaction : IConnectionPool.ITransaction
             sink(commands[0]);
             if(params.length != 0)
             {
-                sink("/n");
-                sink(params.text);
+                sink("\n");
+                sink(text("With params: ", params));
             }
-            if(vars.length != 0) sink("/n");
+            if(vars.length != 0) sink("\n");
         } 
         else
         {
@@ -82,7 +82,7 @@ class Transaction : IConnectionPool.ITransaction
                 if(i != commands.length-1) sink("\n");
                 j += argnums[i];
             }
-            if(vars.length != 0) sink("/n");
+            if(vars.length != 0) sink("\n");
         }
         
         if(vars.length != 0)
