@@ -42,6 +42,7 @@ import std.datetime;
 import std.exception;
 import std.range;
 import core.thread;
+import core.atomic;
 import vibe.core.core : yield;
 import vibe.data.bson;  
 import util;
@@ -189,6 +190,12 @@ class AsyncPool : IConnectionPool
         
         ids.queringCheckerId.send(thisTid, conn, cast(shared)transaction);
         
+        if(loggingAllTransactions)
+        {
+            logger.logInfo("Transaction is posted:");
+            logger.logInfo(transaction.text);
+        }
+        
         return transaction;
     }
     
@@ -246,8 +253,11 @@ class AsyncPool : IConnectionPool
             {
                 auto tr = cast(Transaction)transaction;
                 assert(tr);      
-                logger.logInfo(text("Transaction fail: ", tr.commands, ", params: ", tr.params
-                    , ", argnums: ", tr.argnums, ", vars: ", tr.vars));
+                logger.logError("Transaction failure:");
+                logger.logError(text("Commands: ", tr.commands));
+                logger.logError(text("Params: ", tr.params));
+                logger.logError(text("Argnums: ", tr.argnums));
+                logger.logError(text("Vars: ", tr.vars));
                 throw new QueryProcessingException(respond.exception);
             }
             else
@@ -495,6 +505,22 @@ class AsyncPool : IConnectionPool
         return fetchFreeConnection.timeZone;
     }
     
+    /**
+    *   Returns $(B true) if the pool logs all transactions.
+    */
+    bool loggingAllTransactions() shared const
+    {
+        return mLoggingAll;
+    }
+    
+    /**
+    *   Enables/disables logging for all transactions.
+    */
+    void loggingAllTransactions(bool val) shared
+    {
+        mLoggingAll.atomicStore(val);
+    }
+    
     private
     {
        shared ILogger logger;
@@ -507,5 +533,6 @@ class AsyncPool : IConnectionPool
        
        shared ThreadIds ids;
        bool finalized = false;
+       bool mLoggingAll = false;
    }
 }

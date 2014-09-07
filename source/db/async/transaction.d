@@ -8,8 +8,10 @@
 */
 module db.async.transaction;
 
-import db.pool;
+import std.conv;
 import std.exception;
+
+import db.pool;
 
 /**
 *   Handles all data that is need to perform SQL transaction: queries, parameters,
@@ -54,6 +56,41 @@ class Transaction : IConnectionPool.ITransaction
         }
         
         return toHashArr(commands) + toHashArr(params) + toHashArr(argnums) + toHashAss(vars);
+    }
+    
+    void toString(scope void delegate(const(char)[]) sink) const
+    {
+        if(commands.length == 1)
+        {
+            sink("Command: ");
+            sink(commands[0]);
+            if(params.length != 0)
+            {
+                sink("/n");
+                sink(params.text);
+            }
+            if(vars.length != 0) sink("/n");
+        } 
+        else
+        {
+            sink("Commands: \n");
+            size_t j = 0;
+            foreach(immutable i, command; commands)
+            {
+                sink(text(i, ": ", command, "\n"));
+                sink(text("With params: ", params[j .. j+argnums[i]], "\n"));
+                j += argnums[i];
+            }
+        }
+        
+        if(vars.length != 0)
+        {
+            sink("Variables: ");
+            foreach(key, value; vars)
+            {
+                sink(text(key, " : ", value));
+            }
+        }
     }
     
     immutable string[] commands;

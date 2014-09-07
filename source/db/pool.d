@@ -247,4 +247,14 @@ interface IConnectionPool
     *   finished transaction. 
     */
     protected interface ITransaction {}
+    
+    /**
+    *   Returns $(B true) if the pool logs all transactions.
+    */
+    bool loggingAllTransactions() shared const;
+    
+    /**
+    *   Enables/disables logging for all transactions.
+    */
+    void loggingAllTransactions(bool val) shared;
 }

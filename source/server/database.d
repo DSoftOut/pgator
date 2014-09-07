@@ -182,9 +182,7 @@ shared class Database
 				throw new RpcInvalidParams(text("Expected ", expected, " parameters, ",
 				        "but got ", req.params.length, "!"));
 			}
-						
-			logger.logDebug("Querying pool"); 
-			
+									
 			try
 			{			
 				InputRange!(immutable Bson) irange;

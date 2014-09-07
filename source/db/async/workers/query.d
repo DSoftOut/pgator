@@ -232,10 +232,7 @@ private class Element
         catch(Error err)
         {
             logger.logError(text("Internal unrecoverable error with transaction: ", err.msg));
-            logger.logError(text("Commands: ", transaction.commands));
-            logger.logError(text("Params: ", transaction.params));
-            logger.logError(text("Argnums: ", transaction.argnums));
-            logger.logError(text("Vars: ", transaction.vars));
+            logger.logError(transaction.text);
             logger.logError(text("Stack trace: ", err));
             throw err;
         }
@@ -348,10 +345,7 @@ private class Element
         catch(Error err)
         {
             logger.logError(text("Internal unrecoverable error with transaction: ", err.msg));
-            logger.logError(text("Commands: ", transaction.commands));
-            logger.logError(text("Params: ", transaction.params));
-            logger.logError(text("Argnums: ", transaction.argnums));
-            logger.logError(text("Vars: ", transaction.vars));
+            logger.logError(transaction.text);
             logger.logError(text("Stack trace: ", err));
             throw err;
         }
