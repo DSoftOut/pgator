@@ -182,6 +182,7 @@ else version(RpcClient)
     import client.test.nullcase;
     import client.test.numeric;
     import client.test.unicode;
+    import client.test.multicommand;
     
     immutable helpStr =
     "JSON-RPC client for testing purposes of main rpc-server.\n"
@@ -233,7 +234,8 @@ else version(RpcClient)
         	SimpleTestCase, 
         	NullTestCase,
         	NumericTestCase,
-        	UnicodeTestCase
+        	UnicodeTestCase,
+        	MulticommandCase
         	)(host, connString, tableName, pid);
         scope(exit) client.finalize;
         

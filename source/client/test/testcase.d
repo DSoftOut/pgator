@@ -118,8 +118,8 @@ struct JsonRpcRow
     } 
     
     this(string method, uint[] arg_nums, string[] sql_queries,
-        bool set_username = false, bool need_cache = true,
-        bool read_only = true, string[] reset_caches = [],
+        bool set_username = false, bool need_cache = false,
+        bool read_only = false, string[] reset_caches = [],
         string[] reset_by = [])
     {
         this.method = method;

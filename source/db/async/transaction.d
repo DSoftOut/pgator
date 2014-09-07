@@ -78,9 +78,11 @@ class Transaction : IConnectionPool.ITransaction
             foreach(immutable i, command; commands)
             {
                 sink(text(i, ": ", command, "\n"));
-                sink(text("With params: ", params[j .. j+argnums[i]], "\n"));
+                sink(text("With params: ", params[j .. j+argnums[i]]));
+                if(i != commands.length-1) sink("\n");
                 j += argnums[i];
             }
+            if(vars.length != 0) sink("/n");
         }
         
         if(vars.length != 0)
