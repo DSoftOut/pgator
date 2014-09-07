@@ -390,6 +390,7 @@ unittest
 	config2.sqlReconnectTime = 150;
 	config2.sqlTimeout = 100;
 	config2.sqlServers = [SqlConfig("sql1", cast(size_t)1,""), SqlConfig("sql2", cast(size_t)2, "",)];
+	config2.logAllTransactions = true;
 	
 	assert(config1 == config2, "Config unittest failed");
 }
