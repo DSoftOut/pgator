@@ -14,12 +14,15 @@ import std.array;
 import std.random;
 import std.conv;
 import std.typecons;
+import std.traits;
 
 interface IRpcApi
 {
     Json rpc(string jsonrpc, string method, Json[] params, uint id);
+    Json rpc(string jsonrpc, string method, Json[] params, uint id, string[string] auth);
     
     final RpcRespond runRpc(string method, T...)(T params)
+    	if(T.length == 0 || !isAssociativeArray!(T[0]))
     {
         auto builder = appender!(Json[]);
         foreach(param; params)
@@ -35,6 +38,15 @@ interface IRpcApi
             builder.put(param.serializeToJson);
         
         return new RpcRespond(rpc("2.0", method, builder.data, uniform(uint.min, uint.max)));    
+    }
+    
+    final RpcRespond runRpc(string method, T...)(string[string] auth, T params)
+    {
+    	auto builderParams = appender!(Json[]);
+        foreach(param; params)
+            builderParams.put(param.serializeToJson);
+    	
+    	return new RpcRespond(rpc("2.0", method, builderParams.data, uniform(uint.min, uint.max), auth));
     }
 }
 
