@@ -87,10 +87,12 @@ class Transaction : IConnectionPool.ITransaction
         
         if(vars.length != 0)
         {
-            sink("Variables: ");
+            sink("Variables: \n");
+            size_t i = 0;
             foreach(key, value; vars)
             {
                 sink(text(key, " : ", value));
+                if(i++ != vars.length - 1) sink("\n");
             }
         }
     }
