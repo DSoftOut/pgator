@@ -33,7 +33,7 @@ class LongQueryTestCase : ITestCase
     */
     protected void performTests(IRpcApi api)
     {
-        auto result = api.runRpc!"long_query1"(120).assertOk!(Column!(string, "pg_sleep"));
+        auto result = api.runRpc!"long_query1"(10).assertOk!(Column!(string, "pg_sleep"));
         assert(result.pg_sleep[0] == "");
     }
 }
