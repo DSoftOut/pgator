@@ -203,5 +203,10 @@ class RpcRespond
         }
     }
     
+    Json raw()
+    {
+        return respond;
+    }
+    
     private Json respond;
 }
