@@ -1,22 +1,34 @@
 // Written in D programming language
 /**
-*    Module describes testcases for time consuming queries.
+*    Module describes testcases for error processing.
 *    
 *    Copyright: © 2014 DSoftOut
 *    License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *    Authors: NCrashed <ncrashed@gmail.com>
 */
-module client.test.longquery;
+module client.test.notice;
 
 import client.test.testcase;
 import client.rpcapi;
 import db.pool;
 
-class LongQueryTestCase : ITestCase
+class NoticeTestCase : ITestCase
 {
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow("long_query1", [1], "select pg_sleep( $1 );"));
+        insertRow(pool, tableName, JsonRpcRow("notice_test1", [], [
+            "DROP FUNCTION IF EXISTS pgator_testRaise();",
+            
+            "CREATE FUNCTION pgator_testRaise() RETURNS void AS $$"
+            "BEGIN"
+            "    RAISE NOTICE 'Test notice!';"
+            "END;"
+            "$$ LANGUAGE plpgsql;",
+            
+            "SELECT pgator_testRaise();",
+            
+            "DROP FUNCTION pgator_testRaise();"   
+            ]));
     }
     
     /**
@@ -24,7 +36,7 @@ class LongQueryTestCase : ITestCase
     */
     protected void deleteMethods(shared IConnectionPool pool, string tableName)
     {
-        removeRow(pool, tableName, "long_query1");
+        removeRow(pool, tableName, "notice_test1");
     }
     
     /**
@@ -33,7 +45,6 @@ class LongQueryTestCase : ITestCase
     */
     protected void performTests(IRpcApi api)
     {
-        auto result = api.runRpc!"long_query1"(10).assertOk!(Column!(string, "pg_sleep"));
-        assert(result.pg_sleep[0] == "");
+        auto result = api.runRpc!"notice_test1"().assertOk;
     }
 }

@@ -24,10 +24,13 @@ struct Respond
     *   at its own level. $(B collect) method handles other
     *   cases.
     */
-    this(QueryException e)
+    this(QueryException e, shared IConnection conn)
     {
+        scope(exit) conn.clearRaisedMsgs;
+        
         failed = true;
         exception = e.msg;
+        msgs = conn.raisedMsgs.array.idup;
     }
     
     /**
@@ -36,6 +39,9 @@ struct Respond
     */
     bool collect(InputRange!(shared IPGresult) results, shared IConnection conn)
     {
+        scope(exit) conn.clearRaisedMsgs;
+        msgs ~= conn.raisedMsgs.array.idup;
+        
         bool localSucc = true;
         foreach(res; results)
         {
@@ -61,4 +67,6 @@ struct Respond
     string exception;
     /// Collected result
     immutable(Bson)[] result;
+    /// Additional messages
+    immutable(string)[] msgs;
 }

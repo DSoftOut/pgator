@@ -143,7 +143,7 @@ private class Element
         try func();
         catch(QueryException e)
         {
-            respond = Respond(e);         
+            respond = Respond(e, conn);         
             if(startRollback)
             {       
                 rollbackNeeded = true; 
@@ -156,7 +156,7 @@ private class Element
         }
         catch (Exception e)
         {
-            respond = Respond(new QueryException("Internal error: "~e.msg));
+            respond = Respond(new QueryException("Internal error: "~e.msg), conn);
             if(startRollback)
             {       
                 rollbackNeeded = true;
@@ -270,13 +270,13 @@ private class Element
                     try conn.pollQueryException();
                     catch(QueryException e)
                     {
-                        respond = Respond(e);
+                        respond = Respond(e, conn);
                         rollbackNeeded = true;
                         return;
                     } 
                     catch (Exception e)
                     {
-                        respond = Respond(new QueryException("Internal error: "~e.msg));
+                        respond = Respond(new QueryException("Internal error: "~e.msg), conn);
                         rollbackNeeded = true;
                         return;
                     }
@@ -308,7 +308,7 @@ private class Element
                                 if(res.resultStatus != ExecStatusType.PGRES_TUPLES_OK &&
                                    res.resultStatus != ExecStatusType.PGRES_COMMAND_OK)
                                 {
-                                    respond = Respond(new QueryException(res.resultErrorMessage));
+                                    respond = Respond(new QueryException(res.resultErrorMessage), conn);
                                     rollbackNeeded = true;  
                                     stage = Stage.MoreQueries;                         
                                     failed = true;
@@ -327,14 +327,14 @@ private class Element
                     }
                     catch(QueryException e)
                     {
-                        respond = Respond(e);
+                        respond = Respond(e, conn);
                         rollbackNeeded = true;  
                         stage = Stage.MoreQueries;                          
                         return;
                     } 
                     catch (Exception e)
                     {
-                        respond = Respond(new QueryException("Internal error: "~e.msg));
+                        respond = Respond(new QueryException("Internal error: "~e.msg), conn);
                         rollbackNeeded = true; 
                         stage = Stage.MoreQueries; 
                         return;

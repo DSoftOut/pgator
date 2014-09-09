@@ -19,6 +19,8 @@ import std.range;
 import std.datetime;
 import vibe.data.bson;
 
+import util;
+
 /**
 *   PostgreSQL specific connection type. Although it can use
 *   different data base backend, the class is defined to 
@@ -47,6 +49,8 @@ synchronized class PQConnection : IConnection
             conn = api.startConnect(connString);
             reconnecting = false;
             lastConnString = connString;
+            
+            initNoticeCallbacks();
         } catch(PGException e)
         {
             logger.logError(text("Failed to connect to SQL server, reason:", e.msg));
@@ -77,6 +81,8 @@ synchronized class PQConnection : IConnection
             
             conn = api.startConnect(lastConnString);
             reconnecting = false;
+            
+            initNoticeCallbacks();
         } catch(PGReconnectException e)
         {
             logger.logError(text("Failed to reconnect to SQL server, reason:", e.msg));
@@ -353,6 +359,30 @@ synchronized class PQConnection : IConnection
         }
     }
     
+    /**
+    *   Returns true if the connection stores info/warning/error messages.
+    */
+    bool hasRaisedMsgs()
+    {
+        return mRaisedMsgs.length != 0;
+    }
+    
+    /**
+    *   Returns all saved info/warning/error messages from the connection.
+    */
+    InputRange!string raisedMsgs()
+    {
+        return ((cast(string[])mRaisedMsgs)[]).inputRangeObject;
+    }
+    
+    /**
+    *   Cleaning inner buffer for info/warning/error messages.
+    */
+    void clearRaisedMsgs()
+    {
+        mRaisedMsgs = [];
+    }
+    
     private
     {
         bool reconnecting = false;
@@ -362,6 +392,31 @@ synchronized class PQConnection : IConnection
         shared IPGconn conn;
         shared ConnectException savedException;
         shared QueryException savedQueryException;
+        
+        shared string[] mRaisedMsgs;
+        
+        extern(C) static void noticeProcessor(void* arg, char* message) nothrow
+        {
+            auto pqConn = cast(shared PQConnection)arg;
+            if(!pqConn) return;
+            
+            try pqConn.addRaisedMsg(fromStringz(message).idup);
+            catch(Throwable e)
+            {
+                pqConn.logger.logError(text("Failed to add raised msg at libpq connection! Reason: ", e.msg));
+            }
+        }
+        
+        void initNoticeCallbacks()
+        {
+            assert(conn);
+            conn.setNoticeProcessor(&noticeProcessor, cast(void*)this);
+        }
+        
+        void addRaisedMsg(string msg)
+        {
+            mRaisedMsgs ~= msg;
+        }
     }
 }
 
