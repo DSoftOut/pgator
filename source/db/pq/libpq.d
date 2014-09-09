@@ -620,6 +620,34 @@ synchronized class CPGconn : IPGconn
         
         return res.fromStringz.idup;
     }
+    
+    /**
+    *   Prototype: PQsetNoticeReceiver
+    */
+    PQnoticeReceiver setNoticeReceiver(PQnoticeReceiver proc, void* arg) nothrow
+    in
+    {
+        assert(conn !is null, "PGconn was finished!");
+        assert(PQsetNoticeReceiver !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return PQsetNoticeReceiver(conn, proc, arg);
+    }
+    
+    /**
+    *   Prototype: PQsetNoticeProcessor
+    */
+    PQnoticeProcessor setNoticeProcessor(PQnoticeProcessor proc, void* arg) nothrow
+    in
+    {
+        assert(conn !is null, "PGconn was finished!");
+        assert(PQsetNoticeProcessor !is null, "DerelictPQ isn't loaded!");
+    }
+    body
+    {
+        return PQsetNoticeProcessor(conn, proc, arg);
+    }
 }
 
 synchronized class PostgreSQL : IPostgreSQL

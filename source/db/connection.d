@@ -282,6 +282,21 @@ interface IConnection
         
         return getQueryResult;
     }
+    
+    /**
+    *   Returns true if the connection stores info/warning/error messages.
+    */
+    bool hasRaisedMsgs();
+    
+    /**
+    *   Returns all saved info/warning/error messages from the connection.
+    */
+    InputRange!string raisedMsgs();
+    
+    /**
+    *   Cleaning inner buffer for info/warning/error messages.
+    */
+    void clearRaisedMsgs();
 }
 
 /**

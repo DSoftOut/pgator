@@ -247,21 +247,42 @@ class AsyncPool : IConnectionPool
         {
             processingTransactions.removeOne(cast(shared)transaction);
             
+            auto tr = cast(Transaction)transaction;
+            assert(tr);
+            
             auto respond = awaitingResponds[transaction];
             awaitingResponds.remove(transaction);
+            
+            void logMessages(void delegate(string msg) sink)
+            {
+                if(respond.msgs.length != 0)
+                {
+                    sink("Following messages were raised from db:");
+                    foreach(msg; respond.msgs) 
+                    {
+                        if(msg.length > 0 && msg[$-1] == '\n') sink(msg[0 .. $-1]);
+                        else sink(msg);
+                    }
+                }
+            }
+            
             if(respond.failed)
             {
-                auto tr = cast(Transaction)transaction;
-                assert(tr);      
                 logger.logError("Transaction failure:");
-                logger.logError(text("Commands: ", tr.commands));
-                logger.logError(text("Params: ", tr.params));
-                logger.logError(text("Argnums: ", tr.argnums));
-                logger.logError(text("Vars: ", tr.vars));
+                logger.logError(text(tr));
+                logMessages((s) => logger.logError(s));
+                
                 throw new QueryProcessingException(respond.exception);
             }
             else
             {
+                if(respond.msgs.length != 0)
+                {
+                    logMessages((s) => logger.logInfo(s));
+                    logger.logInfo("For transaction:");
+                    logger.logInfo(text(tr));
+                }
+                
                 return respond.result[].inputRangeObject;
             }
         } else

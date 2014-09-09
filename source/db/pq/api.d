@@ -363,6 +363,19 @@ interface IPGconn
     */
     string parameterStatus(string param) const;
     
+    // TODO: temp until https://github.com/DerelictOrg/DerelictPQ/pull/3
+    alias PQnoticeProcessor = PQnotcieProcessor;
+    
+    /**
+    *   Prototype: PQsetNoticeReceiver
+    */
+    PQnoticeReceiver setNoticeReceiver(PQnoticeReceiver proc, void* arg) nothrow;
+    
+    /**
+    *   Prototype: PQsetNoticeProcessor
+    */
+    PQnoticeProcessor setNoticeProcessor(PQnoticeProcessor proc, void* arg) nothrow;
+    
     /// Getting local logger
     protected shared(ILogger) logger() nothrow;
 }
