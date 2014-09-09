@@ -186,7 +186,7 @@ else version(RpcClient)
     
     immutable helpStr =
     "JSON-RPC client for testing purposes of main rpc-server.\n"
-    "   rpc-proxy-client [arguments]\n\n"
+    "   pgator-client [arguments]\n\n"
     "   arguments = --host=<string> - rpc-server url\n"
     "               --conn=<string> - postgres server conn string\n"
     "               --tableName=<string> - json_rpc table\n"
@@ -195,6 +195,12 @@ else version(RpcClient)
     uint getPid()
     {
         return parse!uint(executeShell("[ ! -f /var/run/pgator/pgator.pid ] || echo `cat /var/run/pgator/pgator.pid`").output);
+    }
+    
+    // Getting pid via pgrep
+    uint getPidConsole()
+    {
+        return parse!uint(executeShell("pgrep pgator").output);
     }
     
     int main(string[] args)
@@ -225,8 +231,13 @@ else version(RpcClient)
             try pid = getPid();
             catch(Exception e)
             {
-                writeln("Failed: ", e.msg);
-                return 1;
+                writeln("Trying to read pid with pgrep");
+                try pid = getPidConsole();
+                catch(Exception e)
+                {
+                    writeln("Cannot find pgator process!");
+                    return 1;
+                }
             }
         }
         
