@@ -185,7 +185,14 @@ interface IPGresult
             Bson[] rows;
             foreach(j; 0..ntuples)
             {
-                rows ~= pqToBson(ftype(i), asBytes(j, i), conn, logger);
+                if(getisnull(j, i))
+                {
+                    rows ~= Bson(null);
+                }
+                else
+                {
+                    rows ~= pqToBson(ftype(i), asBytes(j, i), conn, logger);
+                }
             }
             fields[fname(i)] = Bson(rows);
         }
@@ -210,7 +217,14 @@ interface IPGresult
     		
     		foreach(j; 0..nfields)
     		{
-    			entry[fname(j)] = pqToBson(ftype(j), asBytes(i, j), conn, logger);	
+    		    if(getisnull(i, j))
+    		    {
+    		        entry[fname(j)] = Bson(null);
+    		    }
+    		    else
+    		    {
+    		        entry[fname(j)] = pqToBson(ftype(j), asBytes(i, j), conn, logger);
+		        }	
     		}
     		
     		arr ~= Bson(entry);

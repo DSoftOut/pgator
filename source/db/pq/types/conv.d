@@ -135,7 +135,15 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
     
     bool checkNullValues(T)(out Bson bson)
     {
-        static if(isArray!T && !isSomeString!T)
+        static if(isSomeString!T)
+        {
+            if(val.length == 0) 
+            {
+                bson = serializeToBson("");
+                return true;
+            }
+        }
+        else static if(isArray!T)
         {
             if(val.length == 0) 
             {
