@@ -135,15 +135,7 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
     
     bool checkNullValues(T)(out Bson bson)
     {
-        static if(is(T == string) || is(T == char[]))
-        {
-            if(val.length == 0)
-            {
-                bson = Bson("");
-                return true;
-            }
-        }
-        else static if(isArray!T)
+        static if(isArray!T && !isSomeString!T)
         {
             if(val.length == 0) 
             {
