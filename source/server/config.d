@@ -396,5 +396,5 @@ unittest
 	config2.sqlServers = [SqlConfig("sql1", cast(size_t)1,""), SqlConfig("sql2", cast(size_t)2, "",)];
 	config2.logSqlTransactions = true;
 	
-	assert(config1 == config2, "Config unittest failed");
+	assert(config1 == config2, text("Config unittest failed ", config1, " != ", config2));
 }
