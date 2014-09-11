@@ -73,7 +73,10 @@ struct AppConfig
 	string logname = "/var/log/"~APPNAME~"/"~APPNAME~".txt";
 	
 	@possible
-	bool logAllTransactions = false;
+	bool logSqlTransactions = false;
+	
+	@possible
+	bool logJsonQueries = false;
 	
     /**	
     *   Deserializing config from provided $(B json) object.
@@ -133,7 +136,8 @@ struct AppConfig
 		logname          = conf.logname;
 		groupid          = conf.groupid;
 		userid           = conf.userid;
-		logAllTransactions = conf.logAllTransactions;
+		logSqlTransactions = conf.logSqlTransactions;
+		logJsonQueries   = conf.logJsonQueries;
 	}
 }
 
@@ -369,7 +373,7 @@ version(unittest)
 
 	    \"vibelog\" : \"http.txt\",
 
-	    \"logAllTransactions\" : true
+	    \"logSqlTransactions\" : true
 	    }";
 }
 
@@ -390,7 +394,7 @@ unittest
 	config2.sqlReconnectTime = 150;
 	config2.sqlTimeout = 100;
 	config2.sqlServers = [SqlConfig("sql1", cast(size_t)1,""), SqlConfig("sql2", cast(size_t)2, "",)];
-	config2.logAllTransactions = true;
+	config2.logSqlTransactions = true;
 	
 	assert(config1 == config2, "Config unittest failed");
 }

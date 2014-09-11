@@ -64,7 +64,7 @@ shared class Database
 		    logger.logInfo(text("Connecting to ", server.name, ". Adding ", server.maxConn, " connections."));
 			pool.addServer(server.connString, server.maxConn);	
 		}
-		pool.loggingAllTransactions = appConfig.logAllTransactions;
+		pool.loggingAllTransactions = appConfig.logSqlTransactions;
 	}
 	
 	/// allocate shared cache

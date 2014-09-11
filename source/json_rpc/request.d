@@ -15,6 +15,7 @@
 
 module json_rpc.request;
 
+import std.conv;
 import std.exception;
 
 import vibe.data.json;
@@ -68,6 +69,17 @@ struct RpcRequest
 	bool isRpc2()
 	{
 		return jsonrpc == "2.0";
+	}
+	
+	void toString(scope void delegate(const(char)[]) sink) const
+	{
+		sink("JSON RPC request {\n");
+		sink(text("Version: ", jsonrpc, "\n"));
+		sink(text("Method: ", method, "\n"));
+		sink(text("Params: ", params, "\n"));
+		sink(text("ID: ", id, "\n"));
+		sink(text("Auth: ", auth, "\n"));
+		sink("}");
 	}
 	
 	version (unittest)
