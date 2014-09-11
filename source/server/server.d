@@ -321,6 +321,12 @@ shared class Application
     			
     			rpcReq = RpcRequest(tryEx!RpcParseError(jsonStr));
     			
+    			// optional logging
+    			if(appConfig.logJsonQueries)
+    			{
+    				logger.logInfo(text("Received JSON-RPC request: ", rpcReq));
+    			}
+    			
     			string user = null;
     			string password = null;
     			
