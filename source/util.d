@@ -89,24 +89,37 @@ T deserializeFromJson(T)(Json src)
 				
 		static if (isRequired!(mem, T) || isOptional!(mem, T))
 		{
-			if (mixin("src."~mem~".type != Json.Type.undefined"))
+			if (mixin("src."~mem).type != Json.Type.undefined)
 			{
-				
 				static if (is(MemType == struct))
 				{
 					static if (is(MemType == Json))
 					{
-						mixin("ret."~mem~"=src."~mem~";");
+						mixin("ret."~mem) = mixin("src."~mem);
 					}
 					else
 					{
-						if (mixin("src."~mem~".type == Json.Type.object"))
+						if (mixin("src."~mem).type == Json.Type.object)
 						{	
-							mixin("ret."~mem~"=deserializeFromJson!(typeof(ret."~mem~"))(src."~mem~");");
+							mixin("ret."~mem) = deserializeFromJson!(typeof(mixin("ret."~mem)))(mixin("src."~mem));
 						}
 						else
 						{
-							throw new RequiredFieldException("Field "~mem~" must be object in json"~src.toString); 
+							// issue #96, is struct has default constructor 
+							// and marked with @possible and received null
+							static if(isOptional!(mem, T) && __traits(compiles, typeof(mixin("T."~mem))() ))
+							{
+								if(mixin("src."~mem).type == Json.Type.null_)
+								{
+									mixin("ret."~mem) = typeof(mixin("T."~mem))();
+								} else
+								{
+									throw new RequiredFieldException("Field "~mem~" must be object in json"~src.toString);
+								}
+							} else
+							{
+								throw new RequiredFieldException("Field "~mem~" must be object in json"~src.toString); 
+							}
 						}
 					}
 				}
@@ -114,7 +127,7 @@ T deserializeFromJson(T)(Json src)
 				{
 					static if (isArray!MemType && !isSomeString!MemType)
 					{
-						if (mixin("src."~mem~".type == Json.Type.array"))
+						if (mixin("src."~mem).type == Json.Type.array)
 						{
 							alias ElementType!MemType ElemType;
 							
@@ -133,10 +146,23 @@ T deserializeFromJson(T)(Json src)
 							}
 							
 							mixin("ret."~mem~"= arr;");
-						}
+						} 
 						else
 						{
-							throw new RequiredFieldException("Field "~mem~" must be array in json"~src.toString);
+							// array could be a null for @possible. issue #96
+							static if(isOptional!(mem, T))
+							{
+								if(mixin("src."~mem).type == Json.Type.null_)
+								{
+									mixin("ret."~mem) = null;
+								} else
+								{
+									throw new RequiredFieldException("Field "~mem~" must be array in json"~src.toString);
+								}
+							} else
+							{
+								throw new RequiredFieldException("Field "~mem~" must be array in json"~src.toString);
+							}
 						}		
 					}
 					else
@@ -158,6 +184,26 @@ T deserializeFromJson(T)(Json src)
 	}
 	
 	return ret;
+}
+unittest // issue #96
+{
+	struct A
+	{
+		@possible
+		ubyte[] a;
+	}
+	
+	auto a = A(null);
+	assert(deserializeFromJson!A(serializeToJson(a)) == a);
+	
+	struct B
+	{
+		@possible
+		A a;
+	}
+	
+	auto b = B(A(null));
+	assert(deserializeFromJson!B(serializeToJson(b)) == b);
 }
 
 /**
