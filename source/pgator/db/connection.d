@@ -9,9 +9,9 @@
 module pgator.db.connection;
 
 import pgator.db.pq.api;
-import dunit.mockable;
 import std.container;
 import std.datetime;
+import std.range;
 
 /**
 *    The exception is thrown when connection attempt to SQL server is failed due some reason.
@@ -214,7 +214,7 @@ interface IConnection
     *   query is processed without errors, else blocks the caller
     *   until the answer is arrived.
     */
-    DList!(shared IPGresult) getQueryResult();
+    InputRange!(shared IPGresult) getQueryResult();
     
     /**
     *    Closes connection to the SQL server instantly.    
@@ -259,9 +259,16 @@ interface IConnection
     immutable(TimeZone) timeZone() @property;
     
     /**
+    *   Sending senseless query to the server to check if the connection is
+    *   actually alive (e.g. nothing can detect fail after postgresql restart but
+    *   query).
+    */
+    bool testAlive() nothrow;
+    
+    /**
     *   Blocking wrapper to one-command query execution.
     */
-    final DList!(shared IPGresult) execQuery(string com, string[] params = [])
+    final InputRange!(shared IPGresult) execQuery(string com, string[] params = [])
     {
         postQuery(com, params);
         
@@ -276,7 +283,20 @@ interface IConnection
         return getQueryResult;
     }
     
-    mixin Mockable!IConnection;
+    /**
+    *   Returns true if the connection stores info/warning/error messages.
+    */
+    bool hasRaisedMsgs();
+    
+    /**
+    *   Returns all saved info/warning/error messages from the connection.
+    */
+    InputRange!string raisedMsgs();
+    
+    /**
+    *   Cleaning inner buffer for info/warning/error messages.
+    */
+    void clearRaisedMsgs();
 }
 
 /**
@@ -290,6 +310,4 @@ interface IConnectionProvider
     *   Allocates new connection shared across threads.
     */
     synchronized shared(IConnection) allocate();
-    
-    mixin Mockable!IConnection;
 }

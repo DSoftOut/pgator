@@ -9,6 +9,7 @@
 module pgator.db.pq.types.inet;
 
 import pgator.db.pq.types.oids;
+import pgator.util.hexconv;
 import std.algorithm;
 import std.array;
 import std.bitmanip;
@@ -17,7 +18,6 @@ import std.conv;
 import std.format;
 import vibe.data.bson;
 import core.sys.posix.sys.socket;
-import pgator.util.hexconv;
 
 /**
 *   MAC address. Struct holds 6 octets of the address.

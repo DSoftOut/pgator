@@ -65,7 +65,7 @@ class QueryProcessingException : Exception
 *    scope(exit) pool.finalize();
 *    std.stdio.writeln(pool.timeZone); // know server time zone
 *    
-*    import db.pq.types.time; // for PGTimeStamp
+*    import pgator.db.pq.types.time; // for PGTimeStamp
 *
 *    // blocking quering
 *    auto time = pool.execTransaction(["SELECT TIMESTAMP 'epoch' as field;"]).deserializeBson!PGTimeStamp;
@@ -116,7 +116,7 @@ interface IConnectionPool
     */
     InputRange!(immutable Bson) execTransaction(string[] commands
         , string[] params = [], uint[] argnums = []
-        , string[string] vars = AssociativeArray!(string, string)()) shared
+        , string[string] vars = null) shared
     in
     {
         assert(commands && params && argnums, "null reference");
@@ -149,7 +149,7 @@ interface IConnectionPool
     */
     immutable(ITransaction) postTransaction(string[] commands
         , string[] params = [], uint[] argnums = []
-        , string[string] vars = AssociativeArray!(string, string)()) shared
+        , string[string] vars = null) shared
     in
     {
         assert(commands && params && argnums, "null reference");
@@ -247,4 +247,14 @@ interface IConnectionPool
     *   finished transaction. 
     */
     protected interface ITransaction {}
+    
+    /**
+    *   Returns $(B true) if the pool logs all transactions.
+    */
+    bool loggingAllTransactions() shared const;
+    
+    /**
+    *   Enables/disables logging for all transactions.
+    */
+    void loggingAllTransactions(bool val) shared;
 }

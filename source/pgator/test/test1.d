@@ -7,8 +7,9 @@
 *   Copyright: © 2014 DSoftOut
 *   License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *   Authors: NCrashed <ncrashed@gmail.com>
+*            Zaramzan <shamyan.roman@gmail.com>
 */
-module pgator.test.test1;
+module pgator.test.test1; 
 
 version(IntegrationTest1):
 
@@ -18,7 +19,7 @@ import std.range;
 import dlogg.strict;
 import pgator.db.pq.libpq;
 import pgator.db.pq.connection;
-import pgator.db.asyncPool;
+import pgator.db.async.pool;    
 import core.time;
 import core.thread;
 
@@ -44,11 +45,11 @@ int main(string[] args)
     auto logger = new shared StrictLogger(logName);
     scope(exit) logger.finalize();
     
-    auto api = new shared PostgreSQL();
+    auto api = new shared PostgreSQL(logger);
     logger.logInfo("PostgreSQL was inited.");
     auto connProvider = new shared PQConnProvider(logger, api);
     
-    auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(5), dur!"seconds"(5));
+    auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(5), dur!"seconds"(5), dur!"seconds"(3));
     scope(exit) pool.finalize();
     logger.logInfo("AssyncPool was created.");
     

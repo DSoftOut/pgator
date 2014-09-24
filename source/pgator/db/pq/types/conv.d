@@ -11,57 +11,78 @@ module pgator.db.pq.types.conv;
 import pgator.db.pq.types.oids;
 import pgator.db.connection;
 import vibe.data.bson;
+import dlogg.log;
 import std.conv;
 import std.traits;
 import std.typetuple;
-//import pgator.util;
+import std.datetime : SysTime;
+//import util;
 
-import pgator.db.pq.types.geometric;
-import pgator.db.pq.types.inet;
-import pgator.db.pq.types.numeric;
-import pgator.db.pq.types.plain;
-import pgator.db.pq.types.time;
-import pgator.db.pq.types.array;
+import pgator.db.pq.types.all;
 
 bool nonConvertable(PQType type)
 {
     switch(type)
     {
         case PQType.RegProc: return true;
+        case PQType.RegProcArray: return true;
         case PQType.TypeCatalog: return true;
         case PQType.AttributeCatalog: return true;
         case PQType.ProcCatalog: return true;
         case PQType.ClassCatalog: return true; 
         case PQType.StorageManager: return true;
         case PQType.Tid: return true;
+        case PQType.TidArray: return true;
         case PQType.Line: return true;
         case PQType.AccessControlList: return true;
+        case PQType.AccessControlListArray: return true;
         
         // awaiting implementation
         case PQType.FixedBitString: return true;
+        case PQType.FixedBitStringArray: return true;
         case PQType.VariableBitString: return true;
+        case PQType.VariableBitStringArray: return true;
         
         case PQType.RefCursor: return true;
+        case PQType.RefCursorArray: return true;
         case PQType.RegProcWithArgs: return true;
+        case PQType.RegProcWithArgsArray: return true;
         case PQType.RegOperator: return true;
+        case PQType.RegOperatorArray: return true;
         case PQType.RegOperatorWithArgs: return true;
+        case PQType.RegOperatorWithArgsArray: return true;
         case PQType.RegClass: return true;
+        case PQType.RegClassArray: return true;
         case PQType.RegType: return true;
         case PQType.RegTypeArray: return true;
         
         case PQType.UUID: return true;
+        case PQType.UUIDArray: return true;
         case PQType.TSVector: return true;
+        case PQType.TSVectorArray: return true;
         case PQType.GTSVector: return true;
+        case PQType.GTSVectorArray: return true;
         case PQType.TSQuery: return true;
+        case PQType.TSQueryArray: return true;
         case PQType.RegConfig: return true;
+        case PQType.RegConfigArray: return true;
         case PQType.RegDictionary: return true;
+        case PQType.RegDictionaryArray: return true;
+        case PQType.TXidSnapshot: return true;
+        case PQType.TXidSnapshotArray: return true;
         
         case PQType.Int4Range: return true;
+        case PQType.Int4RangeArray: return true;
         case PQType.NumRange: return true;
+        case PQType.NumRangeArray: return true;
         case PQType.TimeStampRange: return true;
+        case PQType.TimeStampRangeArray: return true;
         case PQType.TimeStampWithZoneRange: return true;
+        case PQType.TimeStampWithZoneRangeArray: return true;
         case PQType.DateRange: return true;
+        case PQType.DateRangeArray: return true;
         case PQType.Int8Range: return true;
+        case PQType.Int8RangeArray: return true;
         
         // Pseudo types
         case PQType.CString: return true;
@@ -114,11 +135,11 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
     
     bool checkNullValues(T)(out Bson bson)
     {
-        static if(is(T == string))
+        static if(isSomeString!T)
         {
-            if(val.length == 0)
+            if(val.length == 0) 
             {
-                bson = Bson("");
+                bson = serializeToBson("");
                 return true;
             }
         }
@@ -126,7 +147,7 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
         {
             if(val.length == 0) 
             {
-                bson = serializeToBson(cast(T[])[]);
+                bson = serializeToBson(cast(T)[]);
                 return true;
             }
         } else
@@ -172,7 +193,7 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
     {
         return serializeToBson(convVal.stdTime);
     } 
-    else static if(is(T == Numeric))
+    else static if(is(T == PGNumeric))
     {
         double store;
         if(convVal.canBeNative(store))
@@ -190,23 +211,42 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
     }
 }
 
-Bson pqToBson(PQType type, ubyte[] val, shared IConnection conn)
+Bson pqToBson(PQType type, ubyte[] val, shared IConnection conn, shared ILogger logger)
 {
-    foreach(ts; __traits(allMembers, PQType))
+    try
     {
-        enum t = mixin("PQType."~ts);
-        if(type == t)
+        foreach(ts; __traits(allMembers, PQType))
         {
-            static if(nonConvertable(t))
+            enum t = mixin("PQType."~ts);
+            if(type == t)
             {
-                enum errMsg = ts ~ " is not supported!";
-                pragma(msg, errMsg);
-                assert(false,errMsg);
-            } else
-            {
-                return toBson!t(val, conn); 
+                static if(nonConvertable(t))
+                {
+                    enum errMsg = ts ~ " is not supported!";
+                    pragma(msg, errMsg);
+                    assert(false,errMsg);
+                } else
+                {
+                    return toBson!t(val, conn); 
+                }
             }
         }
+    }
+    catch(Exception e)
+    {
+        logger.logError(text("Binary protocol exception: ", e.msg));
+        logger.logError(text("Converting from: ", type));
+        logger.logError(text("Payload: ", val));
+        logger.logError(text("Stack trace: ", e));
+        throw e;
+    }
+    catch(Error err)
+    {
+        logger.logError(text("Binary protocol error (logic error): ", err.msg));
+        logger.logError(text("Converting from: ", type));
+        logger.logError(text("Payload: ", val));
+        logger.logError(text("Stack trace: ", err));
+        throw err;
     }
     
     debug assert(false, "Unknown type "~to!string(type)~"!");

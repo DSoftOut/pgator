@@ -8,12 +8,11 @@
        ,"Shamyan Roman (Zaramzan <shamyan.roman@gmail.com>)"
        ,"denizzzka"
        ],
-    "versions": ["VibeCustomMain"],
+    "versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
     "dependencies": {
-        "vibe-d" : "~master",
+        "vibe-d" : ">=0.7.21-beta.4",
         "derelict-pq": "~master",
-        "dunit": ">=1.0.0-beta",
-        "dlogg": ">=0.1.0"
+        "dlogg": ">=0.3.3"
     },
     "configurations": [
         {
@@ -24,13 +23,23 @@
             "name": "test1",
             "targetType": "executable",
             "versions": ["IntegrationTest1"],
-            "mainSourceFile": "source/pgator/test/test1.d"
+            "mainSourceFile": "source/pgator/test/test1.d",
+            "targetName": "pgator-backend-test1",
+            "subConfigurations":
+		    {
+		    	"dlogg": "colorized"
+		    }
         },
         {
             "name": "test2",
             "targetType": "executable",
             "versions": ["IntegrationTest2"],
-            "mainSourceFile": "source/pgator/test/test2.d"
+            "mainSourceFile": "source/pgator/test/test2.d",
+            "targetName": "pgator-backend-test2",
+            "subConfigurations":
+		    {
+		    	"dlogg": "colorized"
+		    }
         }
     ]
 }

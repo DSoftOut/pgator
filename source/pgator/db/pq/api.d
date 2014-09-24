@@ -19,6 +19,7 @@ public import pgator.db.pq.types.oids;
 import pgator.db.connection;
 import pgator.db.pq.types.conv;
 import vibe.data.bson;
+import dlogg.log;
 
 /**
 *   All exceptions thrown by postgres api is inherited from this exception.
@@ -114,12 +115,12 @@ interface IPGresult
     *   Note: same as resultStatus, but converts 
     *         the enum to human-readable string.
     */
-    string resStatus() nothrow const;
+    string resStatus() const;
     
     /**
     *   Prototype: PQresultErrorMessage
     */
-    string resultErrorMessage() nothrow const;
+    string resultErrorMessage() const;
     
     /**
     *   Prototype: PQclear
@@ -184,7 +185,14 @@ interface IPGresult
             Bson[] rows;
             foreach(j; 0..ntuples)
             {
-                rows ~= pqToBson(ftype(i), asBytes(j, i), conn);
+                if(getisnull(j, i))
+                {
+                    rows ~= Bson(null);
+                }
+                else
+                {
+                    rows ~= pqToBson(ftype(i), asBytes(j, i), conn, logger);
+                }
             }
             fields[fname(i)] = Bson(rows);
         }
@@ -209,7 +217,14 @@ interface IPGresult
     		
     		foreach(j; 0..nfields)
     		{
-    			entry[fname(j)] = pqToBson(ftype(j), asBytes(i, j), conn);	
+    		    if(getisnull(i, j))
+    		    {
+    		        entry[fname(j)] = Bson(null);
+    		    }
+    		    else
+    		    {
+    		        entry[fname(j)] = pqToBson(ftype(j), asBytes(i, j), conn, logger);
+		        }	
     		}
     		
     		arr ~= Bson(entry);
@@ -218,6 +233,9 @@ interface IPGresult
     	return Bson(arr);
     	
     }
+    
+    /// Getting local logger
+    protected shared(ILogger) logger() nothrow;
 }
 
 /**
@@ -344,6 +362,19 @@ interface IPGconn
     *   Throws: PGParamNotExistException
     */
     string parameterStatus(string param) const;
+    
+    /**
+    *   Prototype: PQsetNoticeReceiver
+    */
+    PQnoticeReceiver setNoticeReceiver(PQnoticeReceiver proc, void* arg) nothrow;
+    
+    /**
+    *   Prototype: PQsetNoticeProcessor
+    */
+    PQnoticeProcessor setNoticeProcessor(PQnoticeProcessor proc, void* arg) nothrow;
+    
+    /// Getting local logger
+    protected shared(ILogger) logger() nothrow;
 }
 
 /**
@@ -359,6 +390,11 @@ shared interface IPostgreSQL
     shared(IPGconn) startConnect(string conninfo);
     
     /**
+    *   Prototype: PQping
+    */
+    PGPing ping(string conninfo) nothrow;
+    
+    /**
     *   Should be called to free libpq resources. The method
     *   unloads library from application memory.
     */
@@ -371,5 +407,8 @@ shared interface IPostgreSQL
         *   loads library in memory.
         */
         void initialize();
+        
+        /// Getting local logger
+        shared(ILogger) logger() nothrow;
     }
 }

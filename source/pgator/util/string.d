@@ -1,41 +1,32 @@
 // Written in D programming language
 /**
-*   Module handles string processing functions.
-*
-*   Copyright: © 2014 DSoftOut
-*   License: Subject to the terms of the MIT license, as written in the included LICENSE file.
-*   Authors: NCrashed <ncrashed@gmail.com>
+*    Copyright: © 2014 DSoftOut
+*    License: Subject to the terms of the MIT license, as written in the included LICENSE file.
+*    Authors: NCrashed <ncrashed@gmail.com>
 */
 module pgator.util.string;
 
-import std.array;
-
-/// fromStringz
-/**
-*   Returns new string formed from C-style (null-terminated) string $(D msg). Usefull
-*   when interfacing with C libraries. For D-style to C-style convertion use std.string.toStringz.
-*   
-*   Authors: NCrashed
-*/
-string fromStringz(const char* msg) nothrow
-{
-    scope(failure) return "";
-    if( msg is null ) return "";
-
-    auto buff = appender!(char[]);
-    uint i = 0;
-    while( msg[i] != cast(char)0 )
-    {
-        buff.put(msg[i++]);
-    }
-        
-    return buff.data.idup;
-}
-/// Example
-unittest
-{
-    char[] cstring = "some string".dup ~ cast(char)0;
-
-    assert(cstring.ptr.fromStringz == "some string");
-    assert(null.fromStringz == "");
+static if (__VERSION__ < 2066) { // from phobos 2.066-b1
+	import std.c.string;
+	
+	/++
+	    Returns a D-style array of $(D char) given a zero-terminated C-style string.
+	    The returned array will retain the same type qualifiers as the input.
+	
+	    $(RED Important Note:) The returned array is a slice of the original buffer.
+	    The original data is not changed and not copied.
+	+/
+	
+	inout(char)[] fromStringz(inout(char)* cString) @system pure {
+	    return cString ? cString[0 .. strlen(cString)] : null;
+	}
+	
+	///
+	@system pure unittest
+	{
+	    assert(fromStringz(null) == null);
+	    assert(fromStringz("foo") == "foo");
+	}
+} else {
+	public import std.string: fromStringz;
 }

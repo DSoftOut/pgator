@@ -3,11 +3,12 @@
 *   Integration test 2 performs major tests on real PostgreSQL instance. The configuration expects
 *   '--conn' parameter with valid connection string to test database. There are many tests for
 *   binary converting from libpq format. This test is the most important one as it should expose
-*   libp binary format changing while updating to new versions. 
+*   libp binary format changing while updating to new versions.
 *
 *   Copyright: © 2014 DSoftOut
 *   License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *   Authors: NCrashed <ncrashed@gmail.com>
+*            Zaramzan <shamyan.roman@gmail.com>
 */
 module pgator.test.test2;
 
@@ -20,7 +21,7 @@ import dlogg.strict;
 import pgator.db.pq.libpq;
 import pgator.db.pq.connection;
 import pgator.db.pq.types.conv;
-import pgator.db.asyncPool;
+import pgator.db.async.pool;    
 import core.time;
 import core.thread;
 
@@ -46,11 +47,11 @@ int main(string[] args)
     auto logger = new shared StrictLogger(logName);
     scope(exit) logger.finalize();
     
-    auto api = new shared PostgreSQL();
+    auto api = new shared PostgreSQL(logger);
     logger.logInfo("PostgreSQL was inited.");
     auto connProvider = new shared PQConnProvider(logger, api);
     
-    auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5));
+    auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5), dur!"seconds"(3));
     scope(failure) pool.finalize();
     logger.logInfo("AssyncPool was created.");
     
