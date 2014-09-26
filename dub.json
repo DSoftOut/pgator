@@ -11,8 +11,8 @@
     "targetPath": "bin",
     "versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
     "dependencies": {
-        "vibe-d" : "~master",
-        "derelict-pq": "~master",
+        "vibe-d" : ">=0.7.21-beta.4",
+        "pgator-backend": "~master",
         "dlogg": ">=0.3.3"
     },
     "subConfigurations":
@@ -24,16 +24,6 @@
         {
             "name": "production",
             "targetType": "executable"
-        },
-        {
-            "name": "test1",
-            "targetType": "executable",
-            "versions": ["IntegrationTest1"]
-        },
-        {
-            "name": "test2",
-            "targetType": "executable",
-            "versions": ["IntegrationTest2"]
         },
         {
             "name": "testclient",

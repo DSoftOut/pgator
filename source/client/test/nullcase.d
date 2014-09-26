@@ -10,7 +10,7 @@ module client.test.nullcase;
 
 import client.test.testcase;
 import client.rpcapi;
-import db.pool;
+import pgator.db.pool;
 import std.conv;
 import std.typecons;
 

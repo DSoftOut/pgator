@@ -12,7 +12,7 @@
 module client.test.testcase;
 
 import client.rpcapi;
-import db.pool;
+import pgator.db.pool;
 import std.conv;
 import std.typecons;
 import std.array;
