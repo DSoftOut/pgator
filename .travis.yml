@@ -27,9 +27,9 @@ install:
 script:
   # test-suite
   - dub build --config=test1 
-  - ./bin/pgator --conn="dbname=pgator-test user=postgres"
+  - ./pgator-backend-test1 --conn="dbname=pgator-test user=postgres"
   - dub build --config=test2 
-  - ./bin/pgator --conn="dbname=pgator-test user=postgres"
+  - ./pgator-backend-test2 --conn="dbname=pgator-test user=postgres"
   - dub test
 
   # compilation test for production
