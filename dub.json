@@ -11,7 +11,7 @@
     "versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
     "dependencies": {
         "vibe-d" : ">=0.7.21-beta.4",
-        "derelict-pq": "~master",
+        "derelict-pq": ">=1.0.0",
         "dlogg": ">=0.3.3"
     },
     "configurations": [
