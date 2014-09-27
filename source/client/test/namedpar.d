@@ -10,7 +10,7 @@ module client.test.namedpar;
 
 import client.test.testcase;
 import client.rpcapi;
-import db.pool;
+import pgator.db.pool;
 
 class NamedParamsTestCase : ITestCase
 {

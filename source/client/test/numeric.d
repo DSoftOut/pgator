@@ -10,7 +10,7 @@ module client.test.numeric;
 
 import client.test.testcase;
 import client.rpcapi;
-import db.pool;
+import pgator.db.pool;
 
 class NumericTestCase : ITestCase
 {

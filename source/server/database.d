@@ -18,11 +18,11 @@ import std.algorithm;
 
 import vibe.data.bson;
 
-import db.pool;
-import db.async.pool;    
-import db.connection;
-import db.pq.connection;
-import db.pq.libpq;
+import pgator.db.pool;
+import pgator.db.async.pool;    
+import pgator.db.connection;
+import pgator.db.pq.connection;
+import pgator.db.pq.libpq;
 
 import json_rpc.error;
 import json_rpc.request;

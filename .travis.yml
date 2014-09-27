@@ -25,14 +25,8 @@ install:
   - sudo tar -C /usr/local/bin -zxf ${DUB}.tar.gz
 
 script:
-  # test-suite
-  - dub build --config=test1 
-  - ./bin/pgator --conn="dbname=pgator-test user=postgres"
-  - dub build --config=test2 
-  - ./bin/pgator --conn="dbname=pgator-test user=postgres"
-  - dub test
-
   # compilation test for production
+  - dub test
   - dub build --build=release
   - dub build --build=debug
   
@@ -40,5 +34,5 @@ script:
   - dub build --config=production --build=debug
   - dub build --config=testclient --build=debug
   - sudo ./bin/pgator --config=".travis-pgator.conf" --daemon
-  - sudo ./bin/pgator-client --conn="dbname=pgator-test user=postgres" --host="http://127.0.0.1:8080"
+  - sudo ./bin/pgator-client --conn="dbname=pgator-test user=postgres" --host="http://127.0.0.1:8080/"
   - sudo kill -s SIGTERM $(pgrep pgator)
