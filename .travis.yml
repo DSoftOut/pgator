@@ -25,14 +25,8 @@ install:
   - sudo tar -C /usr/local/bin -zxf ${DUB}.tar.gz
 
 script:
-  # test-suite
-  - dub build --config=test1 
-  - ./bin/pgator --conn="dbname=pgator-test user=postgres"
-  - dub build --config=test2 
-  - ./bin/pgator --conn="dbname=pgator-test user=postgres"
-  - dub test
-
   # compilation test for production
+  - dub test
   - dub build --build=release
   - dub build --build=debug
   
