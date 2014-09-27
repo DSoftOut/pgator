@@ -201,7 +201,7 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
         else
             return serializeToBson(convVal.to!string);
     }
-    else static if(is(T == struct))
+    else static if(is(T == struct) || is(T == class))
     {
         return serializeToBson(convVal);
     }

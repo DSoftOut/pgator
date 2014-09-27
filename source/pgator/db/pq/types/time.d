@@ -323,6 +323,11 @@ struct PGInterval
 {
     private Interval!SysTime interval;
     alias interval this;
+
+    this(Interval!SysTime val)
+    {
+    	interval = val;
+    }
     
     static PGInterval fromBson(Bson bson)
     {
@@ -338,6 +343,13 @@ struct PGInterval
         map["end"]   = Bson(interval.end.toISOExtString);
         return Bson(map);
     }
+}
+
+/// Avoiding linking problems when std.datetime.Interval invariant isn't generated
+/// by dmd. See at: std.datetime.Interval:18404
+private debug extern(C) void _D3std8datetime36__T8IntervalTS3std8datetime7SysTimeZ8Interval11__invariantMxFNaZv()
+{
+	
 }
 
 PGInterval convert(PQType type)(ubyte[] val)
