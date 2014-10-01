@@ -23,14 +23,16 @@
     "configurations": [
         {
             "name": "production",
-            "targetType": "executable"
+            "targetType": "executable",
+            "mainSourceFile": "source/production.d"
         },
         {
             "name": "testclient",
             "description": "Simple json-rpc client to test the server",
             "targetType": "executable",
             "targetName": "pgator-client",
-            "versions": ["RpcClient"]
+            "versions": ["RpcClient"],
+            "mainSourceFile": "source/testclient.d"
         }
     ]
 }
