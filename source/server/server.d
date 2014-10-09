@@ -321,12 +321,6 @@ shared class Application
     			
     			rpcReq = RpcRequest(tryEx!RpcParseError(jsonStr));
     			
-    			// optional logging
-    			if(appConfig.logJsonQueries)
-    			{
-    				logger.logInfo(text("Received JSON-RPC request: ", rpcReq));
-    			}
-    			
     			string user = null;
     			string password = null;
     			
@@ -345,6 +339,12 @@ shared class Application
     			else if (database.needAuth(rpcReq.method))
     			{
     				throw new HTTPStatusException(HTTPStatus.unauthorized);
+    			}
+    			
+    			// optional logging
+    			if(appConfig.logJsonQueries)
+    			{
+    				logger.logInfo(text("Received JSON-RPC request: ", rpcReq));
     			}
     			
     			if (internalError)
