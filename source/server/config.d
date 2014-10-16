@@ -61,10 +61,10 @@ struct AppConfig
 	int sqlReconnectTime = -1; //ms
 	
 	@possible
-	int groupid = -1; // to low root privileges
+	string groupid; // to low root privileges
 	
 	@possible
-	int userid = -1; // to low root privileges
+	string userid; // to low root privileges
 	
 	@required
 	string vibelog = "/var/log/"~APPNAME~"/"~"http.txt";

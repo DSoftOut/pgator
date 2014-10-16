@@ -132,6 +132,8 @@ else
     import std.stdio;
     import std.typecons;
     import std.concurrency;
+    import std.process;
+    import std.string;
 	import core.time;
 	import server.server;
 	import server.options;
@@ -140,6 +142,7 @@ else
 	import daemon;
 	import terminal;
 	import dlogg.strict;
+	import util;
 	
 	immutable struct LoadedConfig
     {
@@ -158,6 +161,43 @@ else
             auto res = tryConfigPaths(options.configPaths); 
             return LoadedConfig(res.config, options.updateConfigPath(res.path));
         }
+	}
+	
+	/**
+	*  Converts group and user names to corresponding gid and uid. If the $(B groupName) or
+	*  $(B userName) are already a ints, simply converts them and returns.
+	*
+	*  Retrieving of user id is performed by 'id -u %s' and group id by 'getent group %s | cut -d: -f3'.
+	*/
+	Tuple!(int, int) resolveRootLowing(shared ILogger logger, string groupName, string userName)
+	{
+	    int tryConvert(string what)(string s, string command)
+	    {
+	        enum warningMsg = "Failed to retrieve " ~ what ~ " id for root lowing: ";
+	        int handleFail(lazy string msg)
+	        {
+	            logger.logWarning(text(warningMsg, msg));
+                return -1;
+	        }
+	        
+	        try return s.to!int;
+	        catch(ConvException e)
+	        {
+	            try
+	            {
+	                auto res = executeShell(command.format(s));
+	                if(res.status != 0) return handleFail(res.output);
+	                
+	                try return res.output.parse!int;
+	                catch(ConvException e) return handleFail(e.msg);
+                } 
+	            catch(ProcessException e) return handleFail(e.msg);
+	            catch(StdioException e) return handleFail(e.msg);
+	        }
+	    }
+	    
+	    return tuple(tryConvert!"group"(groupName, "getent group %s | cut -d: -f3")
+	               , tryConvert!"user"(userName, "id -u %s"));
 	}
 	
 	int main(string[] args)
@@ -207,15 +247,18 @@ else
                 send(thisTid, newApp);
             };
 
+            int groupid, userid;
+            tie!(groupid, userid) = resolveRootLowing(logger, loadedConfig.config.groupid, loadedConfig.config.userid);
+            
             if(options.daemon) 
                 return runDaemon(logger, mainFunc, args, termFunc
                     , (){app.finalize;}, () {app.logger.reload;}
                     , options.pidFile, options.lockFile
-                    , loadedConfig.config.groupid, loadedConfig.config.userid);
+                    , groupid, userid);
             else 
                 return runTerminal(logger, mainFunc, args, termFunc
                     , (){app.finalize;}, () {app.logger.reload;}
-                    , loadedConfig.config.groupid, loadedConfig.config.userid);
+                    , groupid, userid);
 	    }
 	    catch(InvalidConfig e)
         {
