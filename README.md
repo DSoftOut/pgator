@@ -15,7 +15,7 @@ Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 
 ####Dlang stuff installation (Debian example)
 
-Since pgator written in Dlang you will need to install the DMD compiler and the DUB builder packages:
+Since pgator written in the Dlang you will need to install the DMD compiler and the DUB builder packages:
 
 ```bash
 $ cat /etc/apt/sources.list.d/d-apt.list 
@@ -25,6 +25,7 @@ $ sudo aptitude install -t unstable dub dmd
 ```
 
 ####pgator downloading and building
+
 ```bash
 $ git clone https://github.com/DSoftOut/pgator.git
 Cloning into 'pgator'...
@@ -38,7 +39,38 @@ $ cd pgator
 $ dub build
 ```
 
+####Config
+
+```
+# cat /opt/pgator/etc/pgator.conf 
+{
+	"sqlServers": [
+		{
+			"maxConn": 5,
+			"connString": "dbname=exampledb user=worker"
+		}
+	],
+	"sqlAuth": [
+		"pgator.username",
+		"pgator.password"
+	],
+	"maxConn": 10,
+	"port": 8080,
+	"sqlTimeout": 1000,
+	"logname": "/var/log/pgator/pgator.txt",
+	"vibelog": "/var/log/pgator/http.log",
+	"logSqlTransactions": true,
+	"logJsonQueries": true,
+	"sqlJsonTable": "public.json_rpc",
+
+	"userid_disabled": 105,
+	"groupid_disabled": 108
+}
+
+```
+
 ####How to run pgator as daemon
+
 supervisor script example:
 
 ```
