@@ -91,7 +91,7 @@ stopasgroup=true
 
 ####RPC calls table example
 
-Simple method what returns one passed argument:
+Simple method that just returns one passed argument:
 
 ```sql
 => SELECT * FROM json_rpc WHERE method = 'test.echo';
@@ -109,7 +109,7 @@ Simple method what returns one passed argument:
 
 #### Methods calling:
 
-Request:
+Calling a test method described in the previous table:
 ```json
 $ curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' --data '
 {
