@@ -107,26 +107,30 @@ Simple method what returns one passed argument:
 (1 строка)
 ```
 
-#### Method calling:
+#### Methods calling:
 
+Request:
 ```json
+$ curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' --data '
 {
     "jsonrpc": "2.0",
     "method": "test.echo",
     "params": [ "Hello, world!" ],
     "id": 1
-}
+}' http://pgator-test-server.com:8080/
 ```
+
+Response:
 ```json
 {
-    "id": 1,
-    "result": [
-	{
-	    "passed_value": [
-		"Hello, world!"
-	    ]
-	}
-    ],
-    "jsonrpc": "2.0"
+	"id": 1,
+	"result": [
+		{
+			"passed_value": [
+				"Hello, world!"
+			]
+		}
+	],
+	"jsonrpc": "2.0"
 }
 ```
