@@ -10,3 +10,93 @@ Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 [Technical documentation (ongoing)](http://dsoftout.github.io/pgator/app.html)
 
 [Overview-(ru)](https://github.com/DSoftOut/pgator/wiki/Overview-(ru))
+
+Quick start guide
+=====
+
+Dlang stuff installation example (Debian)
+---
+```bash
+$ cat /etc/apt/sources.list.d/d-apt.list 
+deb http://netcologne.dl.sourceforge.net/project/d-apt dmd main #APT repository for D
+
+```
+
+Building
+---
+
+```bash
+$ git clone https://github.com/DSoftOut/pgator.git
+Cloning into 'pgator'...
+p11-kit: invalid config filename, will be ignored in the future: /etc/pkcs11/modules/gnome-keyring-module
+remote: Counting objects: 2946, done.
+remote: Total 2946 (delta 0), reused 0 (delta 0)
+Receiving objects: 100% (2946/2946), 1.53 MiB | 271.00 KiB/s, done.
+Resolving deltas: 100% (2087/2087), done.
+Checking connectivity... done.
+$ cd pgator
+$ dub build
+```
+
+How to run
+---
+supervisor script:
+
+```
+$ cat /etc/supervisor.d/pgator.ini
+[program:pgator]
+command=/opt/pgator/bin/pgator
+directory=/opt/pgator
+user=pgator
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/pgator.log
+stdout_logfile_maxbytes=1MB
+stdout_logfile_backups=3
+autorestart=true
+exitcodes=2
+stopasgroup=true
+
+```
+
+RPC calls table example
+---
+
+Simple method what returns one passed argument
+
+```sql
+=> SELECT * FROM json_rpc WHERE method = 'test.echo';
+  method   |             sql_queries             | arg_nums | set_username | need_cache | read_only | reset_caches | reset_by |  commentary   
+-----------+-------------------------------------+----------+--------------+------------+-----------+--------------+----------+---------------
+ test.echo | {"select $1::text as passed_value"} | {1}      | f            | f          | f         | {}           | {}       | Тест возврата+
+           |                                     |          |              |            |           |              |          |              +
+           |                                     |          |              |            |           |              |          | @Params:     +
+           |                                     |          |              |            |           |              |          | $1 - значение+
+           |                                     |          |              |            |           |              |          |              +
+           |                                     |          |              |            |           |              |          | @Returns:    +
+           |                                     |          |              |            |           |              |          | значение
+(1 строка)
+```
+
+Calling:
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "test.echo",
+    "params": [ "Hello, world!" ],
+    "id": 1
+}
+```
+```json
+{
+    "id": 1,
+    "result": [
+	{
+	    "passed_value": [
+		"Hello, world!"
+	    ]
+	}
+    ],
+    "jsonrpc": "2.0"
+}
+```
