@@ -328,14 +328,9 @@ class RequiredJsonObject:Exception
 template tryEx(Ex, alias func)
 {
 	static assert(isSomeFunction!func, "func must be some function");
-	
 	static assert(is(Ex:Exception), "Ex must be Exception");
 	
-	alias ReturnType!func T;
-	
-	alias ParameterTypeTuple!func P;
-
-	T foo(P)(P params)
+	auto wrapper(TP...)(TP params)
 	{	
 		try
 		{
@@ -346,8 +341,8 @@ template tryEx(Ex, alias func)
 			throw new Ex(ex.msg, ex.file, ex.line);
 		}
 	}
-	
-	alias foo!P tryEx;
+
+	alias wrapper tryEx;
 }
 
 /**
