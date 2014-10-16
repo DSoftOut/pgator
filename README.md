@@ -29,7 +29,6 @@ $ sudo aptitude install -t unstable dub dmd
 ```bash
 $ git clone https://github.com/DSoftOut/pgator.git
 Cloning into 'pgator'...
-p11-kit: invalid config filename, will be ignored in the future: /etc/pkcs11/modules/gnome-keyring-module
 remote: Counting objects: 2946, done.
 remote: Total 2946 (delta 0), reused 0 (delta 0)
 Receiving objects: 100% (2946/2946), 1.53 MiB | 271.00 KiB/s, done.
