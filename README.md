@@ -41,7 +41,7 @@ $ dub build
 
 ####Config
 
-```
+```json
 # cat /opt/pgator/etc/pgator.conf 
 {
 	"sqlServers": [
@@ -73,7 +73,7 @@ $ dub build
 
 supervisor script example:
 
-```
+```ini
 $ cat /etc/supervisor.d/pgator.ini
 [program:pgator]
 command=/opt/pgator/bin/pgator
