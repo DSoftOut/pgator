@@ -96,14 +96,14 @@ Simple method code that just returns one passed argument:
 => SELECT * FROM json_rpc WHERE method = 'test.echo';
   method   |             sql_queries             | arg_nums | set_username | need_cache | read_only | reset_caches | reset_by |  commentary   
 -----------+-------------------------------------+----------+--------------+------------+-----------+--------------+----------+---------------
- test.echo | {"select $1::text as passed_value"} | {1}      | f            | f          | f         | {}           | {}       | Тест возврата+
+ test.echo | {"select $1::text as passed_value"} | {1}      | f            | f          | f         | {}           | {}       | Echo testing+
            |                                     |          |              |            |           |              |          |              +
            |                                     |          |              |            |           |              |          | @Params:     +
-           |                                     |          |              |            |           |              |          | $1 - значение+
+           |                                     |          |              |            |           |              |          | $1 - value   +
            |                                     |          |              |            |           |              |          |              +
            |                                     |          |              |            |           |              |          | @Returns:    +
-           |                                     |          |              |            |           |              |          | значение
-(1 строка)
+           |                                     |          |              |            |           |              |          | values  
+(1 line)
 ```
 
 #### JSON-RPC 2.0 methods calling:
