@@ -38,7 +38,7 @@ $ cd pgator
 $ dub build
 ```
 
-####Config
+####Example config
 
 ```json
 # cat /opt/pgator/etc/pgator.conf 
@@ -90,7 +90,7 @@ stopasgroup=true
 
 ####RPC calls table example
 
-Simple method that just returns one passed argument:
+Simple method code that just returns one passed argument:
 
 ```sql
 => SELECT * FROM json_rpc WHERE method = 'test.echo';
@@ -106,7 +106,7 @@ Simple method that just returns one passed argument:
 (1 строка)
 ```
 
-#### Methods calling:
+#### JSON-RPC 2.0 methods calling:
 
 Calling a test method described in the previous table:
 ```json
