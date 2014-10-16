@@ -1,22 +1,34 @@
 // Written in D programming language
 /**
-*    Module describes testcases for named parameters (issue #32)
+*    Module describes testcases for error processing.
 *    
 *    Copyright: © 2014 DSoftOut
 *    License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *    Authors: NCrashed <ncrashed@gmail.com>
 */
-module client.test.namedpar;
+module client.test.notice;
 
 import client.test.testcase;
 import client.rpcapi;
 import pgator.db.pool;
 
-class NamedParamsTestCase : ITestCase
+class NoticeTestCase : ITestCase
 {
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow("named_test1", [2], "SELECT $1::int8 + $2::int8 as test_field;"));
+        insertRow(pool, tableName, JsonRpcRow("notice_test1", [], [
+            "DROP FUNCTION IF EXISTS pgator_testRaise();",
+            
+            "CREATE FUNCTION pgator_testRaise() RETURNS void AS $$"
+            "BEGIN"
+            "    RAISE NOTICE 'Test notice!';"
+            "END;"
+            "$$ LANGUAGE plpgsql;",
+            
+            "SELECT pgator_testRaise();",
+            
+            "DROP FUNCTION pgator_testRaise();"   
+            ]));
     }
     
     /**
@@ -24,7 +36,7 @@ class NamedParamsTestCase : ITestCase
     */
     protected void deleteMethods(shared IConnectionPool pool, string tableName)
     {
-        removeRow(pool, tableName, "named_test1");
+        removeRow(pool, tableName, "notice_test1");
     }
     
     /**
@@ -33,7 +45,6 @@ class NamedParamsTestCase : ITestCase
     */
     protected void performTests(IRpcApi api)
     {
-        auto result = api.runRpc!"named_test1"(2, 1).assertOk!(Column!(ulong, "test_field"));
-        assert(result.test_field[0] == 3);
+        auto result = api.runRpc!"notice_test1"().assertOk;
     }
 }

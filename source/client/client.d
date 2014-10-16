@@ -14,10 +14,10 @@ import vibe.data.json;
 import vibe.http.rest;
 import client.rpcapi;
 import client.test.testcase;
-import db.pool;
-import db.async.pool;    
-import db.pq.libpq;
-import db.pq.connection;
+import pgator.db.pool;
+import pgator.db.async.pool;    
+import pgator.db.pq.libpq;
+import pgator.db.pq.connection;
 import dlogg.strict;
 
 class RpcClient(T...)
@@ -30,7 +30,7 @@ class RpcClient(T...)
         
         logger = new shared StrictLogger("rpc-client.log");
         
-        auto postgresApi = new shared PostgreSQL();
+        auto postgresApi = new shared PostgreSQL(logger);
         auto connProvider = new shared PQConnProvider(logger, postgresApi);
         
         pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5), dur!"seconds"(3));

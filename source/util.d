@@ -72,92 +72,144 @@ enum possible;
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 */
-T deserializeFromJson(T)(Json src)
+T deserializeFromJson(T)(Json src) if(is(T == struct))
 {
 	T ret;
-	
-	static assert (is(T == struct), "Need struct type, not "~T.stringof);
-	
+		
 	if (src.type != Json.Type.object)
 	{
 		throw new RequiredJsonObject("Required json object");
 	}
 	
-	foreach(mem; __traits(allMembers, T))
-	{	
-		alias getMemberType!(T, mem) MemType;
-				
-		static if (isRequired!(mem, T) || isOptional!(mem, T))
+	void processStruct(string mem, bool isMemberOptional, Ret)(out Ret retMem, Json srcMem)
+	{
+		static if (is(Ret == Json))
 		{
-			if (mixin("src."~mem~".type != Json.Type.undefined"))
+			retMem = srcMem;
+		}
+		else
+		{
+			if (srcMem.type == Json.Type.object)
+			{	
+				retMem = deserializeFromJson!Ret(srcMem);
+			}
+			else
 			{
-				
-				static if (is(MemType == struct))
+				// issue #96, is struct has default constructor 
+				// and marked with @possible and received null
+				static if(isMemberOptional && __traits(compiles, Ret() ))
 				{
-					static if (is(MemType == Json))
+					if(srcMem.type == Json.Type.null_)
 					{
-						mixin("ret."~mem~"=src."~mem~";");
-					}
-					else
+						retMem = Ret();
+					} else
 					{
-						if (mixin("src."~mem~".type == Json.Type.object"))
-						{	
-							mixin("ret."~mem~"=deserializeFromJson!(typeof(ret."~mem~"))(src."~mem~");");
-						}
-						else
-						{
-							throw new RequiredFieldException("Field "~mem~" must be object in json"~src.toString); 
-						}
+						throw new RequiredFieldException(text("Field ", mem, " must be object in json: ", src));
 					}
+				} else
+				{
+					throw new RequiredFieldException(text("Field ", mem, " must be object in json: ", src)); 
+				}
+			}
+		}
+	}
+	
+	void processArray(string mem, bool isMemberOptional, Ret)(out Ret retMem, Json srcMem)
+	{
+		if (srcMem.type == Json.Type.array)
+		{
+			alias ElementType!Ret ElemType;
+			
+			ElemType[] arr = new ElemType[0];
+			
+			foreach(json; srcMem)
+			{
+				static if (is(ElemType == struct))
+				{
+					arr ~= deserializeFromJson!ElemType(json);
 				}
 				else
 				{
-					static if (isArray!MemType && !isSomeString!MemType)
-					{
-						if (mixin("src."~mem~".type == Json.Type.array"))
-						{
-							alias ElementType!MemType ElemType;
-							
-							ElemType[] arr = new ElemType[0];
-							
-							foreach(json; mixin("src."~mem))
-							{
-								static if (is(ElemType == struct))
-								{
-									arr ~= deserializeFromJson!ElemType(json);
-								}
-								else
-								{
-									arr ~= json.to!ElemType;
-								}
-							}
-							
-							mixin("ret."~mem~"= arr;");
-						}
-						else
-						{
-							throw new RequiredFieldException("Field "~mem~" must be array in json"~src.toString);
-						}		
-					}
-					else
-					{
-						mixin("ret."~mem~"= src."~mem~".to!(typeof(ret."~mem~"))();");
-					}
-				 }  
-			}
-			else
-			{ 
-				static if (isRequired!(mem, T))
-				{
-					throw new RequiredFieldException("Field "~mem~" required in json:"~src.toString);
+					arr ~= json.to!ElemType;
 				}
 			}
+			
+			retMem = arr;
+		} 
+		else
+		{
+			// array could be a null for @possible. issue #96
+			static if(isMemberOptional)
+			{
+				if(srcMem.type == Json.Type.null_)
+				{
+					retMem = null;
+				} else
+				{
+					throw new RequiredFieldException(text("Field ", mem, " must be array in json: ", src));
+				}
+			} else
+			{
+				throw new RequiredFieldException(text("Field ", mem, " must be array in json: ", src));
+			}
+		}	
+	}
 	
+	foreach(mem; __traits(allMembers, T))
+	{	
+		alias getMemberType!(T, mem) MemberType;
+		enum isMemberRequired = isRequired!(mem, T);
+		enum isMemberOptional = isOptional!(mem, T);
+		
+		enum srcMem = "src."~mem;
+		enum retMem = "ret."~mem;
+		
+		static if (isMemberRequired || isMemberOptional)
+		{
+			if (mixin(srcMem).type != Json.Type.undefined)
+			{
+				static if(is(MemberType == struct))
+				{
+					processStruct!(mem, isMemberOptional)(mixin(retMem), mixin(srcMem));
+				} 
+				else static if(isArray!MemberType && !isSomeString!MemberType)
+				{
+					processArray!(mem, isMemberOptional)(mixin(retMem), mixin(srcMem));
+				}
+				else
+				{
+					mixin(retMem) = mixin(srcMem).to!MemberType();
+				}
+			}
+			else static if (isMemberRequired)
+			{
+				throw new RequiredFieldException(text("Field ", mem, " required in json: ", src));
+			}
 		}
 		
 	}
 	
 	return ret;
+}
+unittest // issue #96
+{
+	struct A
+	{
+		@possible
+		ubyte[] a;
+	}
+	
+	auto a = A(null);
+	assert(deserializeFromJson!A(serializeToJson(a)) == a);
+	
+	struct B
+	{
+		@possible
+		A a;
+	}
+	
+	auto b = B(A(null));
+	assert(deserializeFromJson!B(serializeToJson(b)) == b);
 }
 
 /**
@@ -276,14 +328,9 @@ class RequiredJsonObject:Exception
 template tryEx(Ex, alias func)
 {
 	static assert(isSomeFunction!func, "func must be some function");
-	
 	static assert(is(Ex:Exception), "Ex must be Exception");
 	
-	alias ReturnType!func T;
-	
-	alias ParameterTypeTuple!func P;
-
-	T foo(P)(P params)
+	auto wrapper(TP...)(TP params)
 	{	
 		try
 		{
@@ -294,8 +341,8 @@ template tryEx(Ex, alias func)
 			throw new Ex(ex.msg, ex.file, ex.line);
 		}
 	}
-	
-	alias foo!P tryEx;
+
+	alias wrapper tryEx;
 }
 
 /**
@@ -367,40 +414,29 @@ unittest
 	assertThrown!TestException(tryEx!TestException(thrower()));
 }
 
-/// fromStringz
-/**
-*   Returns new string formed from C-style (null-terminated) string $(D msg). Usefull
-*   when interfacing with C libraries. For D-style to C-style convertion use std.string.toStringz
-*
-*   Example:
-*   ----------
-*   char[] cstring = "some string".dup ~ cast(char)0;
-*
-*   assert(fromStringz(cstring.ptr) == "some string");
-*   ----------
-*/
-string fromStringz(const char* msg) nothrow
-{
-    try
-    {
-        if(msg is null) return "";
-
-        auto buff = new char[0];
-        uint i = 0;
-            while(msg[i]!=cast(char)0)
-                buff ~= msg[i++];
-        return buff.idup;
-    } catch(Exception e)
-    {
-        return "";
-    }
-}
-
-unittest
-{
-    char[] cstring = "some string".dup ~ cast(char)0;
-
-    assert(fromStringz(cstring.ptr) == "some string");
+static if (__VERSION__ < 2066) { // from phobos 2.066-b1
+	import std.c.string;
+	
+	/++
+	    Returns a D-style array of $(D char) given a zero-terminated C-style string.
+	    The returned array will retain the same type qualifiers as the input.
+	
+	    $(RED Important Note:) The returned array is a slice of the original buffer.
+	    The original data is not changed and not copied.
+	+/
+	
+	inout(char)[] fromStringz(inout(char)* cString) @system pure {
+	    return cString ? cString[0 .. strlen(cString)] : null;
+	}
+	
+	///
+	@system pure unittest
+	{
+	    assert(fromStringz(null) == null);
+	    assert(fromStringz("foo") == "foo");
+	}
+} else {
+	public import std.string: fromStringz;
 }
 
 /// getMemberType
@@ -612,6 +648,10 @@ unittest
     static assert(FieldNameTuple!S4 == ["dup"]);
 }
 
+/// Removes one element from the list
+/**
+*   NEVER use while iterating the $(B list).
+*/
 void removeOne(T)(ref DList!T list, T elem)
 {
    auto toRemove = list[].find(elem).take(1);

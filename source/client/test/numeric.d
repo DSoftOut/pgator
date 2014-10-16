@@ -1,22 +1,23 @@
 // Written in D programming language
 /**
-*    Module describes testcases for named parameters (issue #32)
+*    Module describes simple testcases for rpc-server.
 *    
 *    Copyright: © 2014 DSoftOut
 *    License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *    Authors: NCrashed <ncrashed@gmail.com>
 */
-module client.test.namedpar;
+module client.test.numeric;
 
 import client.test.testcase;
 import client.rpcapi;
 import pgator.db.pool;
 
-class NamedParamsTestCase : ITestCase
+class NumericTestCase : ITestCase
 {
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow("named_test1", [2], "SELECT $1::int8 + $2::int8 as test_field;"));
+        insertRow(pool, tableName, JsonRpcRow("numeric_test_1", [1], "SELECT $1::bigint test_field;"));
+        insertRow(pool, tableName, JsonRpcRow("numeric_test_2", [0], "select 2354877787627192443::bigint as bigint_value;"));
     }
     
     /**
@@ -24,7 +25,8 @@ class NamedParamsTestCase : ITestCase
     */
     protected void deleteMethods(shared IConnectionPool pool, string tableName)
     {
-        removeRow(pool, tableName, "named_test1");
+        removeRow(pool, tableName, "numeric_test_1");
+        removeRow(pool, tableName, "numeric_test_2");
     }
     
     /**
@@ -33,7 +35,10 @@ class NamedParamsTestCase : ITestCase
     */
     protected void performTests(IRpcApi api)
     {
-        auto result = api.runRpc!"named_test1"(2, 1).assertOk!(Column!(ulong, "test_field"));
-        assert(result.test_field[0] == 3);
+        auto result1 = api.runRpc!"numeric_test_1"(2354877787627192443).assertOk!(Column!(long, "test_field"));
+        assert(result1.test_field[0] == 2354877787627192443);
+        
+        auto result2 = api.runRpc!"numeric_test_2".assertOk!(Column!(long, "bigint_value"));
+        assert(result2.bigint_value[0] == 2354877787627192443);
     }
 }

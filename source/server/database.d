@@ -18,11 +18,11 @@ import std.algorithm;
 
 import vibe.data.bson;
 
-import db.pool;
-import db.async.pool;    
-import db.connection;
-import db.pq.connection;
-import db.pq.libpq;
+import pgator.db.pool;
+import pgator.db.async.pool;    
+import pgator.db.connection;
+import pgator.db.pq.connection;
+import pgator.db.pq.libpq;
 
 import json_rpc.error;
 import json_rpc.request;
@@ -64,6 +64,7 @@ shared class Database
 		    logger.logInfo(text("Connecting to ", server.name, ". Adding ", server.maxConn, " connections."));
 			pool.addServer(server.connString, server.maxConn);	
 		}
+		pool.loggingAllTransactions = appConfig.logSqlTransactions;
 	}
 	
 	/// allocate shared cache
@@ -182,9 +183,7 @@ shared class Database
 				throw new RpcInvalidParams(text("Expected ", expected, " parameters, ",
 				        "but got ", req.params.length, "!"));
 			}
-						
-			logger.logDebug("Querying pool"); 
-			
+									
 			try
 			{			
 				InputRange!(immutable Bson) irange;
@@ -201,7 +200,7 @@ shared class Database
 				auto builder = appender!(Bson[]);
 				foreach(ibson; irange)
 				{
-				    builder.put(Bson.fromJson(ibson.toJson));
+				    builder.put(cast()ibson);
 				}
 				
 				RpcResult result = RpcResult(Bson(builder.data));

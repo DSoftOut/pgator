@@ -72,6 +72,12 @@ struct AppConfig
 	@required
 	string logname = "/var/log/"~APPNAME~"/"~APPNAME~".txt";
 	
+	@possible
+	bool logSqlTransactions = false;
+	
+	@possible
+	bool logJsonQueries = false;
+	
     /**	
     *   Deserializing config from provided $(B json) object.
     *
@@ -130,6 +136,8 @@ struct AppConfig
 		logname          = conf.logname;
 		groupid          = conf.groupid;
 		userid           = conf.userid;
+		logSqlTransactions = conf.logSqlTransactions;
+		logJsonQueries   = conf.logJsonQueries;
 	}
 }
 
@@ -188,10 +196,15 @@ class NoConfigLoaded : Exception
         mConfPaths = confPaths;
         
         string msg;
+        try
         {
-            scope(failure) msg = "<Internal error while collecting error message, report this bug!>";
             msg = text("Failed to load configuration file from one of following paths: ", confPaths);
+        } 
+        catch(Exception th)
+        {
+        	 msg = "<Internal error while collecting error message, report this bug!>";
         }
+        
         super(msg, file, line);
     }
     
@@ -358,7 +371,9 @@ version(unittest)
 
 	    \"logname\" : \"log.txt\",
 
-	    \"vibelog\" : \"http.txt\"
+	    \"vibelog\" : \"http.txt\",
+
+	    \"logSqlTransactions\" : true
 	    }";
 }
 
@@ -379,6 +394,7 @@ unittest
 	config2.sqlReconnectTime = 150;
 	config2.sqlTimeout = 100;
 	config2.sqlServers = [SqlConfig("sql1", cast(size_t)1,""), SqlConfig("sql2", cast(size_t)2, "",)];
+	config2.logSqlTransactions = true;
 	
-	assert(config1 == config2, "Config unittest failed");
+	assert(config1 == config2, text("Config unittest failed ", config1, " != ", config2));
 }

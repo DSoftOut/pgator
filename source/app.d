@@ -38,138 +38,6 @@ version(unittest)
 {
     void main() {}
 }
-else version(IntegrationTest1)
-{
-    import std.getopt;
-    import std.stdio;
-    import std.range;
-    import dlogg.strict;
-    import db.pq.libpq;
-    import db.pq.connection;
-    import db.async.pool;    
-    import core.time;
-    import core.thread;
-    
-    int main(string[] args)
-    {
-        string connString;
-        string logName = "test.log";
-        uint connCount = 50;
-        getopt(args
-            , "conn",  &connString
-            , "log",   &logName
-            , "count", &connCount);
-        
-        if(connString == "")
-        {
-            writeln("Please, specify connection string.\n"
-                    "Params: --conn=string - connection string to test PostgreSQL connection\n"
-                    "        --log=string  - you can rewrite log file location, default 'test.log'\n"
-                    "        --count=uint  - number of connections in a pool, default 100\n");
-            return 0;
-        }
-        
-        auto logger = new shared StrictLogger(logName);
-        scope(exit) logger.finalize();
-        
-        auto api = new shared PostgreSQL(logger);
-        logger.logInfo("PostgreSQL was inited.");
-        auto connProvider = new shared PQConnProvider(logger, api);
-        
-        auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(5), dur!"seconds"(5), dur!"seconds"(3));
-        scope(exit) pool.finalize();
-        logger.logInfo("AssyncPool was created.");
-        
-        pool.addServer(connString, connCount);
-        logger.logInfo(text(connCount, " new connections were added to the pool."));
-        
-        Thread.sleep(dur!"seconds"(30));
-        
-        logger.logInfo("Test ended. Results:"); 
-        logger.logInfo(text("active connections:   ", pool.activeConnections));
-        logger.logInfo(text("inactive connections: ", pool.inactiveConnections));
-        
-        pool.finalize();
-        logger.finalize();
-        std.c.stdlib.exit(0);
-        return 0;
-    }
-}
-else version(IntegrationTest2)
-{
-    import std.getopt;
-    import std.stdio;
-    import std.exception;
-    import dlogg.strict;
-    import db.pq.libpq;
-    import db.pq.connection;
-    import db.pq.types.conv;
-    import db.async.pool;    
-    import core.time;
-    import core.thread;
-    
-    int main(string[] args)
-    {
-        string connString;
-        string logName = "test.log";
-        uint connCount = 50;
-        getopt(args
-            , "conn",  &connString
-            , "log",   &logName
-            , "count", &connCount);
-        
-        if(connString == "")
-        {
-            writeln("Please, specify connection string.\n"
-                    "Params: --conn=string - connection string to test PostgreSQL connection\n"
-                    "        --log=string  - you can rewrite log file location, default 'test.log'\n"
-                    "        --count=uint  - number of connections in a pool, default 100\n");
-            return 0;
-        }
-        
-        auto logger = new shared StrictLogger(logName);
-        scope(exit) logger.finalize();
-        
-        auto api = new shared PostgreSQL(logger);
-        logger.logInfo("PostgreSQL was inited.");
-        auto connProvider = new shared PQConnProvider(logger, api);
-        
-        auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5), dur!"seconds"(3));
-        scope(failure) pool.finalize();
-        logger.logInfo("AssyncPool was created.");
-        
-        pool.addServer(connString, 1);
-        logger.logInfo(text(1, " new connections were added to the pool."));
-        
-        logger.logInfo("Testing rollback...");
-        assertThrown(pool.execTransaction(["select * from;"]));
-        
-        try
-        {
-            pool.execTransaction(["select 42::int8 as test_field;"]);
-        } catch(QueryProcessingException e)
-        {
-            assert(false, "Transaction wasn't rollbacked! All queries after block are ignored!");
-        }
-        
-        pool.addServer(connString, connCount-1);
-        logger.logInfo(text(connCount-1, " new connections were added to the pool."));
-        logger.logInfo("Testing binary protocol...");
-        try
-        {
-            testConvertions(logger, pool);
-        } catch(Throwable e)
-        {
-            logger.logInfo("Conversion tests are failed!");
-            logger.logError(text(e));
-        }
-        
-        pool.finalize();
-        logger.finalize();
-        std.c.stdlib.exit(0);
-        return 0;
-    }
-}
 else version(RpcClient)
 {
     import std.getopt;
@@ -179,10 +47,16 @@ else version(RpcClient)
     import client.client;
     import client.test.testcase;
     import client.test.simple;
-
+    import client.test.nullcase;
+    import client.test.numeric;
+    import client.test.unicode;
+    import client.test.multicommand;
+    import client.test.longquery;
+    import client.test.notice;
+    
     immutable helpStr =
     "JSON-RPC client for testing purposes of main rpc-server.\n"
-    "   rpc-proxy-client [arguments]\n\n"
+    "   pgator-client [arguments]\n\n"
     "   arguments = --host=<string> - rpc-server url\n"
     "               --conn=<string> - postgres server conn string\n"
     "               --tableName=<string> - json_rpc table\n"
@@ -191,6 +65,12 @@ else version(RpcClient)
     uint getPid()
     {
         return parse!uint(executeShell("[ ! -f /var/run/pgator/pgator.pid ] || echo `cat /var/run/pgator/pgator.pid`").output);
+    }
+    
+    // Getting pid via pgrep
+    uint getPidConsole()
+    {
+        return parse!uint(executeShell("pgrep pgator").output);
     }
     
     int main(string[] args)
@@ -221,12 +101,25 @@ else version(RpcClient)
             try pid = getPid();
             catch(Exception e)
             {
-                writeln("Failed: ", e.msg);
-                return 1;
+                writeln("Trying to read pid with pgrep");
+                try pid = getPidConsole();
+                catch(Exception e)
+                {
+                    writeln("Cannot find pgator process!");
+                    return 1;
+                }
             }
         }
         
-        auto client = new RpcClient!(SimpleTestCase)(host, connString, tableName, pid);
+        auto client = new RpcClient!(
+        	SimpleTestCase, 
+        	NullTestCase,
+        	NumericTestCase,
+        	UnicodeTestCase,
+        	MulticommandCase,
+        	NoticeTestCase,
+        	LongQueryTestCase,
+        	)(host, connString, tableName, pid);
         scope(exit) client.finalize;
         
         client.runTests();
@@ -295,16 +188,22 @@ else
                 do
                 {
                     res = app.run;
-                } while(receiveTimeout(dur!"msecs"(100), 
-                        (shared Application newApp) {app = newApp;}));
+                } while(receiveTimeout(dur!"msecs"(1000), 
+                        // bug, should be fixed in 2.067
+                        //  (shared(Application) newApp) {app = newApp;}
+                        (Variant v) 
+                        {
+                            auto newAppPtr = v.peek!(shared(Application)); assert(newAppPtr);
+                            app = *newAppPtr;
+                        }));
                 
+                logger.logDebug("Exiting main");
                 return res;
             };
             
             enum termFunc = ()
             {
                 auto newApp = app.restart;
-                
                 send(thisTid, newApp);
             };
 

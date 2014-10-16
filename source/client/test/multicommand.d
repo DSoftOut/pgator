@@ -1,22 +1,22 @@
 // Written in D programming language
 /**
-*    Module describes testcases for named parameters (issue #32)
+*    Module describes testcases multiple command transaction. 
 *    
 *    Copyright: © 2014 DSoftOut
 *    License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *    Authors: NCrashed <ncrashed@gmail.com>
 */
-module client.test.namedpar;
+module client.test.multicommand;
 
 import client.test.testcase;
 import client.rpcapi;
 import pgator.db.pool;
 
-class NamedParamsTestCase : ITestCase
+class MulticommandCase : ITestCase
 {
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow("named_test1", [2], "SELECT $1::int8 + $2::int8 as test_field;"));
+        insertRow(pool, tableName, JsonRpcRow("multicommand_test1", [1, 1], ["SELECT $1::text as test_field1;", "SELECT $1::text as test_field2;"]));
     }
     
     /**
@@ -24,7 +24,7 @@ class NamedParamsTestCase : ITestCase
     */
     protected void deleteMethods(shared IConnectionPool pool, string tableName)
     {
-        removeRow(pool, tableName, "named_test1");
+        removeRow(pool, tableName, "multicommand_test1");
     }
     
     /**
@@ -33,7 +33,12 @@ class NamedParamsTestCase : ITestCase
     */
     protected void performTests(IRpcApi api)
     {
-        auto result = api.runRpc!"named_test1"(2, 1).assertOk!(Column!(ulong, "test_field"));
-        assert(result.test_field[0] == 3);
+        auto respond = api.runRpc!"multicommand_test1"("a", "b");
+        
+        auto result1 = respond.assertOk!(Column!(string, "test_field1"))(0);
+        assert(result1.test_field1[0] == "a");
+        
+        auto result2 = respond.assertOk!(Column!(string, "test_field2"))(1);
+        assert(result2.test_field2[0] == "b");
     }
 }

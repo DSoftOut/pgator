@@ -1,22 +1,22 @@
 // Written in D programming language
 /**
-*    Module describes testcases for named parameters (issue #32)
+*    Module describes testcases for time consuming queries.
 *    
 *    Copyright: © 2014 DSoftOut
 *    License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *    Authors: NCrashed <ncrashed@gmail.com>
 */
-module client.test.namedpar;
+module client.test.longquery;
 
 import client.test.testcase;
 import client.rpcapi;
 import pgator.db.pool;
 
-class NamedParamsTestCase : ITestCase
+class LongQueryTestCase : ITestCase
 {
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow("named_test1", [2], "SELECT $1::int8 + $2::int8 as test_field;"));
+        insertRow(pool, tableName, JsonRpcRow("long_query1", [1], "select pg_sleep( $1 );"));
     }
     
     /**
@@ -24,7 +24,7 @@ class NamedParamsTestCase : ITestCase
     */
     protected void deleteMethods(shared IConnectionPool pool, string tableName)
     {
-        removeRow(pool, tableName, "named_test1");
+        removeRow(pool, tableName, "long_query1");
     }
     
     /**
@@ -33,7 +33,7 @@ class NamedParamsTestCase : ITestCase
     */
     protected void performTests(IRpcApi api)
     {
-        auto result = api.runRpc!"named_test1"(2, 1).assertOk!(Column!(ulong, "test_field"));
-        assert(result.test_field[0] == 3);
+        auto result = api.runRpc!"long_query1"(10).assertOk!(Column!(string, "pg_sleep"));
+        assert(result.pg_sleep[0] == "");
     }
 }

@@ -13,12 +13,16 @@ import vibe.data.serialization;
 import std.array;
 import std.random;
 import std.conv;
+import std.typecons;
+import std.traits;
 
 interface IRpcApi
 {
     Json rpc(string jsonrpc, string method, Json[] params, uint id);
+    Json rpc(string jsonrpc, string method, Json[] params, uint id, string[string] auth);
     
     final RpcRespond runRpc(string method, T...)(T params)
+    	if(T.length == 0 || !isAssociativeArray!(T[0]))
     {
         auto builder = appender!(Json[]);
         foreach(param; params)
@@ -34,6 +38,15 @@ interface IRpcApi
             builder.put(param.serializeToJson);
         
         return new RpcRespond(rpc("2.0", method, builder.data, uniform(uint.min, uint.max)));    
+    }
+    
+    final RpcRespond runRpc(string method, T...)(string[string] auth, T params)
+    {
+    	auto builderParams = appender!(Json[]);
+        foreach(param; params)
+            builderParams.put(param.serializeToJson);
+    	
+    	return new RpcRespond(rpc("2.0", method, builderParams.data, uniform(uint.min, uint.max), auth));
     }
 }
 
@@ -99,15 +112,36 @@ unittest
 struct RpcOk(Cols...)
 {
     static assert(checkTypes!Cols, "RpcOk compile arguments have to be of type kind: Column!(ColumnType, string ColumnName)");
-     
+    
     mixin(genColFields!Cols());
     
     this(Json result)
     {
+        template column(alias T) { enum column = "columns[\""~T.name~"\"]"; }
+        
         auto columns = result.get!(Json[string]);
         foreach(ColInfo; Cols)
         {
-            mixin(ColInfo.name~" = columns[\""~ColInfo.name~"\"].deserializeJson!("~ColInfo.type.stringof~"[]);");
+            static if(is(ColInfo.type T : Nullable!T))
+            {
+                mixin(ColInfo.name) = [];
+                foreach(json; mixin(column!ColInfo).get!(Json[]))
+                {
+                    if(json.type == Json.Type.null_)
+                    {
+                        mixin(ColInfo.name) ~= Nullable!T();
+                    }
+                    else
+                    {
+                        mixin(ColInfo.name) ~= Nullable!T(mixin(column!ColInfo).deserializeJson!T);
+                    }                    
+                }
+            }
+            else
+            {
+                assert(ColInfo.name in columns, text("Cannot find column '", ColInfo.name, "' in response ", result));
+                mixin(ColInfo.name) = mixin(column!ColInfo).deserializeJson!(ColInfo.type[]);
+            }
         }
     }
     
@@ -153,15 +187,25 @@ class RpcRespond
         return RpcError(respond.code.get!uint, respond.message.get!string);
     }
     
-    RpcOk!RowTypes assertOk(RowTypes...)()
+    RpcOk!RowTypes assertOk(RowTypes...)(size_t i = 0)
     {
-        scope(failure)
+        try
         {
-            assert(false, text("Expected successful respond! But got: ", respond));
-        }
+            assert(respond.result.type != Json.Type.undefined);
         
-        assert(respond.result.type != Json.Type.undefined);
-        return RpcOk!RowTypes(respond.result.get!(Json[])[0]);
+            auto jsons = respond.result.get!(Json[]);
+            assert(i < jsons.length);
+            return RpcOk!RowTypes(jsons[i]);
+        } 
+        catch(Throwable th)
+        {
+            assert(false, text("Expected successful respond! But got: ", respond, "\n", th.msg));
+        }
+    }
+    
+    Json raw()
+    {
+        return respond;
     }
     
     private Json respond;
