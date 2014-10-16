@@ -11,20 +11,20 @@ Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 
 [Overview-(ru)](https://github.com/DSoftOut/pgator/wiki/Overview-(ru))
 
-Quick start guide
-=====
+###Quick start guide
 
-Dlang stuff installation example (Debian)
----
+####Dlang stuff installation (Debian example)
+
+Since pgator written in Dlang you will need to install the DMD compiler and the DUB builder packages:
+
 ```bash
 $ cat /etc/apt/sources.list.d/d-apt.list 
 deb http://netcologne.dl.sourceforge.net/project/d-apt dmd main #APT repository for D
-
+$ sudo aptitude update
+$ sudo aptitude install -t unstable dub dmd
 ```
 
-Building
----
-
+####pgator downloading and building
 ```bash
 $ git clone https://github.com/DSoftOut/pgator.git
 Cloning into 'pgator'...
@@ -38,9 +38,8 @@ $ cd pgator
 $ dub build
 ```
 
-How to run
----
-supervisor script:
+####How to run pgator as daemon
+supervisor script example:
 
 ```
 $ cat /etc/supervisor.d/pgator.ini
@@ -58,10 +57,9 @@ stopasgroup=true
 
 ```
 
-RPC calls table example
----
+####RPC calls table example
 
-Simple method what returns one passed argument
+Simple method what returns one passed argument:
 
 ```sql
 => SELECT * FROM json_rpc WHERE method = 'test.echo';
@@ -77,7 +75,7 @@ Simple method what returns one passed argument
 (1 строка)
 ```
 
-Calling:
+#### Method calling:
 
 ```json
 {
