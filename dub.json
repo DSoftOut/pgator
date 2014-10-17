@@ -6,7 +6,7 @@
     "authors": [
         "Anton Gushcha (NCrashed <ncrashed@gmail.com>)"
        ,"Shamyan Roman (Zaramzan <shamyan.roman@gmail.com>)"
-       ,"denizzzka"
+       ,"Denis Feklushkin <denis.feklushkin@gmail.com>"
        ],
     "versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
     "dependencies": {
