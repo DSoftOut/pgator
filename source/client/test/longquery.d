@@ -16,7 +16,7 @@ class LongQueryTestCase : ITestCase
 {
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow("long_query1", [1], "select pg_sleep( $1 );"));
+        insertRow(pool, tableName, JsonRpcRow("long_query1", 1, "select pg_sleep( $1 );"));
     }
     
     /**

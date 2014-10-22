@@ -60,6 +60,17 @@ struct Entry
 		return params.length == expected;
 	}
 	
+	const bool isValidFilter(out size_t expected)
+	{
+	    if(!needResultFiltering) return true;
+	    else return result_filter.length == sql_queries.length;
+	}
+	
+	const bool needResultFiltering()
+	{
+	    return result_filter && result_filter != [];
+	}
+	
 	const shared(Entry) toShared() @property
 	{
 		auto res = this;

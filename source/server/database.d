@@ -183,7 +183,12 @@ shared class Database
 				throw new RpcInvalidParams(text("Expected ", expected, " parameters, ",
 				        "but got ", req.params.length, "!"));
 			}
-									
+			if (!entry.isValidFilter(expected))
+			{
+		        throw new RpcServerError(text("Json RPC table is invalid! result_filter should be empty or size "
+		                "of sql_queries, expected ", expected, " but got ", entry.result_filter.length));
+		    }	
+							
 			try
 			{			
 				InputRange!(immutable Bson) irange;
@@ -196,11 +201,19 @@ shared class Database
 				{
 					irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums);
 				}
-
+				
 				auto builder = appender!(Bson[]);
-				foreach(ibson; irange)
+				if(entry.needResultFiltering)
 				{
-				    builder.put(cast()ibson);
+    				foreach(i, ibson; irange)
+                    {
+                        if(entry.result_filter[i])
+                            builder.put(cast()ibson);
+                    }
+				} 
+				else
+				{
+                    foreach(i, ibson; irange) builder.put(cast()ibson);
 				}
 				
 				RpcResult result = RpcResult(Bson(builder.data));

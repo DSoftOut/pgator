@@ -50,7 +50,7 @@ interface ITestCase
     
     protected final void insertRow(shared IConnectionPool pool, string tableName, JsonRpcRow row)
     {
-        pool.execTransaction(["INSERT INTO \""~tableName~"\" VALUES ($1, $2, $3, $4, $5, $6, $7, $8);"],
+        pool.execTransaction(["INSERT INTO \""~tableName~"\" VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Test suit method', $9);"],
             [row.method, 
             row.sql_queries.convertArray, 
             row.arg_nums.convertArray,
@@ -58,8 +58,9 @@ interface ITestCase
             row.need_cache.to!string,
             row.read_only.to!string,
             row.reset_caches.convertArray,
-            row.reset_by.convertArray],
-            [8]);
+            row.reset_by.convertArray,
+            row.result_filter.convertArray],
+            [9]);
     }
     
     protected final void removeRow(shared IConnectionPool pool, string tableName, string method)
@@ -70,7 +71,8 @@ interface ITestCase
 
 private void updateServerTables(uint pid)
 {
-    executeShell(text("kill -s HUP ", pid));
+    auto res = executeShell(text("kill -s HUP ", pid));
+    if(res.status != 0) std.stdio.writeln(res.output);
 }
 
 private string convertArray(T)(T[] ts)
@@ -109,18 +111,26 @@ struct JsonRpcRow
     bool read_only;
     string[] reset_caches;
     string[] reset_by;
+    bool[] result_filter;
     
-    this(string method, uint[] arg_nums, string sql_query)
+    this(string method, string sql_query)
     {
         this.method = method;
-        this.arg_nums = arg_nums;
+        this.arg_nums = [];
+        this.sql_queries = [sql_query];
+    }
+    
+    this(string method, uint arg_nums, string sql_query)
+    {
+        this.method = method;
+        this.arg_nums = [arg_nums];
         this.sql_queries = [sql_query];
     } 
     
     this(string method, uint[] arg_nums, string[] sql_queries,
         bool set_username = false, bool need_cache = false,
         bool read_only = false, string[] reset_caches = [],
-        string[] reset_by = [])
+        string[] reset_by = [], bool[] result_filter = [])
     {
         this.method = method;
         this.sql_queries = sql_queries;
@@ -130,5 +140,6 @@ struct JsonRpcRow
         this.need_cache = need_cache;
         this.reset_caches = reset_caches;
         this.reset_by = reset_by;
+        this.result_filter = result_filter;
     }
 }

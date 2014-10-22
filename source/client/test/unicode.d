@@ -16,7 +16,7 @@ class UnicodeTestCase : ITestCase
 {
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow("unicode_test1", [1], "SELECT $1::text as test_field;"));
+        insertRow(pool, tableName, JsonRpcRow("unicode_test1", 1, "SELECT $1::text as test_field;"));
     }
     
     /**

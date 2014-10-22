@@ -24,9 +24,9 @@ class NullTestCase : ITestCase
     
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow(NullTest1, [2], "SELECT $1::integer + $2::integer as test_field;"));
-        insertRow(pool, tableName, JsonRpcRow(NullTest2, [], "select NULL::text as null_test_value;"));
-        insertRow(pool, tableName, JsonRpcRow(NullTest3, [], "select ''::text as null_test_value;"));
+        insertRow(pool, tableName, JsonRpcRow(NullTest1, 2, "SELECT $1::integer + $2::integer as test_field;"));
+        insertRow(pool, tableName, JsonRpcRow(NullTest2, "select NULL::text as null_test_value;"));
+        insertRow(pool, tableName, JsonRpcRow(NullTest3, "select ''::text as null_test_value;"));
     }
     
     /**

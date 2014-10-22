@@ -18,11 +18,16 @@ import vibe.data.json;
 
 class SingleQueryTestCase : ITestCase
 {
-    enum Test1 = "null1";
+    enum Test1 = "singleQuery1";
+    enum Test2 = "singleQuery2";
     
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow(Test1, [2], "SELECT $1::integer + $2::integer as test_field;"));
+        insertRow(pool, tableName, JsonRpcRow(Test1, 2, "SELECT $1::integer + $2::integer as test_field;"));
+        insertRow(pool, tableName, JsonRpcRow(Test2, [2, 2], 
+                ["SELECT $1::integer + $2::integer as test_field;",
+                 "SELECT $1::integer - $2::integer as test_field;"],
+                 false, false, false, [], [], [false, true]));
     }
     
     /**
@@ -31,6 +36,7 @@ class SingleQueryTestCase : ITestCase
     protected void deleteMethods(shared IConnectionPool pool, string tableName)
     {
         removeRow(pool, tableName, Test1);
+        removeRow(pool, tableName, Test2);
     }
     
     /**
@@ -39,8 +45,15 @@ class SingleQueryTestCase : ITestCase
     */
     protected void performTests(IRpcApi api)
     {
-        auto result = api.runRpc!Test1(1, 2).assertOk!(Column!(int, "test_field"));
-        assert(result.test_field.length == 1);
-        assert(result.test_field[0] == 3);
+        {
+            auto result = api.runRpc!Test1(1, 2).assertOk!(Column!(int, "test_field"));
+            assert(result.test_field.length == 1);
+            assert(result.test_field[0] == 3);
+        }
+        {
+            auto result = api.runRpc!Test2(1, 2, 1, 2).assertOk!(Column!(int, "test_field"));
+            assert(result.test_field.length == 1);
+            assert(result.test_field[0] == -1, text(result.test_field[0], " != ", -1));
+        }
     }
 }

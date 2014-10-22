@@ -16,7 +16,7 @@ class NamedParamsTestCase : ITestCase
 {
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow("named_test1", [2], "SELECT $1::int8 + $2::int8 as test_field;"));
+        insertRow(pool, tableName, JsonRpcRow("named_test1", 2, "SELECT $1::int8 + $2::int8 as test_field;"));
     }
     
     /**
