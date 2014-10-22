@@ -193,9 +193,21 @@ class RpcRespond
         {
             assert(respond.result.type != Json.Type.undefined);
         
-            auto jsons = respond.result.get!(Json[]);
-            assert(i < jsons.length);
-            return RpcOk!RowTypes(jsons[i]);
+            if(respond.result.type == Json.Type.array)
+            {
+                auto jsons = respond.result.get!(Json[]);
+                assert(i < jsons.length);
+                return RpcOk!RowTypes(jsons[i]);
+            } 
+            else if(respond.result.type == Json.Type.object)
+            {
+                assert(i == 0, "Single query result, but i != 0");
+                return RpcOk!RowTypes(respond.result);
+            }
+            else
+            {
+                throw new Exception("Unknown format of result from server!");
+            }
         } 
         catch(Throwable th)
         {

@@ -16,8 +16,8 @@ class NumericTestCase : ITestCase
 {
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow("numeric_test_1", [1], "SELECT $1::bigint test_field;"));
-        insertRow(pool, tableName, JsonRpcRow("numeric_test_2", [0], "select 2354877787627192443::bigint as bigint_value;"));
+        insertRow(pool, tableName, JsonRpcRow("numeric_test_1", 1, "SELECT $1::bigint test_field;"));
+        insertRow(pool, tableName, JsonRpcRow("numeric_test_2", "select 2354877787627192443::bigint as bigint_value;"));
     }
     
     /**

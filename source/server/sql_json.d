@@ -13,6 +13,7 @@ module server.sql_json;
 
 import std.algorithm;
 import std.traits;
+import std.conv;
 
 import util;
 
@@ -50,10 +51,24 @@ struct Entry
 	@possible
 	string commentary;
 	
+	@possible
+	bool[] result_filter;
+	
 	const bool isValidParams(in string[] params, out size_t expected)
 	{
 	    expected = reduce!"a+b"(0, arg_nums);
 		return params.length == expected;
+	}
+	
+	const bool isValidFilter(out size_t expected)
+	{
+	    if(!needResultFiltering) return true;
+	    else return result_filter.length == sql_queries.length;
+	}
+	
+	const bool needResultFiltering()
+	{
+	    return result_filter && result_filter != [];
 	}
 	
 	const shared(Entry) toShared() @property
@@ -62,6 +77,35 @@ struct Entry
 		
 		return cast(shared Entry) res;
 	}
+	
+	void toString(scope void delegate(const(char)[]) sink) const
+	{
+	    sink("method: "); sink(method); sink("\n");
+	    sink("set_username: "); sink(set_username.to!string); sink("\n");
+	    sink("need_cache: "); sink(need_cache.to!string); sink("\n");
+	    sink("read_only: "); sink(read_only.to!string); sink("\n");
+	    sink("reset_caches: "); sink(reset_caches.to!string); sink("\n");
+	    sink("reset_by: "); sink(reset_by.to!string); sink("\n");
+	    sink("commentary: "); sink(commentary); sink("\n");
+	    foreach(immutable i, query; sql_queries)
+	    {
+	        sink("\t"); sink("query: "); sink(query); sink("\n");
+	        if(arg_nums && arg_nums != [])
+	        {
+	            sink("\t\t"); sink("argnums: "); sink(arg_nums[i].to!string); sink("\n");
+            } else
+            {
+                sink("\t\targnums: 0\n");
+            }
+            if(result_filter && result_filter != [])
+            {
+                sink("\t\t"); sink("filter: "); sink(result_filter[i].to!string); sink("\n");
+            } else
+            {
+                sink("\t\tfilter: true\n");
+            }
+        } 
+	}
 }
 
 /**
@@ -69,194 +113,206 @@ struct Entry
 * 
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 */
-shared class SqlJsonTable
+class SqlJsonTable
 {
-	private Entry[string] map;
+    shared
+    {
 	
-	/// Add entry to memory
-	void add(in Entry entry)
+    	/// Add entry to memory
+    	void add(in Entry entry)
+    	{
+    		map[entry.method] = entry.toShared();
+    	}
+    	
+    	void reset()
+    	{
+    		synchronized(this)
+    		{
+    			foreach(key; map.byKey())
+    			{
+    				map.remove(key);
+    			}
+    		}
+    	}
+    	
+    	/**
+    	* Returns: need_cache flag by method
+    	*/
+    	bool need_cache(string method)
+    	{
+    		auto p = method in map;
+    		
+    		if (p is null) return false;
+    		
+    		auto val = *p;
+    		
+    		return val.need_cache && val.read_only;
+    	}
+    	
+    	/**
+    	* Returns read_only flag by method
+    	*/
+    	bool read_only(string method)
+    	{
+    		auto p = method in map;
+    		
+    		if (p is null) return false;
+    		
+    		auto val = *p;
+    		
+    		return val.read_only;
+    	}
+    	
+    	/**
+    	* Returns: reset_caches array by method
+    	*/
+    	string[] reset_caches(string method)
+    	{
+    		auto p = method in map;
+    		
+    		if (p is null) return null;
+    		
+    		auto val = *p;
+    		
+    		return cast(string[])(val.reset_caches);
+    	}
+    	
+    	/**
+    	* Returns: reset_by array by method
+    	*/
+    	string[] reset_by(string method)
+    	{
+    		auto p = method in map;
+    		
+    		if (p is null) return null;
+    		
+    		auto val = *p;
+    		
+    		return cast(string[])(val.reset_by);
+    	}
+    	
+    	/**
+    	* Returns: array of needed drop methods by this method
+    	*/
+    	string[] needDrop(string method)
+    	{
+    		auto p = method in dropMap;
+    		
+    		if (p is null) return null;
+    		
+    		return cast(string[]) *p;
+    	}
+    	
+    	/**
+    	* Returns: set_username in json_rpc
+    	*/
+    	bool needAuth(string method)
+    	{
+    		shared Entry* p;
+    		
+    		p = method in map;
+    		
+    		if (p)
+    		{
+    			auto entry = cast(Entry) *p;
+    			
+    			return entry.set_username;
+    		}
+    		
+    		return false;
+    	}
+    	
+    	/**
+    	* Returns: true if method found, and put entry
+    	*/
+    	bool methodFound(string method, out Entry entry)
+    	{	
+    		shared Entry* p;
+    		
+    		p = method in map;
+    		
+    		if (p)
+    		{
+    			entry = cast(Entry) *p;
+    			
+    			return true;
+    		}
+    		
+    		return false;
+    	}
+    	
+    	/**
+    	* Returns entry by method
+    	*/
+    	Entry getEntry(string method)
+    	{
+    		auto p = method in map;
+    		
+    		if (p is null) return Entry();
+    		
+    		return cast(Entry) *p;
+    	}
+    	
+    	/**
+    	* Returns: true if method found
+    	*/
+    	bool methodFound(string method)
+    	{	
+    		return (method in map) !is null;
+    	}
+    	
+    	/// Makes drop map
+    	void makeDropMap()
+    	{
+    		foreach(val; map.byValue())
+    		{
+    			shared string[] arr = new shared string[0];
+    			
+    			if (val.need_cache)
+    			{
+    				if (!val.read_only)
+    				{
+    					foreach(str1; val.reset_caches)
+    					{
+    						foreach(key; map.byKey())
+    						{
+    							foreach(str2; map[key].reset_by)
+    							{
+    								if (str1 == str2) 
+    								{
+    									arr ~= key; //key is method
+    									break;
+    								}
+    							} 
+    						}
+    					}
+    				}
+    			}
+    			
+    			dropMap[val.method] = arr.dup;
+    		}
+    		
+    		// TODO: Check if it regression in 2.066-b1
+    		(cast(shared(string[])[string])dropMap).rehash();
+    	}
+	}
+    
+	void toString(scope void delegate(const(char)[]) sink) const
 	{
-		map[entry.method] = entry.toShared();
+	    sink("SqlJsonTable(\n");
+	    foreach(entry; map)
+	    {
+	        sink(entry.to!string);
+	    }
+	    sink(")\n");
 	}
 	
-	void reset()
-	{
-		synchronized(this)
-		{
-			foreach(key; map.byKey())
-			{
-				map.remove(key);
-			}
-		}
-	}
-	
-	/**
-	* Returns: need_cache flag by method
-	*/
-	bool need_cache(string method)
-	{
-		auto p = method in map;
-		
-		if (p is null) return false;
-		
-		auto val = *p;
-		
-		return val.need_cache && val.read_only;
-	}
-	
-	/**
-	* Returns read_only flag by method
-	*/
-	bool read_only(string method)
-	{
-		auto p = method in map;
-		
-		if (p is null) return false;
-		
-		auto val = *p;
-		
-		return val.read_only;
-	}
-	
-	/**
-	* Returns: reset_caches array by method
-	*/
-	string[] reset_caches(string method)
-	{
-		auto p = method in map;
-		
-		if (p is null) return null;
-		
-		auto val = *p;
-		
-		return cast(string[])(val.reset_caches);
-	}
-	
-	/**
-	* Returns: reset_by array by method
-	*/
-	string[] reset_by(string method)
-	{
-		auto p = method in map;
-		
-		if (p is null) return null;
-		
-		auto val = *p;
-		
-		return cast(string[])(val.reset_by);
-	}
-	
-	/**
-	* Returns: array of needed drop methods by this method
-	*/
-	string[] needDrop(string method)
-	{
-		auto p = method in dropMap;
-		
-		if (p is null) return null;
-		
-		return cast(string[]) *p;
-	}
-	
-	/**
-	* Returns: set_username in json_rpc
-	*/
-	bool needAuth(string method)
-	{
-		shared Entry* p;
-		
-		p = method in map;
-		
-		if (p)
-		{
-			auto entry = cast(Entry) *p;
-			
-			return entry.set_username;
-		}
-		
-		return false;
-	}
-	
-	/**
-	* Returns: true if method found, and put entry
-	*/
-	bool methodFound(string method, out Entry entry)
+	private
 	{	
-		shared Entry* p;
-		
-		p = method in map;
-		
-		if (p)
-		{
-			entry = cast(Entry) *p;
-			
-			return true;
-		}
-		
-		return false;
+    	alias string[] dropArr;
+    	Entry[string] map;
+    	dropArr[string] dropMap;
 	}
-	
-	/**
-	* Returns entry by method
-	*/
-	Entry getEntry(string method)
-	{
-		auto p = method in map;
-		
-		if (p is null) return Entry();
-		
-		return cast(Entry) *p;
-	}
-	
-	/**
-	* Returns: true if method found
-	*/
-	bool methodFound(string method)
-	{	
-		return (method in map) !is null;
-	}
-	
-	/// Makes drop map
-	void makeDropMap()
-	{
-		foreach(val; map.byValue())
-		{
-			shared string[] arr = new shared string[0];
-			
-			if (val.need_cache)
-			{
-				if (!val.read_only)
-				{
-					foreach(str1; val.reset_caches)
-					{
-						foreach(key; map.byKey())
-						{
-							foreach(str2; map[key].reset_by)
-							{
-								if (str1 == str2) 
-								{
-									arr ~= key; //key is method
-									break;
-								}
-							} 
-						}
-					}
-				}
-			}
-			
-			dropMap[val.method] = arr.dup;
-		}
-		
-		// TODO: Check if it regression in 2.066-b1
-		(cast(shared(string[])[string])dropMap).rehash();
-	}
-	
-	private:
-	
-	alias string[] dropArr;
-	
-	dropArr[string] dropMap;
-	
 }
 
 
