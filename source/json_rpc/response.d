@@ -130,7 +130,9 @@ struct RpcResult
 	{
 		if (f_bson)
 		{
-			return bson.toJson();
+		    auto json = bson.toJson;
+		    if(json.length == 1) return json[0];
+			else return json;
 		}
 		
 		return Json.emptyObject;

@@ -50,9 +50,9 @@ class NullTestCase : ITestCase
         assert(result.test_field[0].isNull);
         
         auto result2Raw = api.runRpc!NullTest2().raw;
-        assert(result2Raw["result"][0]["null_test_value"][0].type == Json.Type.null_, text("Expected type 'null' but got '", result2Raw["result"][0]["null_test_value"][0].type, "'"));
+        assert(result2Raw["result"]["null_test_value"][0].type == Json.Type.null_, text("Expected type 'null' but got '", result2Raw["result"]["null_test_value"][0].type, "'"));
         
         auto result3Raw = api.runRpc!NullTest3().raw;
-        assert(result3Raw["result"][0]["null_test_value"][0].type == Json.Type.string, text("Expected type 'string' but got '", result2Raw["result"][0]["null_test_value"][0].type, "'"));
+        assert(result3Raw["result"]["null_test_value"][0].type == Json.Type.string, text("Expected type 'string' but got '", result2Raw["result"]["null_test_value"][0].type, "'"));
     }
 }
