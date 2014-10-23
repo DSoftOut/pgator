@@ -129,7 +129,8 @@ Bson toBson(PQType type)(ubyte[] val, shared IConnection conn)
                 || is(T == int)
                 || is(T == uint)
                 || is(T == long)
-                || is(T == ulong);
+                || is(T == ulong)
+                || is(T == PGNumeric);
         }
     }
     

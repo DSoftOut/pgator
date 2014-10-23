@@ -10,6 +10,7 @@ module pgator.db.pq.types.numeric;
 
 import pgator.db.pq.types.oids;
 import pgator.util.string;
+import vibe.data.json;
 import std.bitmanip;
 import std.algorithm;
 import std.array;
@@ -203,7 +204,7 @@ struct PGNumeric
     *   into $(B val) and returns true, else returns false
     *   and fills $(B val) with NaN.
     */
-    bool canBeNative(out double val)
+    bool canBeNative(out double val) const
     {
         try
         {
@@ -223,6 +224,34 @@ struct PGNumeric
     void toString(scope void delegate(const(char)[]) sink) const
     {
     	sink(payload);
+    }
+    
+    static PGNumeric fromString(string src)
+    {
+        return PGNumeric(src);
+    }
+    
+    Json toJson() const
+    {
+        double val;
+        if(canBeNative(val))
+        {
+            return Json(val);
+        } else
+        {
+            return Json(payload);
+        }
+    }
+    
+    static PGNumeric fromJson(Json src)
+    {
+        switch(src.type)
+        {
+            case(Json.Type.float_): return PGNumeric(src.get!double.to!string);
+            case(Json.Type.int_): return PGNumeric(src.get!long.to!string);
+            case(Json.Type.string): return PGNumeric(src.get!string);
+            default: throw new Exception(text("Cannot convert ", src.type, " to PGNumeric!"));
+        }
     }
 }
 
