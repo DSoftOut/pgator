@@ -15,6 +15,6 @@ Usage
 Add to dub.json file:
 ```Json
 "dependencies": {
-  "pgator-backend": ">=0.1.0"
+  "pgator-backend": ">=0.1.2"
 }
 ```
