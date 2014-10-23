@@ -19,11 +19,15 @@ import vibe.data.json;
 class ArrayTestCase : ITestCase
 {
     enum Test1 = "array1";
+    enum Test2 = "array2";
     
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
         insertRow(pool, tableName, JsonRpcRow(Test1, 
                 "\"select array[1,2,3]::integer[] as i, array[1,2,3]::numeric[] as n;\""
+                ));
+        insertRow(pool, tableName, JsonRpcRow(Test2, 
+                "\"select array[1,20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,3]::numeric[] as n;\""
                 ));
     }
     
@@ -33,6 +37,7 @@ class ArrayTestCase : ITestCase
     protected void deleteMethods(shared IConnectionPool pool, string tableName)
     {
         removeRow(pool, tableName, Test1);
+        removeRow(pool, tableName, Test2);
     }
     
     /**
@@ -47,6 +52,13 @@ class ArrayTestCase : ITestCase
             assert(result.n.length == 1);
             assert(result.i[0] == [1, 2, 3]);
             assert(result.n[0] == [1, 2, 3]);
+        }
+        {
+            auto result = api.runRpc!Test2.raw;
+            assert(result["result"]["n"][0].type == Json.Type.array, text("Expected type 'array' but got '", result["result"]["n"][0].type, "'"));
+            assert(result["result"]["n"][0][0].get!int == 1);
+            assert(result["result"]["n"][0][1].get!string == "20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+            assert(result["result"]["n"][0][2].get!int == 3);
         }
     }
 }
