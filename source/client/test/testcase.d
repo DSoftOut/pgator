@@ -91,10 +91,12 @@ private string convertArray(T)(T[] ts)
         {
             builder.put(t.to!string);
         }
-       // static if(is(T == string)) builder.put("'");
+        //static if(is(T == string)) builder.put("'");
         if(i != ts.length-1)
             builder.put(", ");
     }
+    //if(builder.data == "") return "{}";
+    //return "array["~builder.data~"]";
     return "{"~builder.data~"}";
 } 
     
