@@ -19,9 +19,13 @@ Description: Server that transforms JSON-RPC calls into SQL queries for PostgreS
 
 cp Debian/conffiles ${DEBDIR}
 
+mkdir -p ${WORKDIR}/etc/
 mkdir -p ${WORKDIR}/usr/bin/
-cp -a bin/pgator ${WORKDIR}/usr/bin/
-cp -a Debian/pgator.conf ${WORKDIR}/etc/
+
+cp Debian/pgator.conf ${WORKDIR}/etc/
+chmod 644 ${WORKDIR}/etc/pgator.conf # maybe it is need 600 ?
+
+cp bin/pgator ${WORKDIR}/usr/bin/
 
 dpkg -b ${WORKDIR} pgator_${VERSION}.deb
 
