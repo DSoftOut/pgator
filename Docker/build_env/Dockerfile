@@ -17,3 +17,7 @@ RUN wget http://netcologne.dl.sourceforge.net/project/d-apt/files/d-apt.list -O 
 RUN apt-get update && apt-get -y --allow-unauthenticated install d-apt-keyring && apt-get update
 #RUN apt-get -y install dmd-bin dub # Used repository with a bit outdated dmd packages, dmd-bin is disabled
 RUN apt-get -y install dub
+
+# build:
+RUN git clone https://github.com/denizzzka/pgator.git
+RUN sh pgator/Docker/build_env/build.sh
