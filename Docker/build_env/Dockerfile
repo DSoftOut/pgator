@@ -14,6 +14,5 @@ RUN dpkg -i ${DMD}
 # DUB:
 RUN wget http://netcologne.dl.sourceforge.net/project/d-apt/files/d-apt.list -O /etc/apt/sources.list.d/d-apt.list
 RUN apt-get update && apt-get -y --allow-unauthenticated install d-apt-keyring && apt-get update
-
 #RUN apt-get -y install dmd-bin dub # Used repository with a bit outdated dmd packages, dmd-bin is disabled
 RUN apt-get -y install dub
