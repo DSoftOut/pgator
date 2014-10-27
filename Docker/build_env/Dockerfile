@@ -4,7 +4,7 @@ RUN apt-get update
 RUN apt-get -y install build-essential wget git
 RUN apt-get -y install xdg-utils libcurl3 # dmd depends
 
-# "hardcoded" way to download and install latest dmd package:
+# hardcoded way to download and install latest dmd package:
 ENV DMD_VER 2.066.0
 ENV DMD dmd_${DMD_VER}-0_amd64.deb
 
