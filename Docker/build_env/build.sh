@@ -7,7 +7,7 @@ DEBDIR=${WORKDIR}/DEBIAN
 
 mkdir -p ${DEBDIR}
 
-VERSION=`git describe --match=v* | sed 's/^v//'`
+VERSION=`git describe --always | sed 's/^v//'`
 
 echo "Package: pgator
 Architecture: amd64
