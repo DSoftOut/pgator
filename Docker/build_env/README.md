@@ -1,4 +1,4 @@
-Creates Dlang linux build environment for pgator
+Dlang linux build environment for pgator
 
 Usage:
 ```bash
