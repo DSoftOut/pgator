@@ -26,4 +26,4 @@ cp bin/pgator ${WORKDIR}/usr/bin/
 
 fakeroot dpkg-deb --build ${WORKDIR} pgator_${VERSION}.deb
 
-#rm -rf ${WORKDIR}
+rm -rf ${WORKDIR}
