@@ -3,6 +3,7 @@ FROM debian:latest
 RUN apt-get update
 RUN apt-get -y install build-essential wget git
 RUN apt-get -y install xdg-utils libcurl3 # dmd depends
+RUN apt-get -y install libevent-dev libssl-dev # dmd (?) package forgotten deps
 
 # hardcoded way to download and install latest dmd package:
 ENV DMD_VER 2.066.0
