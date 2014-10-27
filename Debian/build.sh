@@ -17,8 +17,11 @@ Maintainer: DSoftOut Crew
 Description: Server that transforms JSON-RPC calls into SQL queries for PostgreSQL
 " > ${DEBDIR}/control
 
+cp Debian/conffiles ${DEBDIR}
+
 mkdir -p ${WORKDIR}/usr/bin/
 cp -a bin/pgator ${WORKDIR}/usr/bin/
+cp -a Debian/pgator.conf ${WORKDIR}/etc/
 
 dpkg -b ${WORKDIR} pgator_${VERSION}.deb
 
