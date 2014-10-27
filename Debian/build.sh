@@ -17,7 +17,6 @@ Maintainer: DSoftOut Crew
 Description: Server that transforms JSON-RPC calls into SQL queries for PostgreSQL
 " > ${DEBDIR}/control
 
-#to delete
 dpkg -b ${WORKDIR} pgator_${VERSION}.deb
 
 rm -rf ${DEBDIR}
