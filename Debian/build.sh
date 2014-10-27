@@ -22,4 +22,4 @@ cp -a bin/pgator ${WORKDIR}/usr/bin/
 
 dpkg -b ${WORKDIR} pgator_${VERSION}.deb
 
-rm -rf ${DEBDIR}
+rm -rf ${WORKDIR}
