@@ -19,5 +19,5 @@ RUN apt-get update && apt-get -y --allow-unauthenticated install d-apt-keyring &
 RUN apt-get -y install dub
 
 # build:
-RUN git clone https://github.com/denizzzka/pgator.git
-RUN sh pgator/Docker/build_env/build.sh
+RUN git clone -b docker --single-branch --depth 1 https://github.com/denizzzka/pgator.git
+RUN cd pgator && sh Docker/build_env/build.sh
