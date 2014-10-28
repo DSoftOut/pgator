@@ -1,4 +1,4 @@
-Script that builds a Debian binary package
+That script builds a Debian binary package
 
 Usage:
 
