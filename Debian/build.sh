@@ -9,7 +9,7 @@ mkdir -p ${WORKDIR}
 cp -r Debian/DEBIAN ${WORKDIR}/
 cp -r Debian/etc ${WORKDIR}/
 
-VERSION=`git describe --match=v* | sed 's/^v//'`
+VERSION=`git describe --tags --match=v* | sed 's/^v//'`
 
 echo "Package: pgator
 Priority: extra
