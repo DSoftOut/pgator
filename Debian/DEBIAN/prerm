@@ -3,3 +3,5 @@
 set -e
 
 supervisorctl stop pgator
+
+exit 0
