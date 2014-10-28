@@ -19,7 +19,7 @@ case "$1" in
   configure)
     adduser --system --no-create-home --group --gecos "pgator daemon" pgator
 
-    mkdir --mode=700 /var/log/pgator/ 2>/dev/null &&
+    mkdir --mode=2750 /var/log/pgator/ 2>/dev/null &&
     chown pgator:pgator /var/log/pgator/ || true
   ;;
   abort-upgrade|abort-remove|abort-deconfigure)
