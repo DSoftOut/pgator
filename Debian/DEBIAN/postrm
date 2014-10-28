@@ -2,8 +2,6 @@
 
 set -e
 
-supervisorctl stop pgator
-
 if [ "$1" = "purge" ] ; then
         deluser --system pgator || true
         delgroup --system --only-if-empty pgator || true
