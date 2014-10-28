@@ -1,9 +1,9 @@
 Script that builds a Debian binary package
 
 Usage:
+
+First, build pgator as usual in its directory. Then:
 ```bash
-$ git clone https://github.com/DSoftOut/pgator.git
-$ cd pgator
-$ dub build
 $ sh Debian/build.sh
 ```
+And obtain a deb file in the current dir.
