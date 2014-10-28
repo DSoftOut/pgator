@@ -18,6 +18,9 @@ PGATOR=/usr/bin/pgator
 case "$1" in
   configure)
     adduser --system --no-create-home --group --gecos "pgator daemon" pgator
+
+    chown pgator:pgator /var/log/pgator/ || true
+    chmod 700 /var/log/pgator/ || true
   ;;
   abort-upgrade|abort-remove|abort-deconfigure)
   ;;
