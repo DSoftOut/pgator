@@ -12,6 +12,7 @@ cp -r Debian/etc ${WORKDIR}/
 VERSION=`git describe --match=v* | sed 's/^v//'`
 
 echo "Package: pgator
+Priority: extra
 Architecture: amd64
 Version: $VERSION
 Depends: adduser, libpq5 (>= 9.4~), supervisor (>=3.0~)
