@@ -17,7 +17,7 @@ PGATOR=/usr/bin/pgator
 
 case "$1" in
   configure)
-    adduser --system --group --gecos "pgator daemon"
+    adduser --system --group --gecos "pgator daemon" pgator
   ;;
   abort-upgrade|abort-remove|abort-deconfigure)
   ;;
