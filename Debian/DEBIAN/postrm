@@ -2,7 +2,7 @@
 
 set -e
 
-service supervisor force-reload
+supervisorctl stop pgator
 
 if [ "$1" = "purge" ] ; then
         deluser --system pgator || true
