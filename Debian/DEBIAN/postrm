@@ -2,6 +2,8 @@
 
 set -e
 
+service supervisor force-reload
+
 if [ "$1" = "purge" ] ; then
         deluser --system pgator || true
         delgroup --system --only-if-empty pgator || true

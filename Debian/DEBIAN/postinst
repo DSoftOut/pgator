@@ -21,6 +21,8 @@ case "$1" in
 
     mkdir --mode=2750 /var/log/pgator/ 2>/dev/null &&
     chown pgator:pgator /var/log/pgator/ || true
+
+    service supervisor force-reload
   ;;
   abort-upgrade|abort-remove|abort-deconfigure)
   ;;
