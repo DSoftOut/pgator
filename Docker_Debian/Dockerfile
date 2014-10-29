@@ -12,5 +12,4 @@ COPY pgator.conf /etc/
 COPY docker-entrypoint.sh /
 
 EXPOSE 8080
-VOLUME /var/run/pgator
 ENTRYPOINT ["/docker-entrypoint.sh"]
