@@ -9,6 +9,11 @@ $ sudo docker build -t pgator Docker_Debian/
 ```
 This builds a pgator docker image.
 
+Starting a postgres. Opened port 5432 is need for adding methods table into DB.
+```bash
+$ sudo docker run --name some-postgres-container -p 5432:5432 -d postgres:9.4
+```
+
 ```sql
 CREATE TABLE pgator_rpc
 (
