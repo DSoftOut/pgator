@@ -11,12 +11,6 @@ COPY pgator /usr/bin/
 COPY pgator.conf /etc/
 COPY docker-entrypoint.sh /
 
-# logging is currently disabled
-#RUN \
-#mkdir -p -m 2770 /var/log/pgator && \
-#chown pgator:pgator /var/log/pgator
-
 EXPOSE 8080
-VOLUME /var/log/pgator
 VOLUME /var/run/pgator
 ENTRYPOINT ["/docker-entrypoint.sh"]
