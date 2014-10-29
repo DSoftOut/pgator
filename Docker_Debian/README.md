@@ -53,8 +53,30 @@ false,
 ```
 
 Starting the pgator image:
-
 ```bash
-$ sudo docker run -d --restart=always --name some-pgator-container --link some-postgres-container:db --publish=8080:8080 debian/pgator
-cbcc900ac2d3219103056b57dc3975b813ae5b0badf1b4f21aab074c992d1d90
+$ sudo docker run -d --name some-pgator-container --link some-postgres-container:db --publish=8080:8080 debian/pgator
+bcb15a1e149e85cc9ae2e00af4f8f377a62f30c84e0b88d56115f5557b19385d
+$ sudo docker ps
+CONTAINER ID        IMAGE                  COMMAND                CREATED             STATUS              PORTS                    NAMES
+bcb15a1e149e        debian/pgator:latest   "/docker-entrypoint.   2 minutes ago       Up 2 minutes        0.0.0.0:8080->8080/tcp   some-pgator-container     
+32eef82435a3        postgres:9.4           "/docker-entrypoint.   49 minutes ago      Up 49 minutes       0.0.0.0:5432->5432/tcp   some-postgres-container
+```
+
+Checking pgator replies:
+```bash
+$ curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' --data '
+{
+    "jsonrpc": "2.0",
+    "method": "test.echo",
+    "params": [ "Hello, world!" ],
+    "id": 1
+}' http://localhost:8080/
+{
+	"id": 1,
+	"result": {
+		"passed_value": [
+			"Hello, world!"
+		]
+	},
+	"jsonrpc": "2.0"
 ```
