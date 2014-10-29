@@ -5,11 +5,12 @@ First, build pgator as usual in its directory.
 Then:
 ```bash
 $ cp bin/pgator Docker_Debian/
-$ sudo docker build -t pgator Docker_Debian/
+$ sudo docker build -t debian/pgator Docker_Debian/ # builds pgator image
+$ sudo docker images | grep pgator
+debian/pgator       latest              a7f3cab35061        47 minutes ago      211.9 MB
 ```
-This builds a pgator docker image.
 
-Starting a postgres. Opened port 5432 is need for adding methods table into the DB.
+Starting the postgres. Opened port 5432 is need for adding methods table into the DB.
 ```bash
 $ sudo docker run --name some-postgres-container -p 5432:5432 -d postgres:9.4
 ```
@@ -49,4 +50,11 @@ false,
 '{}',
 ''
 );
+```
+
+Starting the pgator image:
+
+```bash
+$ sudo docker run -d --restart=always --name some-pgator-container --link some-postgres-container:db --publish=8080:8080 debian/pgator
+cbcc900ac2d3219103056b57dc3975b813ae5b0badf1b4f21aab074c992d1d90
 ```
