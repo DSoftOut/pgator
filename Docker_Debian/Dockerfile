@@ -17,4 +17,5 @@ chown pgator:pgator /var/log/pgator
 
 EXPOSE 8080
 VOLUME /var/log/pgator
+VOLUME /var/run/pgator
 ENTRYPOINT ["/docker-entrypoint.sh"]
