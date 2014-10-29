@@ -13,3 +13,5 @@ COPY pgator.conf /etc/
 RUN \
 mkdir -p -m 2770 /var/log/pgator && \
 chown pgator:pgator /var/log/pgator
+
+VOLUME /var/log/pgator
