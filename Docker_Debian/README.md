@@ -9,6 +9,7 @@ $ sudo docker build -t pgator Docker_Debian/
 ```
 This builds a pgator docker image.
 
+```sql
 CREATE TABLE pgator_rpc
 (
   method text NOT NULL,
@@ -34,4 +35,4 @@ false,
 '{}',
 ''
 );
-
+```
