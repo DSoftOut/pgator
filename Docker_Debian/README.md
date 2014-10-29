@@ -10,7 +10,7 @@ $ sudo docker images | grep pgator
 debian/pgator       latest              a7f3cab35061        47 minutes ago      211.9 MB
 ```
 
-Starting the postgres. Opened port 5432 is need for adding methods table into the DB.
+Starting the postgres. Opened port 5432 is need for adding methods table into the clean DB container.
 ```bash
 $ sudo docker run --name some-postgres-container -p 5432:5432 -d postgres:9.4
 ```
@@ -52,7 +52,7 @@ false,
 );
 ```
 
-Starting the pgator image:
+Starting the pgator image with linking to the postgresql container:
 ```bash
 $ sudo docker run -d --name some-pgator-container --link some-postgres-container:db --publish=8080:8080 debian/pgator
 bcb15a1e149e85cc9ae2e00af4f8f377a62f30c84e0b88d56115f5557b19385d
