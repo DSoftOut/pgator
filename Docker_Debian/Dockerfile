@@ -1,4 +1,4 @@
-FROM debian:sid
+FROM debian:jessie
 
 RUN groupadd -r pgator && useradd -r -g pgator pgator
 
