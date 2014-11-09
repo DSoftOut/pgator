@@ -14,9 +14,13 @@ import pgator.db.pool;
 
 class MulticommandCase : ITestCase
 {
+    enum Test1 = "multicommand_test1";
+    enum Test2 = "multicommand_test2";
+    
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
-        insertRow(pool, tableName, JsonRpcRow("multicommand_test1", [1, 1], ["SELECT $1::text as test_field1;", "SELECT $1::text as test_field2;"]));
+        insertRow(pool, tableName, JsonRpcRow(Test1, [1, 1], ["SELECT $1::text as test_field1;", "SELECT $1::text as test_field2;"]));
+        insertRow(pool, tableName, JsonRpcRow(Test2, [0, 0], ["select 123 as col1", "select 456 as col2"]));
     }
     
     /**
@@ -24,7 +28,8 @@ class MulticommandCase : ITestCase
     */
     protected void deleteMethods(shared IConnectionPool pool, string tableName)
     {
-        removeRow(pool, tableName, "multicommand_test1");
+        removeRow(pool, tableName, Test1);
+        removeRow(pool, tableName, Test2);
     }
     
     /**
@@ -33,12 +38,23 @@ class MulticommandCase : ITestCase
     */
     protected void performTests(IRpcApi api)
     {
-        auto respond = api.runRpc!"multicommand_test1"("a", "b");
-        
-        auto result1 = respond.assertOk!(Column!(string, "test_field1"))(0);
-        assert(result1.test_field1[0] == "a");
-        
-        auto result2 = respond.assertOk!(Column!(string, "test_field2"))(1);
-        assert(result2.test_field2[0] == "b");
+        {
+            auto respond = api.runRpc!Test1("a", "b");
+            
+            auto result1 = respond.assertOk!(Column!(string, "test_field1"))(0);
+            assert(result1.test_field1[0] == "a");
+            
+            auto result2 = respond.assertOk!(Column!(string, "test_field2"))(1);
+            assert(result2.test_field2[0] == "b");
+        }
+        {
+            auto respond = api.runRpc!Test2();
+            
+            auto result1 = respond.assertOk!(Column!(int, "col1"))(0);
+            assert(result1.col1[0] == 123);
+            
+            auto result2 = respond.assertOk!(Column!(int, "col2"))(1);
+            assert(result2.col2[0] == 456);
+        } 
     }
 }
