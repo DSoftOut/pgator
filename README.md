@@ -123,13 +123,11 @@ Response:
 ```json
 {
 	"id": 1,
-	"result": [
-		{
-			"passed_value": [
-				"Hello, world!"
-			]
-		}
-	],
+	"result": {
+		"passed_value": [
+			"Hello, world!"
+		]
+	},
 	"jsonrpc": "2.0"
 }
 ```
