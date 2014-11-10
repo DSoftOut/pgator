@@ -79,4 +79,5 @@ $ curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json'
 		]
 	},
 	"jsonrpc": "2.0"
+}
 ```
