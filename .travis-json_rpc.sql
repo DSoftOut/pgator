@@ -10,6 +10,7 @@ CREATE TABLE json_rpc
   reset_by text[],
   commentary text,
   result_filter boolean[],
+  one_raw_flags boolean[],
   CONSTRAINT json_rpc_pkey PRIMARY KEY (method)
 )
 WITH (
