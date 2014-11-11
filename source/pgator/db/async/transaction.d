@@ -19,13 +19,14 @@ import pgator.db.pool;
 */
 class Transaction : IConnectionPool.ITransaction
 {
-    this(string[] commands, string[] params, uint[] argnums, string[string] vars) immutable
+    this(string[] commands, string[] params, uint[] argnums, string[string] vars, bool[] oneRowConstraints) immutable
     {
         this.commands = commands.idup;
         this.params = params.idup;
         this.argnums = argnums.idup;
         string[string] temp = vars.dup;
         this.vars = assumeUnique(temp);
+        this.oneRowConstraints = oneRowConstraints.idup;
     }
     
     override bool opEquals(Object o) nothrow 
@@ -33,7 +34,7 @@ class Transaction : IConnectionPool.ITransaction
         auto b = cast(Transaction)o;
         if(b is null) return false;
         
-        return commands == b.commands && params == b.params && argnums == b.argnums && vars == b.vars;
+        return commands == b.commands && params == b.params && argnums == b.argnums && vars == b.vars && oneRowConstraints == b.oneRowConstraints;
     }
     
     override hash_t toHash() nothrow @trusted
@@ -55,7 +56,7 @@ class Transaction : IConnectionPool.ITransaction
             return h;
         }
         
-        return toHashArr(commands) + toHashArr(params) + toHashArr(argnums) + toHashAss(vars);
+        return toHashArr(commands) + toHashArr(params) + toHashArr(argnums) + toHashAss(vars) + toHashArr(oneRowConstraints);
     }
     
     void toString(scope void delegate(const(char)[]) sink) const
@@ -69,6 +70,8 @@ class Transaction : IConnectionPool.ITransaction
                 sink("\n");
                 sink(text("With params: ", params));
             }
+            sink("\n");
+            sink(text("One row: ",oneRowConstraints[0]));
             if(vars.length != 0) sink("\n");
         } 
         else
@@ -82,6 +85,8 @@ class Transaction : IConnectionPool.ITransaction
                 {
                     sink(text("With params: ", params[j .. j+argnums[i]]));
                 }
+                sink("\n");
+                sink(text("One row: ",oneRowConstraints[i]));
                 if(i != commands.length-1) sink("\n");
                 j += argnums[i];
             }
@@ -104,4 +109,5 @@ class Transaction : IConnectionPool.ITransaction
     immutable string[] params;
     immutable uint[]   argnums;
     immutable string[string] vars;
+    immutable bool[] oneRowConstraints;
 }

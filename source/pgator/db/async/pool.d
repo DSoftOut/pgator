@@ -137,7 +137,7 @@ class AsyncPool : IConnectionPool
     */
     InputRange!(immutable Bson) execTransaction(string[] commands
         , string[] params = [], uint[] argnums = []
-        , string[string] vars = null) shared
+        , string[string] vars = null, bool[] oneRowConstraint = []) shared
     {
         ///TODO: move to contract when issue with contracts is fixed
         assert(!finalized, "Pool was finalized!");
@@ -149,7 +149,7 @@ class AsyncPool : IConnectionPool
             vars = empty;
         }
         
-        auto transaction = postTransaction(commands, params, argnums, vars);
+        auto transaction = postTransaction(commands, params, argnums, vars, oneRowConstraint);
         while(!isTransactionReady(transaction)) yield;
         return getTransaction(transaction);
     }
@@ -167,10 +167,18 @@ class AsyncPool : IConnectionPool
     */
     immutable(ITransaction) postTransaction(string[] commands
         , string[] params = [], uint[] argnums = []
-        , string[string] vars = null) shared
+        , string[string] vars = null, bool[] oneRowConstraint = []) shared
     {
         ///TODO: move to contract when issue with contracts are fixed
         assert(!finalized, "Pool was finalized!");
+        assert(oneRowConstraint.length == 0 || oneRowConstraint.length == commands.length
+            , "oneRowConstraint have to have length equal to commands length!");
+        
+        if(oneRowConstraint.length == 0)
+        {
+            oneRowConstraint = new bool[commands.length];
+            oneRowConstraint[] = false;
+        }
         
         /// Workaround for gdc
         if(vars is null)
@@ -185,7 +193,7 @@ class AsyncPool : IConnectionPool
         }
         
         auto conn = fetchFreeConnection();
-        auto transaction = new immutable Transaction(commands, params, argnums, vars);
+        auto transaction = new immutable Transaction(commands, params, argnums, vars, oneRowConstraint);
         processingTransactions.insert(cast(shared)transaction); 
         
         ids.queringCheckerId.send(thisTid, conn, cast(shared)transaction);
@@ -268,11 +276,22 @@ class AsyncPool : IConnectionPool
             
             if(respond.failed)
             {
-                logger.logError("Transaction failure:");
-                logger.logError(text(tr));
-                logMessages((s) => logger.logError(s));
-                
-                throw new QueryProcessingException(respond.exception);
+                if(respond.onRowConstaintFailed)
+                {
+                    logger.logError("Transaction failure: ");
+                    logger.logError(text(tr));
+                    auto errMsg = text("Transaction ", respond.constraintFailQueryId, " fired single row constraint!" );
+                    logger.logError(errMsg);
+                    throw new OneRowConstraintException(errMsg);
+                } 
+                else
+                {
+                    logger.logError("Transaction failure:");
+                    logger.logError(text(tr));
+                    logMessages((s) => logger.logError(s));
+                    
+                    throw new QueryProcessingException(respond.exception);
+                }
             }
             else
             {

@@ -37,7 +37,7 @@ struct Respond
     *   Transforms raw result from data base into BSON format. Also handles
     *   errors that was raised in the connection.
     */
-    bool collect(InputRange!(shared IPGresult) results, shared IConnection conn)
+    bool collect(InputRange!(shared IPGresult) results, shared IConnection conn, bool oneRowConstraint, size_t queryId)
     {
         scope(exit) conn.clearRaisedMsgs;
         msgs ~= conn.raisedMsgs.array.idup;
@@ -54,15 +54,46 @@ struct Respond
             }
             if(localSucc)
             {
-                result ~= res.asColumnBson(conn);
+                auto temp = res.asColumnBson(conn);
+                if(oneRowConstraint && !isOneRow(temp))
+                {
+                   failed = true;
+                   onRowConstaintFailed = true;
+                   constraintFailQueryId = queryId;
+                   localSucc = false;
+                } else
+                {
+                    result ~= temp;
+                }
             }
             res.clear();
         }
         return localSucc;
     }
     
+    private bool isOneRow(Bson res)
+    {
+        Bson[string] columns;
+        try
+        {
+            columns = res.get!(Bson[string]);
+        } 
+        catch(Exception e)
+        {
+            // something wrong with columns
+            return false;
+        }
+        
+        foreach(col; columns) return col.length == 1;
+        return false;
+    }
+    
     /// Flag to distinct error case from normal respond
     bool failed = false;
+    
+    bool onRowConstaintFailed = false;
+    size_t constraintFailQueryId;
+    
     /// Error stored in string
     string exception;
     /// Collected result
