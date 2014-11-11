@@ -54,6 +54,9 @@ struct Entry
 	@possible
 	bool[] result_filter;
 	
+	@possible
+	bool[] one_row_flags;
+	
 	const bool isValidParams(in string[] params, out size_t expected)
 	{
 	    expected = reduce!"a+b"(0, arg_nums);
@@ -62,13 +65,26 @@ struct Entry
 	
 	const bool isValidFilter(out size_t expected)
 	{
+	    expected = sql_queries.length;
 	    if(!needResultFiltering) return true;
 	    else return result_filter.length == sql_queries.length;
+	}
+	
+	const bool isValidOneRowConstraint(out size_t expected)
+	{
+	    expected = sql_queries.length;
+	    if(!needOneRowCheck) return true;
+	    else return one_row_flags.length == sql_queries.length;
 	}
 	
 	const bool needResultFiltering()
 	{
 	    return result_filter && result_filter != [];
+	}
+	
+	const bool needOneRowCheck()
+	{
+	    return one_row_flags && one_row_flags != [];
 	}
 	
 	const shared(Entry) toShared() @property
@@ -103,6 +119,13 @@ struct Entry
             } else
             {
                 sink("\t\tfilter: true\n");
+            }
+            if(one_row_flags && one_row_flags != [])
+            {
+                sink("\t\t"); sink("is_one_row: "); sink(one_row_flags[i].to!string); sink("\n");
+            } else
+            {
+                sink("\t\t"); sink("is_one_row: false \n");
             }
         } 
 	}
