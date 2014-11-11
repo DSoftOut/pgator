@@ -188,18 +188,23 @@ shared class Database
 		        throw new RpcServerError(text("Json RPC table is invalid! result_filter should be empty or size "
 		                "of sql_queries, expected ", expected, " but got ", entry.result_filter.length));
 		    }	
-							
+			if (!entry.isValidOneRowConstraint(expected))
+			{
+			    throw new RpcServerError(text("Json RPC table is invalid! one_row_flags should be empty or size "
+			            "of sql_querise, expected ", expected, " but got ", entry.one_row_flags.length));
+			}
+						
 			try
-			{			
+			{
 				InputRange!(immutable Bson) irange;
 				
 				if (entry.set_username)
 				{
-					irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, req.auth);
+					irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, req.auth, entry.one_row_flags);
 				}
 				else
 				{
-					irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums);
+					irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, null, entry.one_row_flags);
 				}
 				
 				auto builder = appender!(Bson[]);
@@ -216,7 +221,43 @@ shared class Database
                     foreach(i, ibson; irange) builder.put(cast()ibson);
 				}
 				
-				RpcResult result = RpcResult(Bson(builder.data));
+				Bson transformOneRow(Bson bson)
+				{
+				    Bson[string] columns;
+				    try columns = bson.get!(Bson[string]);
+				    catch(Exception e) return bson;
+				    
+				    Bson[string] newColumns;
+				    foreach(name, col; columns)
+				    {
+				        Bson[] row;
+				        try row = col.get!(Bson[]);
+				        catch(Exception e) return bson;
+				        if(row.length != 1) return bson;
+				        newColumns[name] = row[0];
+				    }
+				    
+				    return Bson(newColumns);
+				}
+				
+				auto builder2 = appender!(Bson[]);
+				Bson[] data;
+				if(entry.needOneRowCheck)
+				{
+				    foreach(i, bson; builder.data)
+				    {
+				        if(entry.one_row_flags[i])
+				        {
+				            builder2.put(transformOneRow(bson));
+				        }
+				    }
+				    data = builder2.data;
+				} else
+				{
+				    data = builder.data;
+				}
+				
+				RpcResult result = RpcResult(Bson(data));
 				res = RpcResponse(req.id, result);
 			}
 			catch (QueryProcessingException e)

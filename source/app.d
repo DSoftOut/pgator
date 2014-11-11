@@ -54,6 +54,7 @@ else version(RpcClient)
     import client.test.longquery;
     import client.test.notice;
     import client.test.singlequery;
+    import client.test.onerow;
     import client.test.array;
     
     immutable helpStr =
@@ -121,6 +122,7 @@ else version(RpcClient)
         	MulticommandCase,
         	NoticeTestCase,
         	SingleQueryTestCase,
+        	OneRowTestCase,
         	ArrayTestCase,
         	LongQueryTestCase,
         	)(host, connString, tableName, pid);

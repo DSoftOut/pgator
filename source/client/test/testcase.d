@@ -50,7 +50,7 @@ interface ITestCase
     
     protected final void insertRow(shared IConnectionPool pool, string tableName, JsonRpcRow row)
     {
-        pool.execTransaction(["INSERT INTO \""~tableName~"\" VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Test suit method', $9);"],
+        pool.execTransaction(["INSERT INTO \""~tableName~"\" VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Test suit method', $9, $10);"],
             [row.method, 
             row.sql_queries.convertArray, 
             row.arg_nums.convertArray,
@@ -59,8 +59,9 @@ interface ITestCase
             row.read_only.to!string,
             row.reset_caches.convertArray,
             row.reset_by.convertArray,
-            row.result_filter.convertArray],
-            [9]);
+            row.result_filter.convertArray,
+            row.one_row_flags.convertArray],
+            [10]);
     }
     
     protected final void removeRow(shared IConnectionPool pool, string tableName, string method)
@@ -114,6 +115,7 @@ struct JsonRpcRow
     string[] reset_caches;
     string[] reset_by;
     bool[] result_filter;
+    bool[] one_row_flags;
     
     this(string method, string sql_query)
     {
@@ -132,7 +134,8 @@ struct JsonRpcRow
     this(string method, uint[] arg_nums, string[] sql_queries,
         bool set_username = false, bool need_cache = false,
         bool read_only = false, string[] reset_caches = [],
-        string[] reset_by = [], bool[] result_filter = [])
+        string[] reset_by = [], bool[] result_filter = [],
+        bool[] one_row_flags = [])
     {
         this.method = method;
         this.sql_queries = sql_queries;
@@ -143,5 +146,6 @@ struct JsonRpcRow
         this.reset_caches = reset_caches;
         this.reset_by = reset_by;
         this.result_filter = result_filter;
+        this.one_row_flags = one_row_flags;
     }
 }
