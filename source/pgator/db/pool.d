@@ -56,6 +56,18 @@ class QueryProcessingException : Exception
 }
 
 /**
+*   The exception is thrown when a sql query was marked as one row respond and
+*   the query returns a multiple rows. Transaction of the query is rollbacked.
+*/
+class OneRowConstraintException : QueryProcessingException
+{
+    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(msg, file, line); 
+    }
+}
+
+/**
 *    Pool handles several connections to one or more SQL servers. If 
 *    connection is lost, pool tries to reconnect over $(B reconnectTime) 
 *    duration.
@@ -104,6 +116,11 @@ interface IConnectionPool
     *   from $(B params) should be passed to a query in $(B commands).
     *   If there are no params, the $(B argnums) can be empty.
     *
+    *   $(B oneRowConstraint) store info which query in $(B commands) have
+    *   to have one row respond. If some query with the constraint switched on
+    *   returns 0 or greater than 1 - transaction is rollbacked and OneRowConstraintException
+    *   is thrown.
+    *
     *   Example:
     *   -----------
     *   pool.execTransaction(["com1", "com2"],
@@ -112,11 +129,11 @@ interface IConnectionPool
     *   // com2 is fed with par2 and par3
     *   -----------
     *
-    *   Throws: ConnTimeoutException, QueryProcessingException
+    *   Throws: ConnTimeoutException, QueryProcessingException, OneRowConstraintException
     */
     InputRange!(immutable Bson) execTransaction(string[] commands
         , string[] params = [], uint[] argnums = []
-        , string[string] vars = null) shared
+        , string[string] vars = null, bool[] oneRowConstraint = []) shared
     in
     {
         assert(commands && params && argnums, "null reference");
@@ -136,6 +153,11 @@ interface IConnectionPool
     *   from $(B params) should be passed to a query in $(B commands).
     *   If there are no params, the $(B argnums) can be empty.
     *
+    *   $(B oneRowConstraint) store info which query in $(B commands) have
+    *   to have one row respond. If some query with the constraint switched on
+    *   returns 0 or greater than 1 - transaction is rollbacked and OneRowConstraintException
+    *   is thrown.
+    *
     *   Example:
     *   -----------
     *   pool.postTransaction(["com1", "com2"],
@@ -149,7 +171,7 @@ interface IConnectionPool
     */
     immutable(ITransaction) postTransaction(string[] commands
         , string[] params = [], uint[] argnums = []
-        , string[string] vars = null) shared
+        , string[string] vars = null, bool[] oneRowConstraint = []) shared
     in
     {
         assert(commands && params && argnums, "null reference");
@@ -176,7 +198,7 @@ interface IConnectionPool
     *   to $(B execTransaction) behavior.
     *
     *   See_Also: postTransaction, isTransactionReady
-    *   Throws: UnknownQueryException, QueryProcessingException
+    *   Throws: UnknownQueryException, QueryProcessingException, OneRowConstraintException
     */
     InputRange!(immutable Bson) getTransaction(immutable ITransaction transaction) shared;
     

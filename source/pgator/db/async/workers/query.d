@@ -103,6 +103,7 @@ private class Element
     private
     {
         size_t transactPos = 0;
+        size_t currQueryIndex = 0;
         size_t paramsPassed = 0;
         immutable string[] varsQueries;
         size_t localVars = 0;
@@ -214,7 +215,8 @@ private class Element
                     auto params = transaction.params[paramsPassed .. paramsPassed + transaction.argnums[transactPos]].dup;
                            
                     conn.postQuery(query, params);  
-                           
+                    currQueryIndex = transactPos; 
+                    
                     paramsPassed += transaction.argnums[transactPos];
                     transactPos++; 
                 });             
@@ -294,9 +296,10 @@ private class Element
                         auto resList = conn.getQueryResult;
                         if(needCollectResult) 
                         {
-                            if(!respond.collect(resList, conn))
+                            if(!respond.collect(resList, conn, transaction.oneRowConstraints[currQueryIndex], currQueryIndex))
                             {
                                 rollbackNeeded = true;  
+                                commandPosting = false;
                                 stage = Stage.MoreQueries;
                                 return;
                             }
