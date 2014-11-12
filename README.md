@@ -124,9 +124,7 @@ Response:
 {
 	"id": 1,
 	"result": {
-		"passed_value": [
-			"Hello, world!"
-		]
+		"passed_value": "Hello, world!"
 	},
 	"jsonrpc": "2.0"
 }
