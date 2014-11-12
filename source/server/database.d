@@ -207,57 +207,70 @@ shared class Database
 					irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, null, entry.one_row_flags);
 				}
 				
-				auto builder = appender!(Bson[]);
-				if(entry.needResultFiltering)
-				{
-    				foreach(i, ibson; irange)
+				Bson[] processResultFiltering(R)(R data)
+				    if(isInputRange!R && is(ElementType!R == immutable Bson))
+			    {
+			        auto builder = appender!(Bson[]);
+                    if(entry.needResultFiltering)
                     {
-                        if(entry.result_filter[i])
-                            builder.put(cast()ibson);
+                        foreach(i, ibson; data)
+                        {
+                            if(entry.result_filter[i])
+                                builder.put(cast()ibson);
+                        }
+                    } 
+                    else
+                    {
+                        foreach(i, ibson; data) builder.put(cast()ibson);
                     }
-				} 
-				else
+                    
+                    return builder.data;
+			    }
+				
+				Bson[] processOneRowConstraints(R)(R data)
+				    if(isInputRange!R && is(ElementType!R == Bson))
 				{
-                    foreach(i, ibson; irange) builder.put(cast()ibson);
+    				Bson transformOneRow(Bson bson)
+    				{
+    				    Bson[string] columns;
+    				    try columns = bson.get!(Bson[string]);
+    				    catch(Exception e) return bson;
+    				    
+    				    Bson[string] newColumns;
+    				    foreach(name, col; columns)
+    				    {
+    				        Bson[] row;
+    				        try row = col.get!(Bson[]);
+    				        catch(Exception e) return bson;
+    				        if(row.length != 1) return bson;
+    				        newColumns[name] = row[0];
+    				    }
+    				    
+    				    return Bson(newColumns);
+    				}
+    				
+				    auto builder = appender!(Bson[]);
+				    if(entry.needOneRowCheck)
+                    {
+                        foreach(i, bson; data)
+                        {
+                            if(entry.one_row_flags[i])
+                            {
+                                builder.put(transformOneRow(bson));
+                            } else
+                            {
+                                builder.put(bson);
+                            }
+                        }
+                        return builder.data;
+                    } else
+                    {
+                        return data;
+                    }
 				}
 				
-				Bson transformOneRow(Bson bson)
-				{
-				    Bson[string] columns;
-				    try columns = bson.get!(Bson[string]);
-				    catch(Exception e) return bson;
-				    
-				    Bson[string] newColumns;
-				    foreach(name, col; columns)
-				    {
-				        Bson[] row;
-				        try row = col.get!(Bson[]);
-				        catch(Exception e) return bson;
-				        if(row.length != 1) return bson;
-				        newColumns[name] = row[0];
-				    }
-				    
-				    return Bson(newColumns);
-				}
-				
-				auto builder2 = appender!(Bson[]);
-				Bson[] data;
-				if(entry.needOneRowCheck)
-				{
-				    foreach(i, bson; builder.data)
-				    {
-				        if(entry.one_row_flags[i])
-				        {
-				            builder2.put(transformOneRow(bson));
-				        }
-				    }
-				    data = builder2.data;
-				} else
-				{
-				    data = builder.data;
-				}
-				
-				RpcResult result = RpcResult(Bson(data));
+				auto resultBody = processOneRowConstraints(processResultFiltering(irange));
+				RpcResult result = RpcResult(Bson(resultBody));
 				res = RpcResponse(req.id, result);
 			}
 			catch (QueryProcessingException e)
