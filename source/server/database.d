@@ -40,177 +40,177 @@ import util;
 * Represent database layer
 *
 * Authors:
-*	  Zaramzan <shamyan.roman@gmail.com>
+*      Zaramzan <shamyan.roman@gmail.com>
 */
 shared class Database
 {
     /**
     *   Construct object from ILogger and configuration file.   
     */
-	this(shared ILogger logger, immutable AppConfig appConfig)
-	{
-		this.logger = logger;
-		
-		this.appConfig = appConfig;
-		
-		init();
-	}
-	
-	/// configures async pool
-	void setupPool() // called on every start / restart
-	{		
-		foreach(server; appConfig.sqlServers)
-		{
-		    logger.logInfo(text("Connecting to ", server.name, ". Adding ", server.maxConn, " connections."));
-			pool.addServer(server.connString, server.maxConn);	
-		}
-		pool.loggingAllTransactions = appConfig.logSqlTransactions;
-	}
-	
-	/// allocate shared cache
-	void createCache()
-	{
-		cache = new shared Cache(table); 
-	}
-	
-	/**
-	* Loads main table from database
-	*
-	* Throws:
-	* 	on $(B ConnTimeoutException) tries to reconnect
-	*/
-	void loadJsonSqlTable()
-	{
-	    Bson[] convertRowEchelon(const Bson from)
-	    {
-	        auto m = from.deserializeBson!(Bson[][string]);
-	        Bson[string][] result;
-	        foreach(colName, colVals; m)
-	        {
-	            foreach(row, val; colVals)
-	            {
-	                if(result.length <= row)
-	                {
-	                    result ~= [colName:val];
-	                }
-	                else
-	                {
-	                    result[row][colName] = val;
+    this(shared ILogger logger, immutable AppConfig appConfig)
+    {
+        this.logger = logger;
+        
+        this.appConfig = appConfig;
+        
+        init();
+    }
+    
+    /// configures async pool
+    void setupPool() // called on every start / restart
+    {        
+        foreach(server; appConfig.sqlServers)
+        {
+            logger.logInfo(text("Connecting to ", server.name, ". Adding ", server.maxConn, " connections."));
+            pool.addServer(server.connString, server.maxConn);    
+        }
+        pool.loggingAllTransactions = appConfig.logSqlTransactions;
+    }
+    
+    /// allocate shared cache
+    void createCache()
+    {
+        cache = new shared Cache(table); 
+    }
+    
+    /**
+    * Loads main table from database
+    *
+    * Throws:
+    *     on $(B ConnTimeoutException) tries to reconnect
+    */
+    void loadJsonSqlTable()
+    {
+        Bson[] convertRowEchelon(const Bson from)
+        {
+            auto m = from.deserializeBson!(Bson[][string]);
+            Bson[string][] result;
+            foreach(colName, colVals; m)
+            {
+                foreach(row, val; colVals)
+                {
+                    if(result.length <= row)
+                    {
+                        result ~= [colName:val];
+                    }
+                    else
+                    {
+                        result[row][colName] = val;
                     }
                 }
-	        }
-	        return result.map!(a => Bson(a)).array;
-	    }
-	    
-		string queryStr = "SELECT * FROM "~appConfig.sqlJsonTable;
-		
-		shared SqlJsonTable sqlTable = new shared SqlJsonTable();
-		
-		void load()
-		{
-			auto arri = pool.execTransaction([queryStr]);
+            }
+            return result.map!(a => Bson(a)).array;
+        }
+        
+        string queryStr = "SELECT * FROM "~appConfig.sqlJsonTable;
+        
+        shared SqlJsonTable sqlTable = new shared SqlJsonTable();
+        
+        void load()
+        {
+            auto arri = pool.execTransaction([queryStr]);
 
-			foreach(ibson; arri)
-			{			
-				foreach(v; convertRowEchelon(ibson))
-				{
-					sqlTable.add(deserializeFromJson!Entry(v.toJson));
-				}
-			}
+            foreach(ibson; arri)
+            {            
+                foreach(v; convertRowEchelon(ibson))
+                {
+                    sqlTable.add(deserializeFromJson!Entry(v.toJson));
+                }
+            }
 
-			table = sqlTable;
-			table.makeDropMap();
+            table = sqlTable;
+            table.makeDropMap();
 
-			logger.logInfo("Table loaded");
-		}
-		
-		try
-		{
-			load();
-		}
-		catch(ConnTimeoutException ex)
-		{
-		    logger.logError("There is no free connections in the pool, retry over 1 sec...");
-		    
-		    Thread.sleep(1.seconds);
-		    
-		    load();
-		}
-	}
-	
-	
-	/// finalize database resources
-	/**
-	*  TODO: docs here
-	*/
-	void finalize()
-	{
-	    if(pool !is null)
-	        pool.finalize();
+            logger.logInfo("Table loaded");
+        }
+        
+        try
+        {
+            load();
+        }
+        catch(ConnTimeoutException ex)
+        {
+            logger.logError("There is no free connections in the pool, retry over 1 sec...");
+            
+            Thread.sleep(1.seconds);
+            
+            load();
+        }
+    }
+    
+    
+    /// finalize database resources
+    /**
+    *  TODO: docs here
+    */
+    void finalize()
+    {
+        if(pool !is null)
+            pool.finalize();
         if(api !is null)
             api.finalize();
-	}
-	
-	/**
-	* Queries parsed request from async pool <br>
-	*
-	* Also caches request if needed
-	*/
-	RpcResponse query(ref RpcRequest req)
-	{	
-		RpcResponse res;
-		
-		if (cache.get(req, res))
-		{
-			logger.logDebug("Found in cache");
-			
-			res.id = req.id;
-			
-			return res;
-		}
-		
-		Entry entry;
-			
-		if (!table.methodFound(req.method, entry))
-		{
-			throw new RpcMethodNotFound();
-		}
-		else
-		{
-		    size_t expected;
-			if (!entry.isValidParams(req.params, expected))
-			{
-				throw new RpcInvalidParams(text("Expected ", expected, " parameters, ",
-				        "but got ", req.params.length, "!"));
-			}
-			if (!entry.isValidFilter(expected))
-			{
-		        throw new RpcServerError(text("Json RPC table is invalid! result_filter should be empty or size "
-		                "of sql_queries, expected ", expected, " but got ", entry.result_filter.length));
-		    }	
-			if (!entry.isValidOneRowConstraint(expected))
-			{
-			    throw new RpcServerError(text("Json RPC table is invalid! one_row_flags should be empty or size "
-			            "of sql_querise, expected ", expected, " but got ", entry.one_row_flags.length));
-			}
-						
-			try
-			{
-				InputRange!(immutable Bson) irange;
-				
-				if (entry.set_username)
-				{
-					irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, req.auth, entry.one_row_flags);
-				}
-				else
-				{
-					irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, null, entry.one_row_flags);
-				}
-				
-				Bson[] processResultFiltering(R)(R data)
-				    if(isInputRange!R && is(ElementType!R == immutable Bson))
-			    {
-			        auto builder = appender!(Bson[]);
+    }
+    
+    /**
+    * Queries parsed request from async pool <br>
+    *
+    * Also caches request if needed
+    */
+    RpcResponse query(ref RpcRequest req)
+    {    
+        RpcResponse res;
+        
+        if (cache.get(req, res))
+        {
+            logger.logDebug("Found in cache");
+            
+            res.id = req.id;
+            
+            return res;
+        }
+        
+        Entry entry;
+            
+        if (!table.methodFound(req.method, entry))
+        {
+            throw new RpcMethodNotFound();
+        }
+        else
+        {
+            size_t expected;
+            if (!entry.isValidParams(req.params, expected))
+            {
+                throw new RpcInvalidParams(text("Expected ", expected, " parameters, ",
+                        "but got ", req.params.length, "!"));
+            }
+            if (!entry.isValidFilter(expected))
+            {
+                throw new RpcServerError(text("Json RPC table is invalid! result_filter should be empty or size "
+                    "of sql_queries, expected ", expected, " but got ", entry.result_filter.length));
+            }    
+            if (!entry.isValidOneRowConstraint(expected))
+            {
+                throw new RpcServerError(text("Json RPC table is invalid! one_row_flags should be empty or size "
+                        "of sql_querise, expected ", expected, " but got ", entry.one_row_flags.length));
+            }
+                        
+            try
+            {
+                InputRange!(immutable Bson) irange;
+                
+                if (entry.set_username)
+                {
+                    irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, req.auth, entry.one_row_flags);
+                }
+                else
+                {
+                    irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, null, entry.one_row_flags);
+                }
+                
+                Bson[] processResultFiltering(R)(R data)
+                    if(isInputRange!R && is(ElementType!R == immutable Bson))
+                {
+                    auto builder = appender!(Bson[]);
                     if(entry.needResultFiltering)
                     {
                         foreach(i, ibson; data)
@@ -225,32 +225,32 @@ shared class Database
                     }
                     
                     return builder.data;
-			    }
-				
-				Bson[] processOneRowConstraints(R)(R data)
-				    if(isInputRange!R && is(ElementType!R == Bson))
-				{
-    				Bson transformOneRow(Bson bson)
-    				{
-    				    Bson[string] columns;
-    				    try columns = bson.get!(Bson[string]);
-    				    catch(Exception e) return bson;
-    				    
-    				    Bson[string] newColumns;
-    				    foreach(name, col; columns)
-    				    {
-    				        Bson[] row;
-    				        try row = col.get!(Bson[]);
-    				        catch(Exception e) return bson;
-    				        if(row.length != 1) return bson;
-    				        newColumns[name] = row[0];
-    				    }
-    				    
-    				    return Bson(newColumns);
-    				}
-    				
-				    auto builder = appender!(Bson[]);
-				    if(entry.needOneRowCheck)
+                }
+                
+                Bson[] processOneRowConstraints(R)(R data)
+                    if(isInputRange!R && is(ElementType!R == Bson))
+                {
+                    Bson transformOneRow(Bson bson)
+                    {
+                        Bson[string] columns;
+                        try columns = bson.get!(Bson[string]);
+                        catch(Exception e) return bson;
+                        
+                        Bson[string] newColumns;
+                        foreach(name, col; columns)
+                        {
+                            Bson[] row;
+                            try row = col.get!(Bson[]);
+                            catch(Exception e) return bson;
+                            if(row.length != 1) return bson;
+                            newColumns[name] = row[0];
+                        }
+                        
+                        return Bson(newColumns);
+                    }
+                    
+                    auto builder = appender!(Bson[]);
+                    if(entry.needOneRowCheck)
                     {
                         foreach(i, bson; data)
                         {
@@ -267,85 +267,85 @@ shared class Database
                     {
                         return data;
                     }
-				}
-				
-				auto resultBody = processOneRowConstraints(processResultFiltering(irange));
-				RpcResult result = RpcResult(Bson(resultBody));
-				res = RpcResponse(req.id, result);
-			}
-			catch (QueryProcessingException e)
-			{
-				res = RpcResponse(req.id, RpcError(RPC_ERROR_CODE.SERVER_ERROR, "Server error. " ~ e.msg));
-			}
-			catch (Exception e)
-			{
-				throw new RpcServerError(e.msg);
-			}
-			
-			if (table.need_cache(req.method))
-			{
-			    shared RpcResponse cacheRes = res.toShared();
-				logger.logDebug("Adding to cache");
-				cache.add(req, cacheRes);
-			}
-		}
-		
-		return res;
-	}
-	
-	/**
-	* Returns: true, if authorization required in json_rpc
-	*/
-	bool needAuth(string method)
-	{
-		return table.needAuth(method);
-	}
-	
-	/**
-	* Drop caches if needed
-	*/
-	void dropcaches(string method)
-	{
-		foreach(meth; table.needDrop(method))
-		{
-			logger.logDebug("Reseting method: "~meth);
-			cache.reset(meth);
-		}
-	}
-	
-	/**
-	* Initializes database resources
-	*
-	*/
-	private void init() //called once
-	{
-		Duration timeout = dur!"msecs"(appConfig.sqlTimeout);
-		Duration aliveCheckTime = dur!"msecs"(appConfig.aliveCheckTime);
-		Duration reTime;
-		
-		if (appConfig.sqlReconnectTime > 0)
-		{
-			reTime = dur!"msecs"(appConfig.sqlReconnectTime);
-		}
-		else
-		{
-			reTime = timeout;
-		}
+                }
+                
+                auto resultBody = processOneRowConstraints(processResultFiltering(irange));
+                RpcResult result = RpcResult(Bson(resultBody));
+                res = RpcResponse(req.id, result);
+            }
+            catch (QueryProcessingException e)
+            {
+                res = RpcResponse(req.id, RpcError(RPC_ERROR_CODE.SERVER_ERROR, "Server error. " ~ e.msg));
+            }
+            catch (Exception e)
+            {
+                throw new RpcServerError(e.msg);
+            }
+            
+            if (table.need_cache(req.method))
+            {
+                shared RpcResponse cacheRes = res.toShared();
+                logger.logDebug("Adding to cache");
+                cache.add(req, cacheRes);
+            }
+        }
+        
+        return res;
+    }
+    
+    /**
+    * Returns: true, if authorization required in json_rpc
+    */
+    bool needAuth(string method)
+    {
+        return table.needAuth(method);
+    }
+    
+    /**
+    * Drop caches if needed
+    */
+    void dropcaches(string method)
+    {
+        foreach(meth; table.needDrop(method))
+        {
+            logger.logDebug("Reseting method: "~meth);
+            cache.reset(meth);
+        }
+    }
+    
+    /**
+    * Initializes database resources
+    *
+    */
+    private void init() //called once
+    {
+        Duration timeout = dur!"msecs"(appConfig.sqlTimeout);
+        Duration aliveCheckTime = dur!"msecs"(appConfig.aliveCheckTime);
+        Duration reTime;
+        
+        if (appConfig.sqlReconnectTime > 0)
+        {
+            reTime = dur!"msecs"(appConfig.sqlReconnectTime);
+        }
+        else
+        {
+            reTime = timeout;
+        }
 
-		api = new shared PostgreSQL(logger);
-		auto provider = new shared PQConnProvider(logger, api);
-		
-		pool = new shared AsyncPool(logger, provider, reTime, timeout, aliveCheckTime);
-	}
-	
-	private
-	{
-	    shared IPostgreSQL api;
-	    shared ILogger logger;
-    	shared IConnectionPool pool;
-    	
-    	SqlJsonTable table;
-    	Cache cache;
-    	immutable AppConfig appConfig;
-	}
+        api = new shared PostgreSQL(logger);
+        auto provider = new shared PQConnProvider(logger, api);
+        
+        pool = new shared AsyncPool(logger, provider, reTime, timeout, aliveCheckTime);
+    }
+    
+    private
+    {
+        shared IPostgreSQL api;
+        shared ILogger logger;
+        shared IConnectionPool pool;
+        
+        SqlJsonTable table;
+        Cache cache;
+        immutable AppConfig appConfig;
+    }
 }
