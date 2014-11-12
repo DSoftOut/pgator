@@ -52,7 +52,7 @@ interface IRpcApi
 
 struct RpcError
 {
-    uint code;
+    int code;
     string message;
 }
 
@@ -125,7 +125,8 @@ struct RpcOk(Cols...)
             static if(is(ColInfo.type T : Nullable!T))
             {
                 mixin(ColInfo.name) = [];
-                foreach(json; mixin(column!ColInfo).get!(Json[]))
+                
+                void readJson(Json json)
                 {
                     if(json.type == Json.Type.null_)
                     {
@@ -134,13 +135,30 @@ struct RpcOk(Cols...)
                     else
                     {
                         mixin(ColInfo.name) ~= Nullable!T(mixin(column!ColInfo).deserializeJson!T);
-                    }                    
+                    } 
+                }
+                
+                if(mixin(column!ColInfo).type == Json.Type.array)
+                {
+                    foreach(json; mixin(column!ColInfo).get!(Json[]))
+                    {
+                        readJson(json);              
+                    }
+                } else
+                {
+                    readJson(mixin(column!ColInfo));     
                 }
             }
             else
             {
                 assert(ColInfo.name in columns, text("Cannot find column '", ColInfo.name, "' in response ", result));
-                mixin(ColInfo.name) = mixin(column!ColInfo).deserializeJson!(ColInfo.type[]);
+                if(mixin(column!ColInfo).type == Json.Type.array)
+                {
+                    mixin(ColInfo.name) = mixin(column!ColInfo).deserializeJson!(ColInfo.type[]);
+                } else
+                {
+                    mixin(ColInfo.name) = [mixin(column!ColInfo).deserializeJson!(ColInfo.type)];
+                }
             }
         }
     }
@@ -184,7 +202,7 @@ class RpcRespond
             assert(false, text("Expected respond with error! But got: ", respond));
         }
         
-        return RpcError(respond.code.get!uint, respond.message.get!string);
+        return RpcError(respond.error.code.get!int, respond.error.message.get!string);
     }
     
     RpcOk!RowTypes assertOk(RowTypes...)(size_t i = 0)
