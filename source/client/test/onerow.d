@@ -20,6 +20,8 @@ class OneRowTestCase : ITestCase
 {
     enum Test1 = "onerow1";
     enum Test2 = "onerow2";
+    enum Test3 = "onerow3";
+    enum Test4 = "onerow4";
     
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
@@ -30,6 +32,14 @@ class OneRowTestCase : ITestCase
         insertRow(pool, tableName, JsonRpcRow(Test2, [0], ["SELECT 10::integer as field union all select 11::integer as field;"]
                 , false, false, false,
                 [], [], [], [true]));
+        
+        insertRow(pool, tableName, JsonRpcRow(Test3, [0, 0], ["SELECT 10::integer as field;", "SELECT 10::integer as field union all select 11::integer as field;"]
+                , false, false, false,
+                [], [], [], [true, false]));
+        
+        insertRow(pool, tableName, JsonRpcRow(Test4, [0, 0], ["SELECT 10::integer as field union all select 11::integer as field;", "SELECT 10::integer as field;"]
+                , false, false, false,
+                [], [], [], [false, true]));
     }
     
     /**
@@ -39,6 +49,8 @@ class OneRowTestCase : ITestCase
     {
         removeRow(pool, tableName, Test1);
         removeRow(pool, tableName, Test2);
+        removeRow(pool, tableName, Test3);
+        removeRow(pool, tableName, Test4);
     }
     
     /**
@@ -55,6 +67,26 @@ class OneRowTestCase : ITestCase
         {
            auto result = api.runRpc!Test2.assertError;
            assert(result.code == -32000);
+        }
+        {
+            auto result1 = api.runRpc!Test3.assertOk!(Column!(ulong, "field"))(0);
+            assert(result1.field.length == 1);
+            assert(result1.field[0] == 10);
+            
+            auto result2 = api.runRpc!Test3.assertOk!(Column!(ulong, "field"))(1);
+            assert(result2.field.length == 2);
+            assert(result2.field[0] == 10);
+            assert(result2.field[1] == 11);
+        }
+        {
+            auto result1 = api.runRpc!Test4.assertOk!(Column!(ulong, "field"))(1);
+            assert(result1.field.length == 1);
+            assert(result1.field[0] == 10);
+            
+            auto result2 = api.runRpc!Test4.assertOk!(Column!(ulong, "field"))(0);
+            assert(result2.field.length == 2);
+            assert(result2.field[0] == 10);
+            assert(result2.field[1] == 11);
         }
     }
 }
