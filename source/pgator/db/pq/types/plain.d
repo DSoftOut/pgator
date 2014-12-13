@@ -14,7 +14,6 @@ import std.array;
 import std.bitmanip;
 import std.format;
 import std.conv;
-//import util;
 
 alias uint RegProc;
 alias uint Oid;
@@ -184,8 +183,6 @@ long convert(PQType type)(ubyte[] val)
 string convert(PQType type)(ubyte[] val)
     if(type == PQType.Void)
 {
-    std.stdio.writeln(val.length);
-    std.stdio.writeln(val);
     return "";
 }
 
