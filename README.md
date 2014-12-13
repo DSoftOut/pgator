@@ -34,26 +34,8 @@ Add to dub.json file:
 }
 ```
 
-Usage example can be found in the [testing code](https://github.com/DSoftOut/pgator-backend/blob/master/source/pgator/test/test2.d):
-```D
-    // Initializing concurrent logger
-    auto logger = new shared StrictLogger(logName);
-    scope(exit) logger.finalize();
-    
-    // Intitializing PostgreSQL bindings and Connection factory
-    auto api = new shared PostgreSQL(logger);
-    auto connProvider = new shared PQConnProvider(logger, api);
-    
-    // Creating pool
-    auto pool = new shared AsyncPool(logger, connProvider, dur!"seconds"(1), dur!"seconds"(5), dur!"seconds"(3));
-    scope(failure) pool.finalize();
-    
-    // Adding server to the pool
-    pool.addServer(connString, 1);
-    
-    // Quering a server from pool
-    auto bsonRange = pool.execTransaction(["select 10 as test_field"]);
-    // Almost there is one bson respond, but there could be more if you put several commands in a
-    // transaction
-    foreach(bson; bsonRange) writeln(bson);
-```
+Usage examples:
+- [Simple example](https://github.com/DSoftOut/pgator-backend/tree/master/examples/simple)
+- [Multiline transactions](https://github.com/DSoftOut/pgator-backend/tree/master/examples/multiline)
+- [Server configurations](https://github.com/DSoftOut/pgator-backend/tree/master/examples/locals)
+- [One row constraints](https://github.com/DSoftOut/pgator-backend/tree/master/examples/onerow)
