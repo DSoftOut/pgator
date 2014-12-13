@@ -8,7 +8,7 @@ dub build
 
 Run:
 ```
-./pgator-backend-example-multiline --conn="Your postgresql connection string"
+./pgator-backend-example-locals --conn="Your postgresql connection string"
 ```
 
 Important code
