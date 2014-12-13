@@ -10,6 +10,21 @@ Features:
 * Asynchronous connection pool
 * Reversed libpq binary protocol for BSON conversion
 
+Supported types
+===============
+The bson converter can handle following types received from PostgreSQL:
+* POD types (Char, Bool, Int8, Int4, Int2, Float8, Float4, Void, Money)
+* ByteArrays
+* Strings (Text, FixedString, VariableString)
+* Oid, Tid, Xid, Cid
+* Json, Xml (returned as a string)
+* RegProc
+* Point, Path, Polygone, LineSegment, Circle
+* MacAddress, InetAddress
+* Numeric
+* Date, AbsTime, RelTime, Time, TimeWithZone, TimeInterval, Interval, TimeStamp, TimeStampWithZone
+* Arrays and Array of ByteArray
+
 Usage
 ======
 Add to dub.json file:
