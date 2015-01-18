@@ -383,17 +383,17 @@ private
     alias long pg_time_t;
     struct pg_tz;
     
-    enum SECS_PER_DAY = 86400;
-    enum POSTGRES_EPOCH_JDATE = 2451545;
-    enum UNIX_EPOCH_JDATE     = 2440588;
+    immutable ulong SECS_PER_DAY = 86400;
+    immutable ulong POSTGRES_EPOCH_JDATE = 2451545;
+    immutable ulong UNIX_EPOCH_JDATE     = 2440588;
     
-    enum USECS_PER_DAY    = 86_400_000_000;
-    enum USECS_PER_HOUR   = 3_600_000_000;
-    enum USECS_PER_MINUTE = 60_000_000;
-    enum USECS_PER_SEC    = 1_000_000;
+    immutable ulong USECS_PER_DAY    = 86_400_000_000;
+    immutable ulong USECS_PER_HOUR   = 3_600_000_000;
+    immutable ulong USECS_PER_MINUTE = 60_000_000;
+    immutable ulong USECS_PER_SEC    = 1_000_000;
     
-    enum SECS_PER_HOUR   = 3600;
-    enum SECS_PER_MINUTE = 60;
+    immutable ulong SECS_PER_HOUR   = 3600;
+    immutable ulong SECS_PER_MINUTE = 60;
     
     /*
      *  Round off to MAX_TIMESTAMP_PRECISION decimal places.
@@ -476,7 +476,6 @@ private void dt2time(Timestamp jd, out int hour, out int min, out int sec, out f
     TimeOffset  time;
 
     time = jd;
-
     version(Have_Int64_TimeStamp)
     {
         hour = cast(int)(time / USECS_PER_HOUR);
@@ -517,9 +516,9 @@ struct PGTimeStamp
     this(pg_tm tm, fsec_t ts)
     {
         time = SysTime(Date(tm.tm_year, tm.tm_mon, tm.tm_mday), UTC());
-        time += tm.tm_hour.dur!"hours";
-        time += tm.tm_min.dur!"minutes";
-        time += tm.tm_sec.dur!"seconds";
+        time += (tm.tm_hour % 24).dur!"hours";
+        time += (tm.tm_min % 60).dur!"minutes";
+        time += (tm.tm_sec  % 60).dur!"seconds";
         version(Have_Int64_TimeStamp)
         {
             time += ts.dur!"usecs";
@@ -941,5 +940,8 @@ version(IntegrationTest2)
         
         res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE '-infinity'").deserializeBson!PGTimeStampWithZone;
         assert(res.time == SysTime.min);
+        
+        res = queryValue(logger, pool, "TIMESTAMP WITH TIME ZONE '2014-11-20 15:47:25+07'").deserializeBson!PGTimeStampWithZone;
+        assert(res.time == SysTime.fromSimpleString("2014-Nov-20 15:47:25+07"));
     }
 }
