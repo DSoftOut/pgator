@@ -56,6 +56,7 @@ else version(RpcClient)
     import client.test.singlequery;
     import client.test.onerow;
     import client.test.array;
+    import client.test.timestamp;
     
     immutable helpStr =
     "JSON-RPC client for testing purposes of main rpc-server.\n"
@@ -117,6 +118,7 @@ else version(RpcClient)
         auto client = new RpcClient!(
         	SimpleTestCase, 
         	NullTestCase,
+        	TimestampCase,
         	NumericTestCase,
         	UnicodeTestCase,
         	MulticommandCase,
