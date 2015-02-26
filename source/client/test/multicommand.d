@@ -16,11 +16,13 @@ class MulticommandCase : ITestCase
 {
     enum Test1 = "multicommand_test1";
     enum Test2 = "multicommand_test2";
+    enum Test3 = "multicommand_test3";
     
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
         insertRow(pool, tableName, JsonRpcRow(Test1, [1, 1], ["SELECT $1::text as test_field1;", "SELECT $1::text as test_field2;"]));
         insertRow(pool, tableName, JsonRpcRow(Test2, [0, 0], ["select 123 as col1", "select 456 as col2"]));
+        insertRow(pool, tableName, JsonRpcRow(Test3, [0, 0], ["select 1 as c1", "2 as c2"]));
     }
     
     /**
@@ -30,6 +32,7 @@ class MulticommandCase : ITestCase
     {
         removeRow(pool, tableName, Test1);
         removeRow(pool, tableName, Test2);
+        removeRow(pool, tableName, Test3);
     }
     
     /**
@@ -55,6 +58,9 @@ class MulticommandCase : ITestCase
             
             auto result2 = respond.assertOk!(Column!(int, "col2"))(1);
             assert(result2.col2[0] == 456);
-        } 
+        }
+        {
+            auto respond = api.runRpc!Test3().assertError();
+        }
     }
 }
