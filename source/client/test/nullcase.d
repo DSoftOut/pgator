@@ -21,12 +21,14 @@ class NullTestCase : ITestCase
     enum NullTest1 = "null1";
     enum NullTest2 = "null2";
     enum NullTest3 = "null3";
+    enum NullTest4 = "null4";
     
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
         insertRow(pool, tableName, JsonRpcRow(NullTest1, 2, "SELECT $1::integer + $2::integer as test_field;"));
         insertRow(pool, tableName, JsonRpcRow(NullTest2, "select NULL::text as null_test_value;"));
         insertRow(pool, tableName, JsonRpcRow(NullTest3, "select ''::text as null_test_value;"));
+        insertRow(pool, tableName, JsonRpcRow(NullTest4, "select 'null'::text as null_test_value;"));
     }
     
     /**
@@ -37,6 +39,7 @@ class NullTestCase : ITestCase
         removeRow(pool, tableName, NullTest1);
         removeRow(pool, tableName, NullTest2);
         removeRow(pool, tableName, NullTest3);
+        removeRow(pool, tableName, NullTest4);
     }
     
     /**
@@ -54,5 +57,9 @@ class NullTestCase : ITestCase
         
         auto result3Raw = api.runRpc!NullTest3().raw;
         assert(result3Raw["result"]["null_test_value"][0].type == Json.Type.string, text("Expected type 'string' but got '", result2Raw["result"]["null_test_value"][0].type, "'"));
+        
+        auto result4 = api.runRpc!NullTest4.assertOk!(Column!(Nullable!string, "null_test_value"));
+        assert(result4.length == 1);
+        assert(!result4.null_test_value[0].isNull && result4.null_test_value[0].get() == "null");
     }
 }
