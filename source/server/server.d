@@ -354,7 +354,7 @@ shared class Application
     				throw new HTTPStatusException(HTTPStatus.internalServerError,
     					res.statusPhrase);
     			}
-    			
+
     			auto rpcRes = database.query(rpcReq);
     			
     			res.writeBody(rpcRes.toJson.toPrettyString, CONTENT_TYPE);

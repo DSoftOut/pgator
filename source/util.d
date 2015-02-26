@@ -130,7 +130,15 @@ T deserializeFromJson(T)(Json src) if(is(T == struct))
 				}
 				else
 				{
-					arr ~= json.to!ElemType;
+				    static if(__traits(compiles, {ElemType t = null;}))
+				    {
+				        if(json.type == Json.Type.null_)
+				        {
+				            arr ~= null;
+				            continue;
+				        }
+				    } 
+				    arr ~= json.to!ElemType;
 				}
 			}
 			

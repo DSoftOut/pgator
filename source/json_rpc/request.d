@@ -55,7 +55,6 @@ struct RpcRequest
 	this(Json json)
 	{
 		this = tryEx!(RpcInvalidRequest, deserializeFromJson!RpcRequest)(json);
-		
 		enforceEx!RpcInvalidRequest(isRpc2, "Unsupported rpc version");
 	}
 	
