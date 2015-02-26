@@ -28,7 +28,7 @@ class NullTestCase : ITestCase
         insertRow(pool, tableName, JsonRpcRow(NullTest1, 2, "SELECT $1::integer + $2::integer as test_field;"));
         insertRow(pool, tableName, JsonRpcRow(NullTest2, "select NULL::text as null_test_value;"));
         insertRow(pool, tableName, JsonRpcRow(NullTest3, "select ''::text as null_test_value;"));
-        insertRow(pool, tableName, JsonRpcRow(NullTest4, "select 'null'::text as null_test_value;"));
+        insertRow(pool, tableName, JsonRpcRow(NullTest4, 1, "select $1::text as null_test_value;"));
     }
     
     /**
@@ -58,7 +58,7 @@ class NullTestCase : ITestCase
         auto result3Raw = api.runRpc!NullTest3().raw;
         assert(result3Raw["result"]["null_test_value"][0].type == Json.Type.string, text("Expected type 'string' but got '", result2Raw["result"]["null_test_value"][0].type, "'"));
         
-        auto result4 = api.runRpc!NullTest4.assertOk!(Column!(string, "null_test_value"));
+        auto result4 = api.runRpc!NullTest4("null").assertOk!(Column!(string, "null_test_value"));
         assert( result4.null_test_value[0] == "null");
     }
 }
