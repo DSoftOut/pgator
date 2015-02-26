@@ -10,6 +10,7 @@
         ],
     "targetPath": "bin",
     "versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
+    "dflags": ["-J."],
     "dependencies": {
         "vibe-d" : ">=0.7.21-rc.4",
         "pgator-backend": ">=0.2.3",
@@ -19,12 +20,11 @@
     {
     	"dlogg": "colorized"
     },
-    
+	    
     "configurations": [
         {
             "name": "production",
             "targetType": "executable",
-            "dflags": ["-J."],
             "preBuildCommands": ["./bakeVersions.sh"]
         },
         {
