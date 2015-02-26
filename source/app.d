@@ -217,6 +217,11 @@ else
 			writeln(options.helpMsg);
 			return 0;
 		}
+		if (options.showVersion)
+		{
+		    writeln(options.versionMsg);
+		    return 0;
+		}
 		
 		if (options.genConfigPath != "")
 		{

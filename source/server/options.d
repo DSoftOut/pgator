@@ -18,6 +18,9 @@ import server.config;
 import dlogg.log;
 import util;
 
+private enum PGATOR_VERSION = import("current-pgator.version");
+private enum PGATOR_BACKEND_VERSION = import("current-pgator-backend.version");
+
 /**
 *   Application startup options. The main purpose is
 *   to parse and store options about daemon mode,
@@ -38,7 +41,7 @@ immutable class Options
     */
 	this(string[] args)
 	{	
-	    bool pDaemon, pHelp;
+	    bool pDaemon, pHelp, pVersion;
 	    string pConfigName, pGenPath;
 	    string pPidFile = buildPath("/var/run", APPNAME, APPNAME~".pid");
 	    string pLockFile = buildPath("/var/run", APPNAME, APPNAME~".lock");
@@ -49,7 +52,8 @@ immutable class Options
                          "config",     &pConfigName,
                          "genConfig",  &pGenPath,
                          "pidfile",    &pPidFile,
-                         "lockfile",   &pLockFile);
+                         "lockfile",   &pLockFile,
+                         "version",    &pVersion);
         
         mDaemon     = pDaemon;
         mHelp       = pHelp;
@@ -57,6 +61,7 @@ immutable class Options
         mGenPath    = pGenPath;
         mPidFile    = pPidFile;
         mLockFile   = pLockFile;
+        mVersion    = pVersion;
 	}
 	
 	/**
@@ -66,9 +71,10 @@ immutable class Options
 	*  help        = is program should show help message and exit
 	*  configName  = configuration file name
 	*  genPath     = is program should generate config at specified path and exit
+	*  showVersion = is program should show it version 
 	*/
 	this(bool daemon, bool help, string configName, string genPath
-	    , string pidFile, string lockFile) pure nothrow
+	    , string pidFile, string lockFile, bool showVersion) pure nothrow
 	{
 	    mDaemon     = daemon;
 	    mHelp       = help;
@@ -76,6 +82,7 @@ immutable class Options
 	    mGenPath    = genPath;
         mPidFile    = pidFile;
         mLockFile   = lockFile;
+        mVersion    = showVersion;
 	}
 	
 	/**
@@ -139,10 +146,17 @@ immutable class Options
     	{
     	    return mLockFile;
     	}
+    	
+    	/// Is program should show it version and exit
+    	bool showVersion()
+    	{
+    	    return mVersion;
+    	}
 	}
 	
 	/// Application help message
     enum helpMsg = "Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.\n\n"
+    ~ versionMsg ~ "\n"
     "   pgator [arguments]\n"
     "   arguments =\n"
     "    --daemon          - runs in daemon mode (detached from tty).\n"
@@ -155,14 +169,20 @@ immutable class Options
     "                        to in daemon mode. Default: /var/run/pgator/pgator.pid\n"
     "   --lockfile=<path>  - specifies path to file which prevents running\n"
     "                        multiple instances in daemon mode.\n" 
-    "                        Default: /var/run/pgator/pgator.lock";
+    "                        Default: /var/run/pgator/pgator.lock\n"
+    "   --version          - shows program version";
+    
+    /// Application version message
+    enum versionMsg = 
+    "build-version: " ~ PGATOR_VERSION ~ 
+    "backend-version: " ~ PGATOR_BACKEND_VERSION;
     
     /**
     *   Creates new options with updated configuration $(B path).
     */
 	immutable(Options) updateConfigPath(string path) pure nothrow
 	{
-	    return new immutable Options(daemon, help, path, genConfigPath, pidFile, lockFile);
+	    return new immutable Options(daemon, help, path, genConfigPath, pidFile, lockFile, showVersion);
 	}
 	
 	private
@@ -171,7 +191,8 @@ immutable class Options
     	
     	bool mDaemon;
     	bool mHelp;
-    
+    	bool mVersion;
+    	
     	string mConfigName;
     	string mGenPath;
     	string mPidFile;
