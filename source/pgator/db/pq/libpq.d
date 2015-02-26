@@ -445,7 +445,7 @@ synchronized class CPGconn : IPGconn
             foreach(i, ref p; ptrs)
             {
                 // special case to handle SQL null values
-                if(arr[i].toLower == "null")
+                if(arr[i] is null)
                 {
                     p = null;
                 }
@@ -462,7 +462,7 @@ synchronized class CPGconn : IPGconn
             auto formats = new int[params.length];
             foreach(i, p; params)
             {
-                if(p.toLower == "null")
+                if(p is null)
                 {
                     formats[i] = 1;
                 }
