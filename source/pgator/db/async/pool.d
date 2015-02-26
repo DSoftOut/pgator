@@ -289,6 +289,7 @@ class AsyncPool : IConnectionPool
                     logger.logError("Transaction failure:");
                     logger.logError(text(tr));
                     logMessages((s) => logger.logError(s));
+                    logger.logError(respond.exception);
                     
                     throw new QueryProcessingException(respond.exception);
                 }
