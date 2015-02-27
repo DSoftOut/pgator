@@ -31,6 +31,15 @@ interface IRpcApi
         return new RpcRespond(rpc("2.0", method, builder.data, uniform(uint.min, uint.max)));    
     }
     
+    final RpcRespond runRpc(string method)(string[] params)
+    {
+        auto builder = appender!(Json[]);
+        foreach(param; params)
+            builder.put(param.serializeToJson);
+        
+        return new RpcRespond(rpc("2.0", method, builder.data, uniform(uint.min, uint.max)));    
+    }
+    
     final RpcRespond runRpc(string method, T...)(T[string] params)
     {
         auto builder = appender!(Json[]);

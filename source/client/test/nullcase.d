@@ -22,6 +22,7 @@ class NullTestCase : ITestCase
     enum NullTest2 = "null2";
     enum NullTest3 = "null3";
     enum NullTest4 = "null4";
+    enum NullTest5 = "null5";
     
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
@@ -29,6 +30,7 @@ class NullTestCase : ITestCase
         insertRow(pool, tableName, JsonRpcRow(NullTest2, "select NULL::text as null_test_value;"));
         insertRow(pool, tableName, JsonRpcRow(NullTest3, "select ''::text as null_test_value;"));
         insertRow(pool, tableName, JsonRpcRow(NullTest4, 1, "select $1::text as null_test_value;"));
+        insertRow(pool, tableName, JsonRpcRow(NullTest5, 1, "\"select $1::text as passed_value, $1 IS NULL as isNull\""));
     }
     
     /**
@@ -40,6 +42,7 @@ class NullTestCase : ITestCase
         removeRow(pool, tableName, NullTest2);
         removeRow(pool, tableName, NullTest3);
         removeRow(pool, tableName, NullTest4);
+        removeRow(pool, tableName, NullTest5);
     }
     
     /**
@@ -60,5 +63,9 @@ class NullTestCase : ITestCase
         
         auto result4 = api.runRpc!NullTest4("null").assertOk!(Column!(string, "null_test_value"));
         assert( result4.null_test_value[0] == "null");
+        
+        auto result5 = api.runRpc!NullTest5([null]).assertOk!(Column!(Nullable!string, "passed_value"), Column!(bool, "isnull"));
+        assert( result5.passed_value[0].isNull );
+        assert( result5.isnull[0] );
     }
 }
