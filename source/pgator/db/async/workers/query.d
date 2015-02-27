@@ -207,17 +207,17 @@ private class Element
                 commandPosting = true;
                 wrapError(()
                 { 
-                    assert(transactPos < transaction.commands.length);
-                    auto query = transaction.commands[transactPos];
-                           
-                    assert(transactPos < transaction.argnums.length);
-                    assert(transaction.argnums[transactPos] + paramsPassed <= transaction.params.length);
-                    auto params = transaction.params[paramsPassed .. paramsPassed + transaction.argnums[transactPos]].dup;
-                           
-                    conn.postQuery(query, params);  
-                    currQueryIndex = transactPos; 
-                    
-                    paramsPassed += transaction.argnums[transactPos];
+                    if(transactPos < transaction.argnums.length &&
+                        transaction.argnums[transactPos] + paramsPassed <= transaction.params.length)
+                    {
+                        auto query = transaction.commands[transactPos];
+                        auto params = transaction.params[paramsPassed .. paramsPassed + transaction.argnums[transactPos]].dup;
+                               
+                        conn.postQuery(query, params);  
+                        currQueryIndex = transactPos; 
+                        
+                        paramsPassed += transaction.argnums[transactPos];
+                    }
                     transactPos++; 
                 });             
                 return;

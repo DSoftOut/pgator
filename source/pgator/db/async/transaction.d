@@ -83,6 +83,7 @@ class Transaction : IConnectionPool.ITransaction
             foreach(immutable i, command; commands)
             {
                 sink(text(i, ": ", command));
+                sink("\n");
                 if(i >= argnums.length) continue;
                 
                 if(params.length != 0)
