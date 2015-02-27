@@ -13,6 +13,8 @@ import std.exception;
 
 import pgator.db.pool;
 
+private T min(T)(T a, T b) { return a < b ? a : b; }
+
 /**
 *   Handles all data that is need to perform SQL transaction: queries, parameters,
 *   info where to put parameters and local enviroment variables.
@@ -81,9 +83,12 @@ class Transaction : IConnectionPool.ITransaction
             foreach(immutable i, command; commands)
             {
                 sink(text(i, ": ", command));
+                if(i >= argnums.length) continue;
+                
                 if(params.length != 0)
                 {
-                    sink(text("With params: ", params[j .. j+argnums[i]]));
+                    size_t k = min(j+argnums[i], params.length);
+                    sink(text("With params: ", params[j .. k]));
                 }
                 sink("\n");
                 sink(text("One row: ",oneRowConstraints[i]));
