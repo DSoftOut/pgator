@@ -66,7 +66,7 @@ private string getHash(in RpcRequest req)
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 */
-shared class Cache
+shared class RequestCache
 {	
 	/**
 	* Construct caching system

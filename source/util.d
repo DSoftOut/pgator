@@ -25,6 +25,8 @@ import std.string;
 import std.conv;
 import std.container;
 import std.traits;
+import std.typecons;
+import std.typetuple;
 import std.range;
 import std.path;
 import vibe.data.json;
