@@ -70,7 +70,7 @@ shared class Database
     /// allocate shared cache
     void createCache()
     {
-        cache = new shared Cache(table); 
+        cache = new shared RequestCache(table); 
     }
     
     /**
@@ -345,7 +345,7 @@ shared class Database
         shared IConnectionPool pool;
         
         SqlJsonTable table;
-        Cache cache;
+        RequestCache cache;
         immutable AppConfig appConfig;
     }
 }

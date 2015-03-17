@@ -66,7 +66,7 @@ private string getHash(in RpcRequest req)
 *
 * Authors: Zaramzan <shamyan.roman@gmail.com>
 */
-shared class Cache
+shared class RequestCache
 {	
 	/**
 	* Construct caching system
@@ -181,11 +181,11 @@ shared class Cache
 
 version(unittest)
 {
-	shared Cache cache;
+	shared RequestCache cache;
 	
 	void initCache()
 	{
-		cache = new shared Cache(table);
+		cache = new shared RequestCache(table);
 	}
 	
 	//get

@@ -12,9 +12,9 @@
     "versions": ["VibeCustomMain", "Have_vibe_d", "Have_Int64_TimeStamp"],
     "dflags": ["-J."],
     "dependencies": {
-        "vibe-d" : ">=0.7.21-rc.4",
-        "pgator-backend": ">=0.2.3",
-        "dlogg": ">=0.3.3"
+        "vibe-d": "~>0.7.23-rc.1",
+        "pgator-backend": "~>0.2.4",
+        "dlogg": "~>0.3.3"
     },
     "subConfigurations":
     {
