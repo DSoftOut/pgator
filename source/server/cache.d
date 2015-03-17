@@ -181,11 +181,11 @@ shared class RequestCache
 
 version(unittest)
 {
-	shared Cache cache;
+	shared RequestCache cache;
 	
 	void initCache()
 	{
-		cache = new shared Cache(table);
+		cache = new shared RequestCache(table);
 	}
 	
 	//get
