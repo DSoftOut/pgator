@@ -194,7 +194,7 @@ class AsyncPool : IConnectionPool
         
         auto conn = fetchFreeConnection();
         auto transaction = new immutable Transaction(commands, params, argnums, vars, oneRowConstraint);
-        processingTransactions.insert(cast(shared)transaction); 
+        processingTransactions.insert(cast(shared ITransaction)transaction); 
         
         ids.queringCheckerId.send(thisTid, conn, cast(shared)transaction);
         

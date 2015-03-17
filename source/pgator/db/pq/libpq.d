@@ -142,7 +142,7 @@ synchronized class CPGresult : IPGresult
     }
     body
     {
-        return enforceEx!RangeError(fromStringz(PQfname(result, cast(uint)colNumber)).idup);
+        return enforceEx!Error(fromStringz(PQfname(result, cast(uint)colNumber)).idup);
     }
     
     /**
