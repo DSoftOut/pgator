@@ -253,7 +253,7 @@ version(IntegrationTest2)
     import pgator.db.pq.types.plain;
     import pgator.db.pool;
     import std.array;
-    version(!LDC) import std.algorithm.iteration;
+    version(LDC){} else import std.algorithm.iteration;
     import std.random;
     import std.math;
     import std.traits;
