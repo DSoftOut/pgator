@@ -27,6 +27,8 @@ import std.container;
 import std.traits;
 import std.range;
 import std.path;
+import std.typecons;
+import std.typetuple;
 import vibe.data.json;
 
 enum APPNAME = "pgator";
