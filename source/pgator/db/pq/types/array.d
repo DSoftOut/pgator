@@ -254,6 +254,7 @@ version(IntegrationTest2)
     import pgator.db.pool;
     import std.array;
     version(LDC){} else import std.algorithm.iteration;
+    version(GNU){} else import std.algorithm.iteration;
     import std.random;
     import std.math;
     import std.traits;
