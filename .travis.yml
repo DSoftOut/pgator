@@ -3,7 +3,6 @@ language: d
 d:
   - dmd
   - dmd-2.066.1
-  - gdc
   - ldc
 
 addons:
