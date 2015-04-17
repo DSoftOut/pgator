@@ -7,7 +7,7 @@
 module pgator.util.list;
 
 import std.algorithm;
-version(GDC){} else import std.container.dlist;
+version(GNU){} else import std.container.dlist;
 import std.range;
 
 /// Removes one element from the list
