@@ -269,7 +269,7 @@ version(IntegrationTest2)
             {
                if(t == T.infinity) builder.put("'Infinity'");
                else if(t == -T.infinity) builder.put("'-Infinity'");
-               else if(isnan(t)) builder.put("'NaN'");
+               else if(isNaN(t)) builder.put("'NaN'");
                else builder.put(t.to!string);
             } else
             {

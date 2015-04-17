@@ -27,8 +27,8 @@ T id(T)(T val) {return val;}
 bool floatEquality(T)(T a, T b) 
     if(isFloatingPoint!T)
 {
-    if(a.isnan) return b.isnan;
-    if(b.isnan) return a.isnan;
+    if(a.isNaN) return b.isNaN;
+    if(b.isNaN) return a.isNaN;
     return approxEqual(a,b);
 }
 
