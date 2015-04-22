@@ -253,6 +253,7 @@ version(IntegrationTest2)
     import pgator.db.pq.types.plain;
     import pgator.db.pool;
     import std.array;
+    version(LDC){} else import std.algorithm.iteration;
     import std.random;
     import std.math;
     import std.traits;
@@ -269,7 +270,7 @@ version(IntegrationTest2)
             {
                if(t == T.infinity) builder.put("'Infinity'");
                else if(t == -T.infinity) builder.put("'-Infinity'");
-               else if(isnan(t)) builder.put("'NaN'");
+               else if(isNaN(t)) builder.put("'NaN'");
                else builder.put(t.to!string);
             } else
             {

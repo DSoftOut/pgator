@@ -19,6 +19,8 @@ import std.string;
 import std.regex;
 import std.conv;
 import core.memory;
+import core.exception: RangeError;
+
 //import util;
 
 synchronized class CPGresult : IPGresult

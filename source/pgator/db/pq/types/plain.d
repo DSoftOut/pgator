@@ -423,7 +423,7 @@ version(IntegrationTest2)
         {
            if(t == float.infinity) return "'Infinity'";
            else if(t == -float.infinity) return "'-Infinity'";
-           else if(isnan(t)) return "'NaN'";
+           else if(isNaN(t)) return "'NaN'";
            else return t.to!string;
         }
         testValue!(float, convFloat)(logger, pool, float.infinity, "Float4");
@@ -442,7 +442,7 @@ version(IntegrationTest2)
         {
            if(t == double.infinity) return "'Infinity'";
            else if(t == -double.infinity) return "'-Infinity'";
-           else if(isnan(t)) return "'NaN'";
+           else if(isNaN(t)) return "'NaN'";
            else return t.to!string;
         }
         testValue!(double, convFloat)(logger, pool, double.infinity, "Float8");

@@ -64,6 +64,6 @@ int main(string[] args)
     
     pool.finalize();
     logger.finalize();
-    std.c.stdlib.exit(0);
+    core.stdc.stdlib.exit(0);
     return 0;
 }
