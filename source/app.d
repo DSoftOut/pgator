@@ -263,15 +263,9 @@ else
             int groupid, userid;
             tie!(groupid, userid) = resolveRootLowing(logger, loadedConfig.config.groupid, loadedConfig.config.userid);
             
-            if(options.daemon) 
-                return runDaemon(logger, mainFunc, args, termFunc
-                    , (){app.finalize;}, () {app.logger.reload;}
-                    , options.pidFile, options.lockFile
-                    , groupid, userid);
-            else 
-                return runTerminal(logger, mainFunc, args, termFunc
-                    , (){app.finalize;}, () {app.logger.reload;}
-                    , groupid, userid);
+	    return runTerminal(logger, mainFunc, args, termFunc
+		, (){app.finalize;}, () {app.logger.reload;}
+		, groupid, userid);
 	    }
 	    catch(InvalidConfig e)
         {
