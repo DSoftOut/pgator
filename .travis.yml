@@ -24,8 +24,8 @@ script:
   - dub build --config=production --build=debug
   - dub build --config=testclient --build=debug
   - sudo ./bin/pgator --config=".travis-pgator.conf" --daemon
-  - sudo ./bin/pgator-client --conn="dbname=pgator-test user=postgres" --host="http://127.0.0.1:8080/"
   - sudo pgrep pgator
   - sudo ps ax
+  - sudo ./bin/pgator-client --conn="dbname=pgator-test user=postgres" --host="http://127.0.0.1:8080/"
   - sudo kill -s SIGTERM $(pgrep pgator)
   - sudo cat ./pgator.log
