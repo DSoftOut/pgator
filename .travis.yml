@@ -1,6 +1,9 @@
 language: d
 
-d: dmd-2.066.1
+d:
+  - dmd
+  - dmd-2.066.1
+  - ldc
 
 addons:
   postgresql: 9.4
@@ -20,7 +23,7 @@ script:
   # testing client - final test suite
   - dub build --config=production --build=debug
   - dub build --config=testclient --build=debug
-  - sudo ./bin/pgator --config=".travis-pgator.conf" --daemon
+  - sudo ./bin/pgator --config=".travis-pgator.conf" > /dev/null &
   - sudo ./bin/pgator-client --conn="dbname=pgator-test user=postgres" --host="http://127.0.0.1:8080/"
   - sudo kill -s SIGTERM $(pgrep pgator)
   - sudo cat ./pgator.log

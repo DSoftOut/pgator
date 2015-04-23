@@ -5,7 +5,7 @@
 *   Unittests configuration produce dummy executable the only purpose is to run module unittests.
 *
 *   Production configuration is main and default configuration. There the configuration files and
-*   argument parameters are parsed, daemon or terminal mode is selected and actual rpc server starts.
+*   argument parameters are parsed and actual rpc server starts.
 *
 *   Integration test 1 performs simple tests on real PostgreSQL instance. The configuration expects
 *   '--conn' parameter with valid connection string to test database. The main thing that is tested
@@ -66,11 +66,6 @@ else version(RpcClient)
     "               --tableName=<string> - json_rpc table\n"
     "               --serverpid=<uint> - rpc server pid\n";
     
-    uint getPid()
-    {
-        return parse!uint(executeShell("[ ! -f /var/run/pgator/pgator.pid ] || echo `cat /var/run/pgator/pgator.pid`").output);
-    }
-    
     // Getting pid via pgrep
     uint getPidConsole()
     {
@@ -101,18 +96,13 @@ else version(RpcClient)
         
         if(pid == 0)
         {
-            writeln("Trying to read pid file at '/var/run/pgator/pgator.pid'");
-            try pid = getPid();
-            catch(Exception e)
-            {
-                writeln("Trying to read pid with pgrep");
-                try pid = getPidConsole();
-                catch(Exception e)
-                {
-                    writeln("Cannot find pgator process!");
-                    return 1;
-                }
-            }
+	    writeln("Trying to read pid with pgrep");
+	    try pid = getPidConsole();
+	    catch(Exception e)
+	    {
+		writeln("Cannot find pgator process!");
+		return 1;
+	    }
         }
         
         auto client = new RpcClient!(
@@ -147,7 +137,6 @@ else
 	import server.options;
 	import server.config;
 	
-	import daemon;
 	import terminal;
 	import dlogg.strict;
 	import util;
@@ -263,15 +252,9 @@ else
             int groupid, userid;
             tie!(groupid, userid) = resolveRootLowing(logger, loadedConfig.config.groupid, loadedConfig.config.userid);
             
-            if(options.daemon) 
-                return runDaemon(logger, mainFunc, args, termFunc
-                    , (){app.finalize;}, () {app.logger.reload;}
-                    , options.pidFile, options.lockFile
-                    , groupid, userid);
-            else 
-                return runTerminal(logger, mainFunc, args, termFunc
-                    , (){app.finalize;}, () {app.logger.reload;}
-                    , groupid, userid);
+	    return runTerminal(logger, mainFunc, args, termFunc
+		, (){app.finalize;}, () {app.logger.reload;}
+		, groupid, userid);
 	    }
 	    catch(InvalidConfig e)
         {

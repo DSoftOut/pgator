@@ -23,7 +23,7 @@ private enum PGATOR_BACKEND_VERSION = import("current-pgator-backend.version");
 
 /**
 *   Application startup options. The main purpose is
-*   to parse and store options about daemon mode,
+*   to parse and store options about
 *   configuration file path and some other options that
 *   needed in application startup.
 *
@@ -35,53 +35,41 @@ immutable class Options
     /**
     *   Application $(B args) arguments parsing.
     *   
-    *   Options are: daemon or terminal mode, help message
+    *   Options are: help message
     *   request, configuration file path and request for
     *   default configuration file generation.
     */
 	this(string[] args)
 	{	
-	    bool pDaemon, pHelp, pVersion;
+	    bool pHelp, pVersion;
 	    string pConfigName, pGenPath;
-	    string pPidFile = buildPath("/var/run", APPNAME, APPNAME~".pid");
-	    string pLockFile = buildPath("/var/run", APPNAME, APPNAME~".lock");
 	    
         getopt(args, std.getopt.config.passThrough,
-                         "daemon",     &pDaemon,
                          "help|h",     &pHelp,
                          "config",     &pConfigName,
                          "genConfig",  &pGenPath,
-                         "pidfile",    &pPidFile,
-                         "lockfile",   &pLockFile,
                          "version",    &pVersion);
         
-        mDaemon     = pDaemon;
         mHelp       = pHelp;
         mConfigName = pConfigName;
         mGenPath    = pGenPath;
-        mPidFile    = pPidFile;
-        mLockFile   = pLockFile;
         mVersion    = pVersion;
 	}
 	
 	/**
 	*  Verbose creation from native D types.
 	*  Params:
-	*  daemon      = is program should start in daemon mode
 	*  help        = is program should show help message and exit
 	*  configName  = configuration file name
 	*  genPath     = is program should generate config at specified path and exit
 	*  showVersion = is program should show it version 
 	*/
-	this(bool daemon, bool help, string configName, string genPath
-	    , string pidFile, string lockFile, bool showVersion) pure nothrow
+	this(bool help, string configName, string genPath
+	    , bool showVersion) pure nothrow
 	{
-	    mDaemon     = daemon;
 	    mHelp       = help;
 	    mConfigName = configName;
 	    mGenPath    = genPath;
-        mPidFile    = pidFile;
-        mLockFile   = lockFile;
         mVersion    = showVersion;
 	}
 	
@@ -123,28 +111,10 @@ immutable class Options
     	    return buildNormalizedPath(mGenPath);
     	}
     	
-    	/// Is application should run in daemon mode
-    	bool daemon()
-    	{
-    	    return mDaemon;
-    	}
-    	
     	/// Is application should show help message and exit
     	bool help()
     	{
     	    return mHelp;
-    	}
-    	
-    	/// Path to file where daemon puts it pid
-    	string pidFile()
-    	{
-    	    return mPidFile;
-    	}
-    	
-    	/// Path to file that checked to no exists in daemon mode
-    	string lockFile()
-    	{
-    	    return mLockFile;
     	}
     	
     	/// Is program should show it version and exit
@@ -159,17 +129,10 @@ immutable class Options
     ~ versionMsg ~ "\n"
     "   pgator [arguments]\n"
     "   arguments =\n"
-    "    --daemon          - runs in daemon mode (detached from tty).\n"
-    "                        Linux only.\n"
     "    --config=<string> - specifies config file name in\n"
     "                        config directory.\n"
     "   --genConfig=<path> - generates default config at the path\n"           
     "   --help             - prints this message\n"
-    "   --pidfile=<path>   - specifies path to file where pid is written\n"
-    "                        to in daemon mode. Default: /var/run/pgator/pgator.pid\n"
-    "   --lockfile=<path>  - specifies path to file which prevents running\n"
-    "                        multiple instances in daemon mode.\n" 
-    "                        Default: /var/run/pgator/pgator.lock\n"
     "   --version          - shows program version";
     
     /// Application version message
@@ -182,20 +145,17 @@ immutable class Options
     */
 	immutable(Options) updateConfigPath(string path) pure nothrow
 	{
-	    return new immutable Options(daemon, help, path, genConfigPath, pidFile, lockFile, showVersion);
+	    return new immutable Options(help, path, genConfigPath, showVersion);
 	}
 	
 	private
 	{
     	enum DEF_CONF_NAME = APPNAME~".conf";
     	
-    	bool mDaemon;
     	bool mHelp;
     	bool mVersion;
     	
     	string mConfigName;
     	string mGenPath;
-    	string mPidFile;
-    	string mLockFile;
 	}
 }
