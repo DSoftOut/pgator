@@ -101,18 +101,13 @@ else version(RpcClient)
         
         if(pid == 0)
         {
-            writeln("Trying to read pid file at '/var/run/pgator/pgator.pid'");
-            try pid = getPidFromFile();
-            catch(Exception e)
-            {
-                writeln("Trying to read pid with pgrep");
-                try pid = getPidConsole();
-                catch(Exception e)
-                {
-                    writeln("Cannot find pgator process!");
-                    return 1;
-                }
-            }
+	    writeln("Trying to read pid with pgrep");
+	    try pid = getPidConsole();
+	    catch(Exception e)
+	    {
+		writeln("Cannot find pgator process!");
+		return 1;
+	    }
         }
         
         auto client = new RpcClient!(
