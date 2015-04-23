@@ -3,8 +3,6 @@
 *    Describes server attached to tty console. Specified delegate 
 *    is called when SIGHUP signal is caught (linux only).
 *
-*    See_Also: daemon
-*
 *    Copyright: © 2014 DSoftOut
 *    License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 *    Authors: NCrashed <ncrashed@gmail.com>
@@ -30,9 +28,6 @@ private
     void delegate() savedRotateListener;
     
     shared ILogger savedLogger;
-    
-    string savedPidFile;
-    string savedLockFile;
     
     extern (C) 
     {
@@ -99,16 +94,13 @@ private
 }
 
 /**
-*    Run application as casual process (attached to tty) with $(B progMain) main function and passes $(B args) into it. 
-*    If daemon catches SIGHUP signal, $(B listener) delegate is called (available on linux only).
+*    Run application as casual process (attached to tty) with $(B progMain) main function and passes $(B args) into it.
 *
 *    If application receives some kind of terminating signal, the $(B termListener) is called. $(B termListener) should
 *    end $(B progMain) to be able to clearly shutdown the application.
 *
 *    If application receives "real-time" signal $(B SIGROTATE) defined as SIGRTMIN+10, then $(B rotateListener) is called
 *    to handle 'logrotate' utility.
-*
-*    Daemon writes log message into provided $(B logger).
 *
 *   $(B groupid) and $(B userid) are used to low privileges with run as root. 
 */

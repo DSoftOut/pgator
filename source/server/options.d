@@ -43,22 +43,16 @@ immutable class Options
 	{	
 	    bool pHelp, pVersion;
 	    string pConfigName, pGenPath;
-	    string pPidFile = buildPath("/var/run", APPNAME, APPNAME~".pid");
-	    string pLockFile = buildPath("/var/run", APPNAME, APPNAME~".lock");
 	    
         getopt(args, std.getopt.config.passThrough,
                          "help|h",     &pHelp,
                          "config",     &pConfigName,
                          "genConfig",  &pGenPath,
-                         "pidfile",    &pPidFile,
-                         "lockfile",   &pLockFile,
                          "version",    &pVersion);
         
         mHelp       = pHelp;
         mConfigName = pConfigName;
         mGenPath    = pGenPath;
-        mPidFile    = pPidFile;
-        mLockFile   = pLockFile;
         mVersion    = pVersion;
 	}
 	
@@ -71,13 +65,11 @@ immutable class Options
 	*  showVersion = is program should show it version 
 	*/
 	this(bool help, string configName, string genPath
-	    , string pidFile, string lockFile, bool showVersion) pure nothrow
+	    , bool showVersion) pure nothrow
 	{
 	    mHelp       = help;
 	    mConfigName = configName;
 	    mGenPath    = genPath;
-        mPidFile    = pidFile;
-        mLockFile   = lockFile;
         mVersion    = showVersion;
 	}
 	
@@ -125,18 +117,6 @@ immutable class Options
     	    return mHelp;
     	}
     	
-    	/// Path to file where daemon puts it pid
-    	string pidFile()
-    	{
-    	    return mPidFile;
-    	}
-    	
-    	/// Path to file that checked to no exists in daemon mode
-    	string lockFile()
-    	{
-    	    return mLockFile;
-    	}
-    	
     	/// Is program should show it version and exit
     	bool showVersion()
     	{
@@ -149,17 +129,10 @@ immutable class Options
     ~ versionMsg ~ "\n"
     "   pgator [arguments]\n"
     "   arguments =\n"
-    "    --daemon          - runs in daemon mode (detached from tty).\n"
-    "                        Linux only.\n"
     "    --config=<string> - specifies config file name in\n"
     "                        config directory.\n"
     "   --genConfig=<path> - generates default config at the path\n"           
     "   --help             - prints this message\n"
-    "   --pidfile=<path>   - specifies path to file where pid is written\n"
-    "                        to in daemon mode. Default: /var/run/pgator/pgator.pid\n"
-    "   --lockfile=<path>  - specifies path to file which prevents running\n"
-    "                        multiple instances in daemon mode.\n" 
-    "                        Default: /var/run/pgator/pgator.lock\n"
     "   --version          - shows program version";
     
     /// Application version message
@@ -172,7 +145,7 @@ immutable class Options
     */
 	immutable(Options) updateConfigPath(string path) pure nothrow
 	{
-	    return new immutable Options(help, path, genConfigPath, pidFile, lockFile, showVersion);
+	    return new immutable Options(help, path, genConfigPath, showVersion);
 	}
 	
 	private
@@ -184,7 +157,5 @@ immutable class Options
     	
     	string mConfigName;
     	string mGenPath;
-    	string mPidFile;
-    	string mLockFile;
 	}
 }

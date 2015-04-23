@@ -5,7 +5,7 @@
 *   Unittests configuration produce dummy executable the only purpose is to run module unittests.
 *
 *   Production configuration is main and default configuration. There the configuration files and
-*   argument parameters are parsed, daemon or terminal mode is selected and actual rpc server starts.
+*   argument parameters are parsed and actual rpc server starts.
 *
 *   Integration test 1 performs simple tests on real PostgreSQL instance. The configuration expects
 *   '--conn' parameter with valid connection string to test database. The main thing that is tested
@@ -147,7 +147,6 @@ else
 	import server.options;
 	import server.config;
 	
-	import daemon;
 	import terminal;
 	import dlogg.strict;
 	import util;
