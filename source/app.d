@@ -66,11 +66,6 @@ else version(RpcClient)
     "               --tableName=<string> - json_rpc table\n"
     "               --serverpid=<uint> - rpc server pid\n";
     
-    uint getPid()
-    {
-        return parse!uint(executeShell("[ ! -f /var/run/pgator/pgator.pid ] || echo `cat /var/run/pgator/pgator.pid`").output);
-    }
-    
     // Getting pid via pgrep
     uint getPidConsole()
     {
