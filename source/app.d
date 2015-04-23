@@ -66,7 +66,7 @@ else version(RpcClient)
     "               --tableName=<string> - json_rpc table\n"
     "               --serverpid=<uint> - rpc server pid\n";
     
-    uint getPid()
+    uint getPidFromFile()
     {
         return parse!uint(executeShell("[ ! -f /var/run/pgator/pgator.pid ] || echo `cat /var/run/pgator/pgator.pid`").output);
     }
@@ -102,7 +102,7 @@ else version(RpcClient)
         if(pid == 0)
         {
             writeln("Trying to read pid file at '/var/run/pgator/pgator.pid'");
-            try pid = getPid();
+            try pid = getPidFromFile();
             catch(Exception e)
             {
                 writeln("Trying to read pid with pgrep");
