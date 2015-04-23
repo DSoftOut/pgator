@@ -74,7 +74,10 @@ else version(RpcClient)
     // Getting pid via pgrep
     uint getPidConsole()
     {
-        return parse!uint(executeShell("pgrep pgator").output);
+        auto r = executeShell("pgrep pgator").output;
+        import std.stdio;
+        writeln("executeShell() is done");
+        return parse!uint(r);
     }
     
     int main(string[] args)
