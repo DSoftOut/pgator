@@ -68,7 +68,12 @@ else version(RpcClient)
     
     uint getPid()
     {
-        return parse!uint(executeShell("[ ! -f /var/run/pgator/pgator.pid ] || echo `cat /var/run/pgator/pgator.pid`").output);
+	import std.stdio: File;
+	
+	uint pid;
+	File("test.txt", "r").readf("%d", &pid);
+	
+	return pid;
     }
     
     // Getting pid via pgrep
