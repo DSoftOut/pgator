@@ -71,7 +71,7 @@ else version(RpcClient)
 	import std.stdio: File;
 	
 	uint pid;
-	File("test.txt", "r").readf("%d", &pid);
+	File("/var/run/pgator/pgator.pid", "r").readf("%d", &pid);
 	
 	return pid;
     }
