@@ -68,8 +68,6 @@ else version(RpcClient)
     
     uint getPid()
     {
-	import std.stdio: File;
-	
 	uint pid;
 	File("/var/run/pgator/pgator.pid", "r").readf("%d", &pid);
 	
