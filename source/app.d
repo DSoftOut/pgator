@@ -171,13 +171,18 @@ else
         }
 	}
 	
+	struct Ids
+	{
+	    int uid;
+	    int gid;
+	}
 	/**
 	*  Converts group and user names to corresponding gid and uid. If the $(B groupName) or
 	*  $(B userName) are already a ints, simply converts them and returns.
 	*
 	*  Retrieving of user id is performed by 'id -u %s' and group id by 'getent group %s | cut -d: -f3'.
 	*/
-	Tuple!(int, int) resolveRootLowing(shared ILogger logger, string groupName, string userName)
+	Ids resolveRootLowing(shared ILogger logger, string groupName, string userName)
 	{
 	    int tryConvert(string what)(string s, string command)
 	    {
@@ -204,8 +209,10 @@ else
 	        }
 	    }
 	    
-	    return tuple(tryConvert!"group"(groupName, "getent group %s | cut -d: -f3")
-	               , tryConvert!"user"(userName, "id -u %s"));
+	    Ids r;
+	    r.uid = tryConvert!"group"(groupName, "getent group %s | cut -d: -f3");
+	    r.gid = tryConvert!"user"(userName, "id -u %s");
+	    return r;
 	}
 	
 	int main(string[] args)
@@ -260,18 +267,17 @@ else
                 send(thisTid, newApp);
             };
 
-            int groupid, userid;
-            tie!(groupid, userid) = resolveRootLowing(logger, loadedConfig.config.groupid, loadedConfig.config.userid);
+            const Ids ids = resolveRootLowing(logger, loadedConfig.config.groupid, loadedConfig.config.userid);
             
             if(options.daemon) 
                 return runDaemon(logger, mainFunc, args, termFunc
                     , (){app.finalize;}, () {app.logger.reload;}
                     , options.pidFile, options.lockFile
-                    , groupid, userid);
+                    , ids.gid, ids.uid);
             else 
                 return runTerminal(logger, mainFunc, args, termFunc
                     , (){app.finalize;}, () {app.logger.reload;}
-                    , groupid, userid);
+                    , ids.gid, ids.uid);
 	    }
 	    catch(InvalidConfig e)
         {
