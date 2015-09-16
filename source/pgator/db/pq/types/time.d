@@ -135,7 +135,7 @@ version(Have_Int64_TimeStamp)
     void TMODULO(ref long t, ref long q, double u)
     {
         q = cast(long)(t / u);
-        if (q != 0) t -= q * u;
+        if (q != 0) t -= q * cast(long)u;
     }
 }
 else
