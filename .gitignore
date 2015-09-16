@@ -12,3 +12,4 @@ ddtEclipse/
 logs/*
 /bin
 current-pgator.version
+current-pgator-backend.version
