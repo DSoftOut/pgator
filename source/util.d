@@ -27,6 +27,7 @@ import std.container;
 import std.traits;
 import std.range;
 import std.path;
+import std.meta;
 import vibe.data.json;
 
 enum APPNAME = "pgator";
@@ -1008,30 +1009,5 @@ private template TypesOf(T...)
     static if(T.length == 1)
         alias TypesOf = typeof(T[0]);
     else
-        alias TypesOf = TypeTuple!(typeof(T[0]), TypesOf!(T[1..$]));
-}
-
-/**
-*   Allows to fast retreiving results from functions that returns a tuple.
-*/
-@property void tie(T...)(Tuple!(TypesOf!T) t)
-{
-    foreach(i, ref var; T)
-    {
-        T[i] = t[i];
-    }
-}
-/// Example
-unittest
-{
-    Tuple!(int, string) foo()
-    {
-        return tuple(1, "a");
-    }
-    
-    int x;
-    string y;
-    
-    tie!(x,y) = foo();
-    assert(x == 1 && y == "a");
+        alias TypesOf = AliasSeq!(typeof(T[0]), TypesOf!(T[1..$]));
 }
