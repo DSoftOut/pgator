@@ -22,6 +22,7 @@ script:
   - dub build --config=testclient --build=debug
   - ./bin/pgator --config=".travis-pgator.conf" 2>&1 > /dev/null &
   - sleep 10
+  - mkdir /var/run/pgator
   - pgrep pgator > /var/run/pgator/pgator.pid
   - ./bin/pgator-client --conn="dbname=pgator-test user=postgres" --host="http://127.0.0.1:8080/"
   - kill %%
