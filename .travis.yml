@@ -14,7 +14,7 @@ before_script:
 script:
   # compilation test for production
   - dub test
-  - dub build --build=release
+  #- dub build --build=release # disabled because strange linking bug in dmd 2.068.1
   - dub build --build=debug
   
   # testing client - final test suite
