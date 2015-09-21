@@ -26,9 +26,9 @@ import std.conv;
 import std.container;
 import std.traits;
 import std.typecons;
-import std.typetuple;
 import std.range;
 import std.path;
+import std.meta;
 import vibe.data.json;
 
 enum APPNAME = "pgator";
@@ -509,155 +509,6 @@ unittest
     static assert(!is(getMemberType!(A, "E")));
 }
 
-/// FieldNameTuple
-/**
-*   Retrieves names of all class/struct/union $(D Class) fields excluding technical ones like this, Monitor.
-*
-*   Example:
-*   ---------
-*   class A 
-*   {
-*       int aField;
-*
-*       void func1() {}
-*       static void func2() {}
-*
-*       string b;
-*
-*       final func3() {}
-*       abstract void func4();
-*
-*       bool c;
-*   }
-*
-*   static assert(FieldNameTuple!A == ["aField","b","c"]);
-*   ---------
-*/
-template FieldNameTuple(Class)
-{
-    template removeFuncs(funcs...)
-    {
-        static if(funcs.length > 0)
-        {
-            // if member is class/struct/interface declaration second part getMemberType returns no type
-            static if( is(getMemberType!(Class, funcs[0]) == function) ||
-                !is(getMemberType!(Class, funcs[0])) ||
-                funcs[0] == "this" || funcs[0] == "Monitor" || funcs[0] == "__ctor" ||
-                funcs[0] == "opEquals" || funcs[0] == "opCmp" || funcs[0] == "opAssign")
-            {
-                enum removeFuncs = removeFuncs!(funcs[1..$]);
-            }
-            else
-                enum removeFuncs = [funcs[0]]~removeFuncs!(funcs[1..$]);
-        }
-        else
-            enum removeFuncs = [];
-    }
-
-    enum temp = removeFuncs!(__traits(allMembers, Class));
-    static if(temp.length > 0)
-        enum FieldNameTuple = temp[0..$-1];
-    else
-        enum FieldNameTuple = [];
-}
-
-// ddoc example
-unittest
-{
-    class A 
-    {
-        int a;
-
-        void func1() {}
-        static void func2() {}
-
-        string b;
-
-        final func3() {}
-        abstract void func4();
-
-        bool c;
-    }
-
-    static assert(FieldNameTuple!A == ["a","b","c"]);
-}
-unittest
-{
-    class P 
-    {
-        void foo() {}
-
-        real p;
-    }
-
-    class A : P
-    {
-        int aField;
-
-        void func1() {}
-        static void func2() {}
-
-        string b;
-
-        final void func3() {}
-        abstract void func4();
-
-        bool c;
-
-        void function(int,int) da;
-        void delegate(int, int) db;
-
-        class B {} 
-        B mB;
-
-        struct C {}
-        C mC;
-
-        interface D {}
-    }
-
-    static assert(FieldNameTuple!A == ["aField","b","c","da","db","mB","mC","p"]);
-    static assert(is(getMemberType!(A, "aField") == int));
-    static assert(is(getMemberType!(A, "b") == string));
-    static assert(is(getMemberType!(A, "c") == bool));
-
-    struct S1
-    {
-        int a;
-        bool b;
-
-        void foo() {}
-
-        real c;
-    }
-
-    static assert(FieldNameTuple!S1 == ["a","b","c"]);
-
-    union S2
-    {
-        size_t index;
-        void*   pointer;
-    }
-
-    static assert(FieldNameTuple!S2 == ["index", "pointer"]);
-
-    class S3
-    {
-
-    }
-    static assert(FieldNameTuple!S3 == []);
-
-    // Properties detected as field. To fix.
-    struct S4
-    {
-        @property S4 dup()
-        {
-            return S4();
-        }
-    }
-    static assert(FieldNameTuple!S4 == ["dup"]);
-}
-
 /// Removes one element from the list
 /**
 *   NEVER use while iterating the $(B list).
@@ -1010,30 +861,5 @@ private template TypesOf(T...)
     static if(T.length == 1)
         alias TypesOf = typeof(T[0]);
     else
-        alias TypesOf = TypeTuple!(typeof(T[0]), TypesOf!(T[1..$]));
-}
-
-/**
-*   Allows to fast retreiving results from functions that returns a tuple.
-*/
-@property void tie(T...)(Tuple!(TypesOf!T) t)
-{
-    foreach(i, ref var; T)
-    {
-        T[i] = t[i];
-    }
-}
-/// Example
-unittest
-{
-    Tuple!(int, string) foo()
-    {
-        return tuple(1, "a");
-    }
-    
-    int x;
-    string y;
-    
-    tie!(x,y) = foo();
-    assert(x == 1 && y == "a");
+        alias TypesOf = AliasSeq!(typeof(T[0]), TypesOf!(T[1..$]));
 }

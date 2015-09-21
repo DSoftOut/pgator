@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS json_rpc;
+
 CREATE TABLE json_rpc
 (
   method text NOT NULL,

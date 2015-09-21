@@ -199,8 +199,8 @@ private void terminate(int code)
     gc_term();
     version (linux) 
     {
-        _STD_critical_term();
-        _STD_monitor_staticdtor();
+        //_d_critical_term();
+        //_d_monitor_staticdtor();
     }
 
     exit(code);

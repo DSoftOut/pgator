@@ -68,13 +68,13 @@ else version(RpcClient)
     
     uint getPid()
     {
-        return parse!uint(executeShell("[ ! -f /var/run/pgator/pgator.pid ] || echo `cat /var/run/pgator/pgator.pid`").output);
-    }
-    
-    // Getting pid via pgrep
-    uint getPidConsole()
-    {
-        return parse!uint(executeShell("pgrep pgator").output);
+	uint pid;
+		
+	writeln("begin PID file reading");
+	File("/tmp/pgator.pid", "r").readf("%d", &pid);
+	writeln("PID file read is passed");
+	
+	return pid;
     }
     
     int main(string[] args)
@@ -101,17 +101,12 @@ else version(RpcClient)
         
         if(pid == 0)
         {
-            writeln("Trying to read pid file at '/var/run/pgator/pgator.pid'");
+            writeln("Trying to read pid file at '/tmp/pgator.pid'");
             try pid = getPid();
             catch(Exception e)
             {
-                writeln("Trying to read pid with pgrep");
-                try pid = getPidConsole();
-                catch(Exception e)
-                {
-                    writeln("Cannot find pgator process!");
-                    return 1;
-                }
+		writeln("Cannot find pgator process!");
+		return 1;
             }
         }
         
@@ -171,13 +166,18 @@ else
         }
 	}
 	
+	struct Ids
+	{
+	    int uid;
+	    int gid;
+	}
 	/**
 	*  Converts group and user names to corresponding gid and uid. If the $(B groupName) or
 	*  $(B userName) are already a ints, simply converts them and returns.
 	*
 	*  Retrieving of user id is performed by 'id -u %s' and group id by 'getent group %s | cut -d: -f3'.
 	*/
-	Tuple!(int, int) resolveRootLowing(shared ILogger logger, string groupName, string userName)
+	Ids resolveRootLowing(shared ILogger logger, string groupName, string userName)
 	{
 	    int tryConvert(string what)(string s, string command)
 	    {
@@ -204,8 +204,10 @@ else
 	        }
 	    }
 	    
-	    return tuple(tryConvert!"group"(groupName, "getent group %s | cut -d: -f3")
-	               , tryConvert!"user"(userName, "id -u %s"));
+	    Ids r;
+	    r.uid = tryConvert!"group"(groupName, "getent group %s | cut -d: -f3");
+	    r.gid = tryConvert!"user"(userName, "id -u %s");
+	    return r;
 	}
 	
 	int main(string[] args)
@@ -260,18 +262,17 @@ else
                 send(thisTid, newApp);
             };
 
-            int groupid, userid;
-            tie!(groupid, userid) = resolveRootLowing(logger, loadedConfig.config.groupid, loadedConfig.config.userid);
+            const Ids ids = resolveRootLowing(logger, loadedConfig.config.groupid, loadedConfig.config.userid);
             
             if(options.daemon) 
                 return runDaemon(logger, mainFunc, args, termFunc
                     , (){app.finalize;}, () {app.logger.reload;}
                     , options.pidFile, options.lockFile
-                    , groupid, userid);
+                    , ids.gid, ids.uid);
             else 
                 return runTerminal(logger, mainFunc, args, termFunc
                     , (){app.finalize;}, () {app.logger.reload;}
-                    , groupid, userid);
+                    , ids.gid, ids.uid);
 	    }
 	    catch(InvalidConfig e)
         {

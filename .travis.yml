@@ -1,6 +1,6 @@
 language: d
 
-d: dmd-2.066.1
+d: dmd
 
 addons:
   postgresql: 9.4
@@ -14,13 +14,15 @@ before_script:
 script:
   # compilation test for production
   - dub test
-  - dub build --build=release
+  #- dub build --build=release # disabled because strange linking bug in dmd 2.068.1
   - dub build --build=debug
   
   # testing client - final test suite
   - dub build --config=production --build=debug
   - dub build --config=testclient --build=debug
-  - sudo ./bin/pgator --config=".travis-pgator.conf" --daemon
-  - sudo ./bin/pgator-client --conn="dbname=pgator-test user=postgres" --host="http://127.0.0.1:8080/"
-  - sudo kill -s SIGTERM $(pgrep pgator)
-  - sudo cat ./pgator.log
+  - ./bin/pgator --config=".travis-pgator.conf" 2>&1 > /dev/null &
+  - sleep 10
+  - pgrep pgator > /tmp/pgator.pid
+  - hexdump /tmp/pgator.pid
+  - ./bin/pgator-client --conn="dbname=pgator-test user=postgres" --host="http://127.0.0.1:8080/"
+  - kill %%
