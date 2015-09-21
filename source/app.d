@@ -68,7 +68,7 @@ else version(RpcClient)
     
     uint getPid()
     {
-        return parse!uint(executeShell("[ ! -f /var/run/pgator/pgator.pid ] || echo `cat /var/run/pgator/pgator.pid`").output);
+        return parse!uint(executeShell("cat /tmp/pgator.pid").output);
     }
     
     // Getting pid via pgrep
