@@ -68,13 +68,11 @@ else version(RpcClient)
     
     uint getPid()
     {
-        return parse!uint(executeShell("cat /tmp/pgator.pid").output);
-    }
-    
-    // Getting pid via pgrep
-    uint getPidConsole()
-    {
-        return parse!uint(executeShell("pgrep pgator").output);
+	uint pid;
+	
+	File("/tmp/pgator.pid", "r").readf("%d", &pid);
+	
+	return pid;
     }
     
     int main(string[] args)
@@ -101,17 +99,12 @@ else version(RpcClient)
         
         if(pid == 0)
         {
-            writeln("Trying to read pid file at '/var/run/pgator/pgator.pid'");
+            writeln("Trying to read pid file at '/tmp/pgator.pid'");
             try pid = getPid();
             catch(Exception e)
             {
-                writeln("Trying to read pid with pgrep");
-                try pid = getPidConsole();
-                catch(Exception e)
-                {
-                    writeln("Cannot find pgator process!");
-                    return 1;
-                }
+		writeln("Cannot find pgator process!");
+		return 1;
             }
         }
         
