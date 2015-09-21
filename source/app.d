@@ -69,8 +69,10 @@ else version(RpcClient)
     uint getPid()
     {
 	uint pid;
-	
+		
+	writeln("begin PID file reading");
 	File("/tmp/pgator.pid", "r").readf("%d", &pid);
+	writeln("PID file read is passed");
 	
 	return pid;
     }
