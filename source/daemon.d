@@ -38,8 +38,8 @@ private
     extern(C)
     {
         /// These are for control of termination
-        void _STD_monitor_staticdtor();
-        void _STD_critical_term();
+        //void _STD_monitor_staticdtor();
+        //void _STD_critical_term();
         void gc_term();
         
         version (linux) 
@@ -199,8 +199,8 @@ private void terminate(int code)
     gc_term();
     version (linux) 
     {
-        _STD_critical_term();
-        _STD_monitor_staticdtor();
+        //_STD_critical_term();
+        //_STD_monitor_staticdtor();
     }
 
     exit(code);
