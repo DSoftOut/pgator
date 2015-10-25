@@ -562,7 +562,7 @@ template FieldNameTuple(Class)
 }
 
 // ddoc example
-unittest
+/*unittest
 {
     class A 
     {
@@ -656,7 +656,7 @@ unittest
         }
     }
     static assert(FieldNameTuple!S4 == ["dup"]);
-}
+}*/
 
 /// Removes one element from the list
 /**
