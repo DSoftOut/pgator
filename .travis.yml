@@ -13,6 +13,7 @@ before_script:
 
 script:
   # compilation test for production
+  - dub upgrade
   - dub test
   - dub build --build=release
   - dub build --build=debug
