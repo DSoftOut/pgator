@@ -1,6 +1,9 @@
 language: d
 
-d: dmd-2.066.1
+d:
+  - dmd
+  - dmd-2.066.1
+  - ldc
 
 addons:
   postgresql: 9.4
