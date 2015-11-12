@@ -66,7 +66,7 @@ else version(RpcClient)
     "               --tableName=<string> - json_rpc table\n"
     "               --serverpid=<uint> - rpc server pid\n";
     
-    uint getPid()
+    uint getPidFromFile()
     {
         return parse!uint(executeShell("[ ! -f /var/run/pgator/pgator.pid ] || echo `cat /var/run/pgator/pgator.pid`").output);
     }
@@ -74,7 +74,10 @@ else version(RpcClient)
     // Getting pid via pgrep
     uint getPidConsole()
     {
-        return parse!uint(executeShell("pgrep pgator").output);
+        auto r = executeShell("pgrep pgator").output;
+        import std.stdio;
+        writeln("executeShell() is done");
+        return parse!uint(r);
     }
     
     int main(string[] args)
@@ -101,18 +104,13 @@ else version(RpcClient)
         
         if(pid == 0)
         {
-            writeln("Trying to read pid file at '/var/run/pgator/pgator.pid'");
-            try pid = getPid();
-            catch(Exception e)
-            {
-                writeln("Trying to read pid with pgrep");
-                try pid = getPidConsole();
-                catch(Exception e)
-                {
-                    writeln("Cannot find pgator process!");
-                    return 1;
-                }
-            }
+	    writeln("Trying to read pid with pgrep");
+	    try pid = getPidConsole();
+	    catch(Exception e)
+	    {
+		writeln("Cannot find pgator process!");
+		return 1;
+	    }
         }
         
         auto client = new RpcClient!(
