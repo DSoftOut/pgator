@@ -1,12 +1,12 @@
 pgator:
   build: ..
-  command: sh "docker-entrypoint.sh"
+  command: sh "/root/docker-entrypoint.sh"
   links:
     - "db:db"
   ports:
     - "80:80"
   volumes:
     - "./dub-cache:/root/.dub"
-    - "./docker-entrypoint.sh:docker-entrypoint.sh"
+    - "./docker-entrypoint.sh:/root/docker-entrypoint.sh"
 db:
   image: postgres:9.4.4
