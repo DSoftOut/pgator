@@ -16,5 +16,4 @@ dub build --config=testclient --build=debug
 ./bin/pgator --config="/etc/pgator.conf" &
 ./bin/pgator-client --conn="host=$DB_PORT_5432_TCP_ADDR port=$DB_PORT_5432_TCP_PORT dbname=postgres user=postgres" --host="http://127.0.0.1:8080/"
 
-kill -s SIGTERM $(pgrep pgator)
-cat ./pgator.log
+kill -9 $(pgrep pgator)
