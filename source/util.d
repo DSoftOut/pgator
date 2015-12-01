@@ -290,28 +290,32 @@ Json serializeRequiredToJson(T)(T val)
 
 private bool isRequired(alias mem, T)()
 {
+  bool flag = false;
 	foreach(attr;__traits(getAttributes, mixin("T."~mem)))
 	{
 		static if (is(attr == required))
 		{
-			return true;
+			flag = true;
+      break;
 		}
 	}
 	
-	return false;
+	return flag;
 }
 
 private bool isOptional(alias mem, T)()
 {
+  bool flag = false;
 	foreach(attr;__traits(getAttributes, mixin("T."~mem)))
 	{
 		static if (is(attr == possible))
 		{
-			return true;
+			flag = true;
+      break;
 		}
 	}
 	
-	return false;
+	return flag;
 }
 
 class RequiredFieldException:Exception

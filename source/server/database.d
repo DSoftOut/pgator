@@ -196,17 +196,46 @@ shared class Database
                         
             try
             {
-                InputRange!(immutable Bson) irange;
-                
+                InputRange!(immutable Bson) extremeDirtyHuckRunInSeparateThreadPleaseRedoneThis(string[] queries, string[] params, uint[] arg_nums, string[string] vars, bool[] oneRowFlag)
+                {
+                    InputRange!(immutable Bson) irangeRes = null;
+                    Throwable e = null;
+
+                    static void thread(shared IConnectionPool pool, shared InputRange!(immutable Bson)* resPtr, shared Throwable* ePtr, immutable string[] queries, immutable string[] params, immutable uint[] arg_nums, immutable bool[] oneRowFlag) {
+                        try {
+                            string[] _queries = queries.dup;
+                            string[] _params = params.dup;
+                            uint[] _arg_nums = arg_nums.dup;
+                            bool[] _oneRowFlag = oneRowFlag.dup;
+
+                            InputRange!(immutable Bson) res = pool.execTransaction(_queries, _params, _arg_nums, null, _oneRowFlag);
+                            *resPtr = cast(shared)res;
+                        } catch(Throwable th) {
+                            *ePtr = cast(shared)th;
+                        }
+                    }
+
+                    std.concurrency.spawn(&thread, pool, cast(shared)&irangeRes, cast(shared)&e, entry.sql_queries.idup, req.params.idup, entry.arg_nums.idup, entry.one_row_flags.idup);
+
+                    while(irangeRes is null) {
+                        if(e !is null) throw e;
+                        yield();
+                    }
+                    return irangeRes;
+                }
+
+
+                InputRange!(immutable Bson) irange = null;
+
                 if (entry.set_username)
                 {
-                    irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, req.auth, entry.one_row_flags);
+                    irange = extremeDirtyHuckRunInSeparateThreadPleaseRedoneThis(entry.sql_queries, req.params, entry.arg_nums, req.auth, entry.one_row_flags);
                 }
                 else
                 {
-                    irange = pool.execTransaction(entry.sql_queries, req.params, entry.arg_nums, null, entry.one_row_flags);
+                    irange = extremeDirtyHuckRunInSeparateThreadPleaseRedoneThis(entry.sql_queries, req.params, entry.arg_nums, null, entry.one_row_flags);
                 }
-                
+
                 Bson[] processResultFiltering(R)(R data)
                     if(isInputRange!R && is(ElementType!R == immutable Bson))
                 {

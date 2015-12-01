@@ -10,9 +10,9 @@ RUN apt-get install -y postgresql-client
 RUN apt-get install -y git 
 
 # Install DMD 
-RUN wget http://downloads.dlang.org/releases/2.x/2.068.2/dmd_2.068.2-0_amd64.deb
-RUN dpkg -i dmd_2.068.2-0_amd64.deb
-RUN rm dmd_2.068.2-0_amd64.deb
+RUN wget http://downloads.dlang.org/releases/2.x/2.069.1/dmd_2.069.1-0_amd64.deb
+RUN dpkg -i dmd_2.069.1-0_amd64.deb
+RUN rm dmd_2.069.1-0_amd64.deb
 
 # Install DUB
 RUN wget http://code.dlang.org/files/dub-0.9.24-linux-x86_64.tar.gz

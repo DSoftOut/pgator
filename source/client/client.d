@@ -11,7 +11,7 @@ module client.client;
 import std.stdio;
 import core.time;
 import vibe.data.json;
-import vibe.http.rest;
+import vibe.web.rest;
 import client.rpcapi;
 import client.test.testcase;
 import pgator.db.pool;
