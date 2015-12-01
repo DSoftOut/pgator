@@ -1,0 +1,19 @@
+name:                pgator
+version:             3.0.0.0
+synopsis:            Server that transforms JSON-RPC calls into SQL queries for PostgreSQL
+description:         Please see README.md
+homepage:            http://github.com/githubuser/pgator#readme
+license:             MIT
+license-file:        LICENSE
+author:              Anton Gushcha (NCrashed <ncrashed@gmail.com>), Shamyan Roman (Zaramzan <shamyan.roman@gmail.com>), Denis Feklushkin <denis.feklushkin@gmail.com>
+maintainer:          ncrashed@gmail.com
+copyright:           Copyright © 2014-2015, DSoftOut
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable pgator
+  hs-source-dirs:      src
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5

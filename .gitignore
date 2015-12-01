@@ -14,3 +14,4 @@ logs/*
 pgator.sublime-project
 pgator.sublime-workspace
 Docker_Build/dub-cache
+.stack-work
