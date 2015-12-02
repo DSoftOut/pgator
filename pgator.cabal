@@ -14,9 +14,10 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Data.Database.PGator
+  exposed-modules:     Database.PGator
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
+                     , text >= 1.2.1
 
 executable pgator
   hs-source-dirs:      app
@@ -25,3 +26,11 @@ executable pgator
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
                      , pgator
+                     , text >= 1.2.1
+                     , aeson >= 0.8.0.2
+                     , aeson-qq >= 0.8.1
+
+  default-extensions:  DeriveGeneric
+                       QuasiQuotes
+                       RecordWildCards
+                       OverloadedStrings
