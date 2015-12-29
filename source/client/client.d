@@ -26,8 +26,13 @@ class RpcClient(T...)
     {
         this.jsonRpcTable = jsonRpcTable;
         this.serverPid = serverPid;
+
         api = new RestInterfaceClient!IRpcApi(host);
-        
+        api.requestFilter = (HTTPClientRequest rq)
+        {
+            rq.headers.addField("Authorization", "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==");
+        };
+
         logger = new shared StrictLogger("rpc-client.log");
         
         auto postgresApi = new shared PostgreSQL(logger);
