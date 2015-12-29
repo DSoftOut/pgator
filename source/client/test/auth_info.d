@@ -10,14 +10,14 @@ class AuthInfoTestCase : ITestCase
     {
         insertRow(pool, tableName,
             JsonRpcRow("with_auth", [0],
-                ["SELECT current_setting('pgator.username') || current_setting('pgator.password') as user_pass"],
+                ["SELECT current_setting('pgator.username') || current_setting('pgator.password') as credentials"],
                 true
             )
         );
 
         insertRow(pool, tableName,
             JsonRpcRow("without_auth", [0],
-                ["SELECT current_setting('pgator.username') || current_setting('pgator.password') as user_pass"],
+                ["SELECT current_setting('pgator.username') || current_setting('pgator.password') as credentials"],
                 false
             )
         );
@@ -38,8 +38,8 @@ class AuthInfoTestCase : ITestCase
     */
     protected void performTests(IRpcApi api)
     {
-        auto with_auth = api.runRpc!"with_auth".assertOk!(Column!(string, "user_pass"));
-        assert(with_auth.user_pass[0] == "Aladdinopen sesame");
+        auto with_auth = api.runRpc!"with_auth".assertOk!(Column!(string, "credentials"));
+        assert(with_auth.credentials[0] == "Aladdinopen sesame");
 
         auto without_auth = api.runRpc!"with_auth".assertError;
     }
