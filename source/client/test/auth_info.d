@@ -33,7 +33,7 @@ class AuthInfoTestCase : ITestCase
     protected void performTests(IRpcApi api)
     {
         auto with_auth = api.runRpc!"with_auth".assertOk!(Column!(string, "user_pass"));
-        assert(with_auth.username[0] == "Aladdinopen sesame");
+        assert(with_auth.user_pass[0] == "Aladdinopen sesame");
         
         //auto result2 = api.runRpc!"without_auth"(2, 1).assertOk!(Column!(ulong, "test_field1"), Column!(ulong, "test_field2"));
         //assert(result2.test_field1[0] == 3 && result2.test_field2[0] == 1);
