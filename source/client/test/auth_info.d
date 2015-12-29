@@ -9,8 +9,9 @@ class AuthInfoTestCase : ITestCase
     protected void insertMethods(shared IConnectionPool pool, string tableName)
     {
         insertRow(pool, tableName,
-            JsonRpcRow("with_auth", 0,
-                "SELECT current_setting('pgator.username') as username, current_setting('pgator.password') as password"
+            JsonRpcRow("with_auth", [0],
+                ["SELECT current_setting('pgator.username') as username, current_setting('pgator.password') as password"],
+                true
             )
         );
         //insertRow(pool, tableName, JsonRpcRow("without_auth", 0, "SELECT $1::int8 + $2::int8 as test_field;"));
