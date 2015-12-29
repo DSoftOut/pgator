@@ -16,9 +16,8 @@ class AuthInfoTestCase : ITestCase
         );
 
         insertRow(pool, tableName,
-            JsonRpcRow("without_auth", [0],
-                ["SELECT current_setting('pgator.username') || current_setting('pgator.password') as credentials"],
-                false
+            JsonRpcRow("without_auth",
+                "SELECT current_setting('pgator.username') || current_setting('pgator.password') as credentials"
             )
         );
     }
@@ -41,6 +40,6 @@ class AuthInfoTestCase : ITestCase
         auto with_auth = api.runRpc!"with_auth".assertOk!(Column!(string, "credentials"));
         assert(with_auth.credentials[0] == "Aladdinopen sesame");
 
-        auto without_auth = api.runRpc!"with_auth".assertError;
+        auto without_auth = api.runRpc!"without_auth".assertError;
     }
 }
