@@ -27,6 +27,7 @@ class RpcClient(T...)
         this.jsonRpcTable = jsonRpcTable;
         this.serverPid = serverPid;
         api = new RestInterfaceClient!IRpcApi(host);
+        api.RequestFilter.addField("Authorization", "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==");
         
         logger = new shared StrictLogger("rpc-client.log");
         
