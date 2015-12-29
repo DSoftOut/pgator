@@ -57,6 +57,7 @@ else version(RpcClient)
     import client.test.onerow;
     import client.test.array;
     import client.test.timestamp;
+    import client.test.auth_info;
     
     immutable helpStr =
     "JSON-RPC client for testing purposes of main rpc-server.\n"
@@ -127,6 +128,7 @@ else version(RpcClient)
         	OneRowTestCase,
         	ArrayTestCase,
         	LongQueryTestCase,
+		AuthInfoTestCase,
         	)(host, connString, tableName, pid);
         scope(exit) client.finalize;
         
