@@ -14,6 +14,13 @@ class AuthInfoTestCase : ITestCase
                 true
             )
         );
+
+        insertRow(pool, tableName,
+            JsonRpcRow("without_auth", [0],
+                ["SELECT current_setting('pgator.username') || current_setting('pgator.password') as user_pass"],
+                false
+            )
+        );
     }
     
     /**
@@ -22,6 +29,7 @@ class AuthInfoTestCase : ITestCase
     protected void deleteMethods(shared IConnectionPool pool, string tableName)
     {
         removeRow(pool, tableName, "with_auth");
+        removeRow(pool, tableName, "without_auth");
     }
     
     /**
@@ -32,5 +40,7 @@ class AuthInfoTestCase : ITestCase
     {
         auto with_auth = api.runRpc!"with_auth".assertOk!(Column!(string, "user_pass"));
         assert(with_auth.user_pass[0] == "Aladdinopen sesame");
+
+        auto without_auth = api.runRpc!"with_auth".assertError;
     }
 }
