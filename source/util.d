@@ -513,16 +513,6 @@ unittest
     static assert(!is(getMemberType!(A, "E")));
 }
 
-/// Removes one element from the list
-/**
-*   NEVER use while iterating the $(B list).
-*/
-void removeOne(T)(ref DList!T list, T elem)
-{
-   auto toRemove = list[].find(elem).take(1);
-   list.linearRemove(toRemove);
-}
-
 /**
 *   Struct-wrapper to handle result of computations,
 *   that can fail.
