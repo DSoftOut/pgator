@@ -1008,11 +1008,3 @@ unittest
             }
             ).generator.equal(a.repeat.take(10)));
 }
-
-private template TypesOf(T...)
-{
-    static if(T.length == 1)
-        alias TypesOf = typeof(T[0]);
-    else
-        alias TypesOf = TypeTuple!(typeof(T[0]), TypesOf!(T[1..$]));
-}
