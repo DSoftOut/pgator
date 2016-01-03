@@ -513,58 +513,6 @@ unittest
     static assert(!is(getMemberType!(A, "E")));
 }
 
-/// FieldNameTuple
-/**
-*   Retrieves names of all class/struct/union $(D Class) fields excluding technical ones like this, Monitor.
-*
-*   Example:
-*   ---------
-*   class A 
-*   {
-*       int aField;
-*
-*       void func1() {}
-*       static void func2() {}
-*
-*       string b;
-*
-*       final func3() {}
-*       abstract void func4();
-*
-*       bool c;
-*   }
-*
-*   static assert(FieldNameTuple!A == ["aField","b","c"]);
-*   ---------
-*/
-template FieldNameTuple(Class)
-{
-    template removeFuncs(funcs...)
-    {
-        static if(funcs.length > 0)
-        {
-            // if member is class/struct/interface declaration second part getMemberType returns no type
-            static if( is(getMemberType!(Class, funcs[0]) == function) ||
-                !is(getMemberType!(Class, funcs[0])) ||
-                funcs[0] == "this" || funcs[0] == "Monitor" || funcs[0] == "__ctor" ||
-                funcs[0] == "opEquals" || funcs[0] == "opCmp" || funcs[0] == "opAssign")
-            {
-                enum removeFuncs = removeFuncs!(funcs[1..$]);
-            }
-            else
-                enum removeFuncs = [funcs[0]]~removeFuncs!(funcs[1..$]);
-        }
-        else
-            enum removeFuncs = [];
-    }
-
-    enum temp = removeFuncs!(__traits(allMembers, Class));
-    static if(temp.length > 0)
-        enum FieldNameTuple = temp[0..$-1];
-    else
-        enum FieldNameTuple = [];
-}
-
 // ddoc example
 /*unittest
 {
