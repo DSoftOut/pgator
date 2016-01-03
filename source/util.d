@@ -849,3 +849,28 @@ unittest
             }
             ).generator.equal(a.repeat.take(10)));
 }
+
+/**
+*   Allows to fast retreiving results from functions that returns a tuple.
+*/
+@property void tie(T...)(Tuple!(TypesOf!T) t)
+{
+    foreach(i, ref var; T)
+    {
+        T[i] = t[i];
+    }
+}
+/// Example
+unittest
+{
+    Tuple!(int, string) foo()
+    {
+        return tuple(1, "a");
+    }
+    
+    int x;
+    string y;
+    
+    tie!(x,y) = foo();
+    assert(x == 1 && y == "a");
+}
