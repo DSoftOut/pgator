@@ -247,7 +247,7 @@ else
                 {
                     res = app.run;
                 } while(receiveTimeout(dur!"msecs"(1000), 
-                        // bug, should be fixed in 2.067
+                        // FIXME bug, should be fixed in 2.067
                         //  (shared(Application) newApp) {app = newApp;}
                         (Variant v) 
                         {
