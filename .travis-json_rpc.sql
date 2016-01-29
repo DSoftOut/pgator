@@ -1,4 +1,4 @@
-CREATE TABLE json_rpc
+CREATE TABLE pgator_rpc
 (
   method text NOT NULL,
   sql_queries text[] NOT NULL,
@@ -11,10 +11,10 @@ CREATE TABLE json_rpc
   commentary text,
   result_filter boolean[],
   one_row_flags boolean[],
-  CONSTRAINT json_rpc_pkey PRIMARY KEY (method)
+  CONSTRAINT pgator_rpc_pkey PRIMARY KEY (method)
 )
 WITH (
   OIDS=FALSE
 );
-ALTER TABLE json_rpc
+ALTER TABLE pgator_rpc
   OWNER TO postgres;
