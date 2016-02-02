@@ -75,6 +75,8 @@ struct RpcError
 	@possible
 	Json data = Json(null);
 	
+	PGQueryException.ErrorDetails errorDetails;
+
 	this(in Bson bson)
 	{
 		this = tryEx!(RpcInternalError, deserializeFromJson!RpcError)(bson.toJson);
@@ -84,6 +86,13 @@ struct RpcError
 	{
 		this.code = code;
 		this.message = message;
+	}
+	
+	this(RPC_ERROR_CODE code, PGQueryException.ErrorDetails ed)
+	{
+		this.code = code;
+		this.message = ed.message;
+		this.errorDetails = ed;
 	}
 	
 	this (RPC_ERROR_CODE code, string message, Json errorData)
@@ -190,8 +199,6 @@ class RpcInternalError: RpcException
 
 class RpcServerError: RpcException
 {
-	PGQueryException.ErrorDetails errorDetails;
-
 	@safe pure nothrow this(string msg = "", string file = __FILE__, size_t line = __LINE__)
 	{
 		code = RPC_ERROR_CODE.SERVER_ERROR;
@@ -199,15 +206,6 @@ class RpcServerError: RpcException
 		msg = "Server error. " ~ msg;
 		
 		super(msg, file, line);
-	}
-
-	override Json toJson()
-	{
-		Json ret = super.toJson();
-
-		ret.
-
-		return ret;
 	}
 }
 
