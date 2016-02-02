@@ -92,7 +92,9 @@ struct RpcError
 	{
 		this.code = code;
 		this.message = ed.message;
-		this.errorDetails = ed;
+		data += Json(ed.hint);
+		data += Json(ed.detail);
+		data += Json(ed.errcode);
 	}
 	
 	this (RPC_ERROR_CODE code, string message, Json errorData)
@@ -112,13 +114,12 @@ struct RpcError
 		Json ret = Json.emptyObject;
 		
 		ret.code = code;
-		
 		ret.message = message;
-		
-		if (data.type != Json.Type.null_)
-		{
+
+		//if (data.type != Json.Type.null_)
+		//{
 			ret.data = data;
-		}
+		//}
 		
 		return ret;
 	}
