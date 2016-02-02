@@ -1,7 +1,7 @@
 language: d
 
 d:
-  - dmd-2.069.1
+  - dmd
   - ldc
 
 addons:
