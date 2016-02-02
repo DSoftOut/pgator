@@ -314,7 +314,7 @@ shared class Database
             }
             catch (QueryProcessingException e)
             {
-                res = RpcResponse(req.id, RpcError(RPC_ERROR_CODE.SERVER_ERROR, e));
+                res = RpcResponse(req.id, RpcError(RPC_ERROR_CODE.SERVER_ERROR, e.errorDetails));
             }
             catch (Exception e)
             {
