@@ -200,6 +200,15 @@ class RpcServerError: RpcException
 		
 		super(msg, file, line);
 	}
+
+	override Json toJson()
+	{
+		Json ret = super.toJson();
+
+		ret.
+
+		return ret;
+	}
 }
 
 unittest
