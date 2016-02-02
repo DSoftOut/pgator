@@ -13,7 +13,7 @@
     "dflags": ["-J."],
     "dependencies": {
         "vibe-d": ">=0.7.26",
-        "pgator-backend": "~>0.2.4",
+        "pgator-backend": "~improve_errors",
         "dlogg": ">=0.3.3"
     },
     "subConfigurations":
