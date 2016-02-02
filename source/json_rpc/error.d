@@ -189,6 +189,10 @@ class RpcInternalError: RpcException
 
 class RpcServerError: RpcException
 {
+	string hint;
+	string detail;
+	string errcode;
+
 	@safe pure nothrow this(string msg = "", string file = __FILE__, size_t line = __LINE__)
 	{
 		code = RPC_ERROR_CODE.SERVER_ERROR;
