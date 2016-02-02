@@ -274,7 +274,7 @@ AppConfig defaultConfig()
     ret.sqlAuth = ["login", "password"];
     ret.sqlTimeout = 1000;
     ret.sqlReconnectTime = 5000;
-    ret.sqlJsonTable = "public.json_rpc";
+    ret.sqlJsonTable = "public.pgator_rpc";
     ret.bindAddresses = ["127.0.0.1"];
     ret.logname = "/var/log/"~APPNAME~"/"~APPNAME~".txt";
     return ret;
@@ -367,7 +367,7 @@ version(unittest)
 	
 	    \"sqlAuth\" : [\"login\",\"password\"],
 	
-	    \"sqlJsonTable\" : \"json_rpc\",
+	    \"sqlJsonTable\" : \"pgator_rpc\",
 
 	    \"logname\" : \"log.txt\",
 
@@ -388,7 +388,7 @@ unittest
 	config2.hostname = "";
 	config2.maxConn = cast(uint) 50;
 	config2.sqlAuth = ["login", "password"];
-	config2.sqlJsonTable = "json_rpc";
+	config2.sqlJsonTable = "pgator_rpc";
 	config2.logname = "log.txt";
 	config2.vibelog = "http.txt";
 	config2.sqlReconnectTime = 150;

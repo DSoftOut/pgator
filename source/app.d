@@ -85,7 +85,7 @@ else version(RpcClient)
     {
         string host = "http://127.0.0.1:8080";
         string connString;
-        string tableName = "json_rpc";
+        string tableName = "pgator_rpc";
         uint pid;
         bool help = false;
         
