@@ -18,6 +18,7 @@ import std.exception;
 import vibe.data.bson;
 
 import util;
+import pgator.db.pq.api: PGQueryException;
 
 /**
 * Contains JSON-RPC 2.0 error codes
@@ -189,9 +190,7 @@ class RpcInternalError: RpcException
 
 class RpcServerError: RpcException
 {
-	string hint;
-	string detail;
-	string errcode;
+	PGQueryException.ErrorDetails errorDetails;
 
 	@safe pure nothrow this(string msg = "", string file = __FILE__, size_t line = __LINE__)
 	{
