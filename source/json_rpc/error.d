@@ -228,5 +228,7 @@ unittest
 	
 	assert(error.code == error1.code, "RpcError unittest failed");
 	assert(error.message == error1.message, "RpcError unittest failed");
-	assert(error == error2, "RpcError unittest failed");
+	assert(error.code == error2.code, "RpcError unittest failed");
+	assert(error.message == error2.message, "RpcError unittest failed");
+	// TODO: other fields, such as details, hint etc is not tested
 }
