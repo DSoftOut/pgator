@@ -222,18 +222,15 @@ unittest
 	
 	auto error2 = RpcError(cast(RPC_ERROR_CODE)code, message).toJson();
 
-	auto error = toJson(`
-	    "message": "METHOD NOT FOUND",
+	auto error = serializeToJson(`
+	    "message": "SERVER ERROR",
 		"data": {
-			"hint": "Try to call another method",
+			"hint": "",
 			"detail": "",
 			"errcode": ""
 		},
 		"code": -32000
 	`);
-	auto error = Json.emptyObject;
-	error.code = code;
-	error.message = message;
 	
 	assert(error == error1, "RpcError unittest failed");
 	assert(error == error2, "RpcError unittest failed");
