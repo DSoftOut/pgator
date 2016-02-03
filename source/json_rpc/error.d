@@ -232,6 +232,7 @@ unittest
 		"code": -32000
 	`);
 	
-	assert(error == error1, "RpcError unittest failed");
-	assert(error == error2, "RpcError unittest failed");
+	assert(error1 == error2, "RpcError unittest failed");
+	assert(error.code == error1.code, "RpcError unittest failed");
+	assert(error.message == error1.message, "RpcError unittest failed");
 }
