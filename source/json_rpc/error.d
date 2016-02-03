@@ -222,17 +222,5 @@ unittest
 	
 	auto error2 = RpcError(cast(RPC_ERROR_CODE)code, message).toJson();
 
-	auto error = serializeToJson(`
-	    "message": "SERVER ERROR",
-		"data": {
-			"hint": "",
-			"detail": "",
-			"errcode": ""
-		},
-		"code": -32000
-	`);
-	
 	assert(error1 == error2, "RpcError unittest failed");
-	assert(error.code == error1.code, "RpcError unittest failed");
-	assert(error.message == error1.message, "RpcError unittest failed");
 }
