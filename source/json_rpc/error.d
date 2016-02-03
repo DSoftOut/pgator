@@ -215,20 +215,26 @@ unittest
 	import vibe.data.bson;
 	import vibe.data.json;
 	
-	auto code = cast(int) RPC_ERROR_CODE.METHOD_NOT_FOUND;
-	auto message = "METHOD NOT FOUND";
+	auto code = cast(int) RPC_ERROR_CODE.SERVER_ERROR;
+	auto message = "SERVER ERROR";
 	
 	auto error1 = RpcError(Bson(["code":Bson(code),"message": Bson(message)])).toJson(); 
 	
 	auto error2 = RpcError(cast(RPC_ERROR_CODE)code, message).toJson();
-	
+
+	auto error = toJson(`
+	    "message": "METHOD NOT FOUND",
+		"data": {
+			"hint": "Try to call another method",
+			"detail": "",
+			"errcode": ""
+		},
+		"code": -32000
+	`);
 	auto error = Json.emptyObject;
 	error.code = code;
 	error.message = message;
 	
-	assert(error.code == error1.code, "RpcError unittest failed");
-	assert(error.message == error1.message, "RpcError unittest failed");
-	assert(error.code == error2.code, "RpcError unittest failed");
-	assert(error.message == error2.message, "RpcError unittest failed");
-	// TODO: other fields, such as details, hint etc is not tested
+	assert(error == error1, "RpcError unittest failed");
+	assert(error == error2, "RpcError unittest failed");
 }
