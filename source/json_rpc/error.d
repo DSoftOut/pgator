@@ -224,8 +224,9 @@ unittest
 	
 	auto error = Json.emptyObject;
 	error.code = code;
-	error.message = message; 
+	error.message = message;
 	
-	assert(error == error1, "RpcError unittest failed");
+	assert(error.code == error1.code, "RpcError unittest failed");
+	assert(error.message == error1.message, "RpcError unittest failed");
 	assert(error == error2, "RpcError unittest failed");
 }
