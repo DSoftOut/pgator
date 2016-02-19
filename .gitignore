@@ -1,16 +1,3 @@
-build.rf
-.buildpath
-.project
-.dprojectoptions
-.settings
-__dummy.html
 bin/*
 docs/*
 docs.json
-.dub/*
-ddtEclipse/
-logs/*
-/bin
-pgator.sublime-project
-pgator.sublime-workspace
-Docker_Build/dub-cache
