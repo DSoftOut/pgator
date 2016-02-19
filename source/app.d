@@ -70,7 +70,12 @@ int main(string[] args)
     // read pgator_rpc
     QueryParams p;
     p.sqlCommand = "SELECT * FROM "~client.escapeIdentifier(sqlPgatorTable);
-    auto r = client.execStatement(p);
+    auto answer = client.execStatement(p);
+
+    foreach(row; rangify(answer))
+    {
+        trace("found method: ", row);
+    }
 
     // look for changes in pgator_rpc
 
