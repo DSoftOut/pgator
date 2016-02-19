@@ -83,7 +83,7 @@ int main(string[] args)
 
     Method[string] methods;
 
-    foreach(r; rangify(answer))
+    foreach(ref r; rangify(answer))
     {
         trace("found method row: ", r);
 
@@ -121,7 +121,7 @@ int main(string[] args)
                 if(arr.dimsSize.length > 1)
                     throw new Exception("Array of args should be one dimensional", __FILE__, __LINE__);
 
-                foreach(v; rangify(arr))
+                foreach(ref v; rangify(arr))
                     m.args ~= v.as!string;
             }
 
@@ -142,24 +142,23 @@ int main(string[] args)
 
     {
         // try to prepare methods
-        size_t counter = methods.length;
 
-        foreach(m; methods)
+        foreach(ref m; methods)
         {
             trace("try to prepare method ", m.name);
 
             try
             {
-                auto r = client.prepareStatement(m.name, m.statement, m.args.length, dur!"seconds"(5));
-
-                if(r.status != PGRES_COMMAND_OK)
-                    throw new Exception(r.resultErrorMessage, __FILE__, __LINE__);
+                client.prepareStatement(m.name, m.statement, m.args.length, dur!"seconds"(5));
+            }
+            catch(ConnectionException e)
+            {
+                throw e;
             }
             catch(Exception e)
             {
                 warning(e.msg, ", skipping preparing of method ", m.name);
                 failedCount++;
-                continue;
             }
         }
 
@@ -172,10 +171,10 @@ int main(string[] args)
         qp.preparedStatementName = "echo";
         qp.args.length = 1;
         qp.args[0].value = "test value";
-        auto r = client.execPreparedStatement(qp);
+        //auto r = client.execPreparedStatement(qp);
 
         import std.stdio;
-        writeln(r);
+        //writeln(r);
     }
 
     return 0;
