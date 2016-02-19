@@ -75,6 +75,8 @@ int main(string[] args)
 
     struct Method
     {
+        string name;
+        string statement;
         string[] args;
         bool oneRowFlag;
     }
@@ -102,17 +104,21 @@ int main(string[] args)
             }
         }
 
-        string name = r["method"].as!string;
+        Method m;
 
         try
         {
+            m.name = r["method"].as!string;
 
-            Method m;
+            if(m.name.length == 0)
+                throw new Exception("Method name is empty string", __FILE__, __LINE__);
+
+            m.statement = r["sql_query"].as!string;
 
             {
                 auto arr = r["args"].asArray;
 
-                if(arr.nDims != 1)
+                if(arr.dimsSize.length > 1)
                     throw new Exception("Array of args should be one dimensional", __FILE__, __LINE__);
 
                 foreach(v; rangify(arr))
@@ -120,22 +126,52 @@ int main(string[] args)
             }
 
             getOptional("one_row_flag", m.oneRowFlag);
-
-            methods[name] = m;
-
-            info("Method ", name, " added. Content: ", m);
         }
         catch(Exception e)
         {
-            warning(e.msg, ", skipping method ", name);
+            warning(e.msg, ", skipping reading of method ", m.name);
+            continue;
         }
+
+        methods[m.name] = m;
+        info("Method ", m.name, " loaded. Content: ", m);
     }
 
-    info("Number of methods in the table ", tableName,": ", answer.length, ", failed to load: ", answer.length - methods.length);
+    size_t failedCount = answer.length - methods.length;
+    trace("Number of methods in the table ", tableName,": ", answer.length, ", failed to load: ", failedCount);
 
-    // look for changes in the pgator_rpc
+    {
+        // try to prepare methods
+        size_t counter = methods.length;
 
-    // apply changes by preparing new statements
+        foreach(m; methods)
+        {
+            trace("try to prepare method ", m.name);
+
+            try
+            {
+                auto r = client.prepareStatement(m.name, m.statement, m.args.length, dur!"seconds"(5));
+
+                if(r.status != PGRES_COMMAND_OK)
+                    throw new Exception(r.resultErrorMessage, __FILE__, __LINE__);
+            }
+            catch(Exception e)
+            {
+                warning(e.msg, ", skipping preparing of method ", m.name);
+                failedCount++;
+                continue;
+            }
+        }
+
+        info("Number of methods in the table ", tableName,": ", answer.length, ", failed to prepare: ", failedCount);
+    }
+
+    {
+        // try to use prepared statement
+        QueryParams qp;
+        qp.preparedStatementName = "wrong_sql_statement";
+        //client.execPreparedStatement(qp);
+    }
 
     return 0;
 }

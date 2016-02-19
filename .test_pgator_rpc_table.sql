@@ -15,4 +15,5 @@ CREATE TABLE pgator_rpc
 
 INSERT INTO pgator_rpc VALUES
 ('echo', 'SELECT $1::text', '{"value_for_echo"}', false),
-('echo2', 'SELECT $1::text', '{"value_for_echo"}', NULL);
+('echo2', 'SELECT $1::text', '{"value_for_echo"}', NULL),
+('wrong_sql_statement', 'wrong SQL statement', '{}', false);
