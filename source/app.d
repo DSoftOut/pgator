@@ -84,6 +84,23 @@ int main(string[] args)
     {
         trace("found method row: ", r);
 
+        void getOptional(T)(string sqlName, ref T result)
+        {
+            try
+            {
+                auto v = r[sqlName];
+
+                if(v.isNull)
+                    throw new Exception("Value of column "~sqlName~" is NULL", __FILE__, __LINE__);
+
+                result = v.as!T;
+            }
+            catch(AnswerException e)
+            {
+                if(e.type != ExceptionType.COLUMN_NOT_FOUND) throw e;
+            }
+        }
+
         string name = r["method"].as!string;
 
         try
@@ -95,25 +112,13 @@ int main(string[] args)
                 auto arr = r["args"].asArray;
 
                 if(arr.nDims != 1)
-                    throw new Exception("array of args should be one dimensional", __FILE__, __LINE__);
+                    throw new Exception("Array of args should be one dimensional", __FILE__, __LINE__);
 
                 foreach(v; rangify(arr))
                     m.args ~= v.as!string;
             }
 
-            {
-                try
-                {
-                    auto oneRowFlag = r["one_row_flag"];
-
-                    if(!oneRowFlag.isNull)
-                        m.oneRowFlag = oneRowFlag.as!bool;
-                }
-                catch(AnswerException e)
-                {
-                    if(e.type != ExceptionType.COLUMN_NOT_FOUND) throw e;
-                }
-            }
+            getOptional("one_row_flag", m.oneRowFlag);
 
             methods[name] = m;
 
