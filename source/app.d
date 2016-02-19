@@ -70,14 +70,39 @@ int main(string[] args)
     // read pgator_rpc
     QueryParams p;
     p.sqlCommand = "SELECT * FROM "~client.escapeIdentifier(sqlPgatorTable);
-    auto answer = client.execStatement(p);
+    auto answer = client.execStatement(p, dur!"seconds"(10));
 
-    foreach(row; rangify(answer))
+    struct Method
     {
-        trace("found method: ", row);
+        string[] args;
     }
 
-    // look for changes in pgator_rpc
+    Method[string] methods;
+
+    foreach(r; rangify(answer))
+    {
+        trace("found method row: ", r);
+
+        string name = r["method"].as!string;
+
+        Method m;
+
+        {
+            auto arr = r["args"].asArray;
+
+            if(arr.nDims != 1)
+                throw new Exception("array of args should be one dimensional", __FILE__, __LINE__);
+
+            foreach(v; rangify(arr))
+                m.args ~= v.as!string;
+        }
+
+        methods[name] = m;
+
+        info("Method ", name, " added. Content: ", m);
+    }
+
+    // look for changes in the pgator_rpc
 
     // apply changes by preparing new statements
 
