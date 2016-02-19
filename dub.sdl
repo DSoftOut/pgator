@@ -1,0 +1,18 @@
+name "pgator"
+description "Application server that transforms JSON-RPC calls into SQL queries for PostgreSQL"
+authors "Denis Feklushkin <denis.feklushkin@gmail.com>"
+license "MIT"
+copyright "Copyright © 2016"
+dependency "vibe-d-postgresql" version="~master"
+
+configuration "release_app" {
+    buildType "release"
+    versions "StdLoggerDisableLogging"
+    targetType "executable"
+}
+
+configuration "integration_test" {
+    buildType "unittest"
+    versions "IntegrationTest"
+    targetType "executable"
+}
