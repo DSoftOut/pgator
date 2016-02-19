@@ -169,8 +169,13 @@ int main(string[] args)
     {
         // try to use prepared statement
         QueryParams qp;
-        qp.preparedStatementName = "wrong_sql_statement";
-        //client.execPreparedStatement(qp);
+        qp.preparedStatementName = "echo";
+        qp.args.length = 1;
+        qp.args[0].value = "test value";
+        auto r = client.execPreparedStatement(qp);
+
+        import std.stdio;
+        writeln(r);
     }
 
     return 0;
