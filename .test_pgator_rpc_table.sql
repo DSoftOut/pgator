@@ -8,7 +8,7 @@ CREATE TABLE pgator_rpc
   --set_username boolean NOT NULL,
   --read_only boolean NOT NULL,
   --commentary text,
-  --one_row_flags boolean[],
+  --one_row_flag boolean[],
 
   CONSTRAINT pgator_rpc_pkey PRIMARY KEY (method)
 );

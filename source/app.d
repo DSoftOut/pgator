@@ -75,6 +75,7 @@ int main(string[] args)
     struct Method
     {
         string[] args;
+        bool oneRowFlag;
     }
 
     Method[string] methods;
@@ -85,21 +86,43 @@ int main(string[] args)
 
         string name = r["method"].as!string;
 
-        Method m;
-
+        try
         {
-            auto arr = r["args"].asArray;
 
-            if(arr.nDims != 1)
-                throw new Exception("array of args should be one dimensional", __FILE__, __LINE__);
+            Method m;
 
-            foreach(v; rangify(arr))
-                m.args ~= v.as!string;
+            {
+                auto arr = r["args"].asArray;
+
+                if(arr.nDims != 1)
+                    throw new Exception("array of args should be one dimensional", __FILE__, __LINE__);
+
+                foreach(v; rangify(arr))
+                    m.args ~= v.as!string;
+            }
+
+            {
+                try
+                {
+                    auto oneRowFlag = r["one_row_flag"];
+
+                    if(!oneRowFlag.isNull)
+                        m.oneRowFlag = oneRowFlag.as!bool;
+                }
+                catch(AnswerException e)
+                {
+                    if(e.type != ExceptionType.COLUMN_NOT_FOUND) throw e;
+                }
+            }
+
+            methods[name] = m;
+
+            info("Method ", name, " added. Content: ", m);
         }
-
-        methods[name] = m;
-
-        info("Method ", name, " added. Content: ", m);
+        catch(Exception e)
+        {
+            warning(e.msg, ", skipping method ", name);
+        }
     }
 
     // look for changes in the pgator_rpc
