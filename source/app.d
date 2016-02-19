@@ -131,7 +131,7 @@ int main(string[] args)
         }
     }
 
-    info("Number of methods in table ", tableName,": ", answer.length, ", failed to load: ", answer.length - methods.length);
+    info("Number of methods in the table ", tableName,": ", answer.length, ", failed to load: ", answer.length - methods.length);
 
     // look for changes in the pgator_rpc
 
