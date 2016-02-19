@@ -68,8 +68,9 @@ int main(string[] args)
     auto sqlPgatorTable = cfg["sqlPgatorTable"].get!string;
 
     // read pgator_rpc
+    immutable tableName = client.escapeIdentifier(sqlPgatorTable);
     QueryParams p;
-    p.sqlCommand = "SELECT * FROM "~client.escapeIdentifier(sqlPgatorTable);
+    p.sqlCommand = "SELECT * FROM "~tableName;
     auto answer = client.execStatement(p, dur!"seconds"(10));
 
     struct Method
@@ -129,6 +130,8 @@ int main(string[] args)
             warning(e.msg, ", skipping method ", name);
         }
     }
+
+    info("Number of methods in table ", tableName,": ", answer.length, ", failed to load: ", answer.length - methods.length);
 
     // look for changes in the pgator_rpc
 
