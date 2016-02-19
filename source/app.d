@@ -57,16 +57,24 @@ int main(string[] args)
     readOpts(args);
     Bson cfg = readConfig();
 
-    version(IntegrationTest)
-    {
-        import db = vibe.db.postgresql.database;
+    import vibe.db.postgresql;
 
-        auto server = cfg["sqlServer"];
-        db.__integration_test(server["connString"].get!string);
-    }
-    else
-    {
-    }
+    auto server = cfg["sqlServer"];
+    auto connString = server["connString"].get!string;
+    auto maxConn = to!uint(server["maxConn"].get!long);
+
+    // connect to db
+    auto client = connectPostgresDB(connString, maxConn, true);
+    auto sqlPgatorTable = cfg["sqlPgatorTable"].get!string;
+
+    // read pgator_rpc
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM "~client.escapeIdentifier(sqlPgatorTable);
+    auto r = client.execStatement(p);
+
+    // look for changes in pgator_rpc
+
+    // apply changes by preparing new statements
 
     return 0;
 }
