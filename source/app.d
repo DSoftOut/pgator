@@ -143,7 +143,7 @@ int main(string[] args)
     {
         // try to prepare methods
 
-        foreach(ref m; methods)
+        foreach(const m; methods.byValue)
         {
             trace("try to prepare method ", m.name);
 
