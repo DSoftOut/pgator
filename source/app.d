@@ -171,10 +171,9 @@ int main(string[] args)
         qp.preparedStatementName = "echo";
         qp.args.length = 1;
         qp.args[0].value = "test value";
-        //auto r = client.execPreparedStatement(qp);
+        auto r = client.execPreparedStatement(qp);
 
-        import std.stdio;
-        //writeln(r);
+        assert(r[0][0].as!string == qp.args[0].value);
     }
 
     return 0;
