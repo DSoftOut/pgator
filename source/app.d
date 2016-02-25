@@ -1,5 +1,6 @@
 import std.getopt;
 import std.experimental.logger;
+import vibe.http.server;
 
 shared static this()
 {
@@ -178,24 +179,62 @@ int main(string[] args)
 
     {
         // http-server
-        import vibe.http.server;
         import vibe.http.router;
         import vibe.core.core;
 
-        void index(HTTPServerRequest req, HTTPServerResponse res)
+        void httpRequestHandler(scope HTTPServerRequest req, HTTPServerResponse res)
         {
-            trace("answer preparing");
+            auto rr = RpcRequest.toRpcRequest(req);
+
             res.writeJsonBody("it works!");
         }
 
         auto settings = new HTTPServerSettings;
+        settings.options |= HTTPServerOption.parseJsonBody;
         settings.bindAddresses = cfg["listenAddresses"].deserializeBson!(string[]);
         settings.port = to!ushort(cfg["listenPort"].get!long);
 
-        auto listenHandler = listenHTTP(settings, &index);
+        auto listenHandler = listenHTTP(settings, &httpRequestHandler);
 
         runEventLoop();
     }
 
     return 0;
+}
+
+struct RpcRequest
+{
+    Json id;
+    string method;
+    string[string] namedParams = null;
+    string[] positionParams = null;
+
+    invariant()
+    {
+        assert(namedParams is null || positionParams is null);
+    }
+
+    static RpcRequest toRpcRequest(scope HTTPServerRequest req)
+    {
+        if (req.contentType != "application/json")
+            throw new HttpException("Supported only application/json content type", __FILE__, __LINE__);
+
+        Json j = req.json;
+
+        RpcRequest r;
+
+        r.id = j["id"];
+        r.method = j["method"].get!string;
+        r.method = j["method"].get!string;
+
+        return r;
+    }
+}
+
+class HttpException : Exception
+{
+    this(string msg, string file, size_t line)
+    {
+        super(msg, file, line);
+    }
 }
