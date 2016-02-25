@@ -176,5 +176,24 @@ int main(string[] args)
         assert(r[0][0].as!string == qp.args[0].value);
     }
 
+    {
+        // http-server
+        import vibe.http.server;
+        import vibe.http.router;
+
+        void index(HTTPServerRequest req, HTTPServerResponse res)
+        {
+            res.writeJsonBody("it works!");
+        }
+
+        auto router = new URLRouter;
+        router.get("/", &index);
+
+        auto settings = new HTTPServerSettings;
+        settings.port = to!ushort(cfg["listenPort"].get!long);
+
+        listenHTTP(settings, router);
+    }
+
     return 0;
 }
