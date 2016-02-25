@@ -188,7 +188,7 @@ int main(string[] args)
 
             res.writeJsonBody("it works!"~
                 "named params: "~rr.namedParams.to!string~
-                "positioned params: "~rr.positionParams.to!string);
+                "positional params: "~rr.positionParams.to!string);
         }
 
         auto settings = new HTTPServerSettings;
@@ -239,7 +239,7 @@ struct RpcRequest
                 foreach(string key, value; params)
                 {
                     if(value.type == Json.Type.object || value.type == Json.Type.array)
-                        throw new HttpException("Unexpected parameter type", __FILE__, __LINE__);
+                        throw new HttpException("Unexpected named parameter type", __FILE__, __LINE__);
 
                     r.namedParams[key] = value.to!string;
                 }
@@ -249,7 +249,7 @@ struct RpcRequest
                 foreach(value; params)
                 {
                     if(value.type == Json.Type.object || value.type == Json.Type.array)
-                        throw new HttpException("Unexpected parameter type", __FILE__, __LINE__);
+                        throw new HttpException("Unexpected positional parameter type", __FILE__, __LINE__);
 
                     r.positionParams ~= value.to!string;
                 }
