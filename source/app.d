@@ -180,19 +180,21 @@ int main(string[] args)
         // http-server
         import vibe.http.server;
         import vibe.http.router;
+        import vibe.core.core;
 
         void index(HTTPServerRequest req, HTTPServerResponse res)
         {
+            trace("answer preparing");
             res.writeJsonBody("it works!");
         }
 
-        auto router = new URLRouter;
-        router.get("/", &index);
-
         auto settings = new HTTPServerSettings;
+        settings.bindAddresses = cfg["listenAddresses"].deserializeBson!(string[]);
         settings.port = to!ushort(cfg["listenPort"].get!long);
 
-        listenHTTP(settings, router);
+        auto listenHandler = listenHTTP(settings, &index);
+
+        runEventLoop();
     }
 
     return 0;
