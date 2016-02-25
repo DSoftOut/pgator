@@ -219,12 +219,12 @@ struct RpcRequest
     static RpcRequest toRpcRequest(scope HTTPServerRequest req)
     {
         if(req.contentType != "application/json")
-            throw new HttpException("Supported only application/json content type", __FILE__, __LINE__);
+            throw new HttpException(HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
 
         Json j = req.json;
 
         if(j["jsonrpc"] != "2.0")
-            throw new HttpException("Protocol version should be \"2.0\"", __FILE__, __LINE__);
+            throw new HttpException(HTTPStatus.badRequest, "Protocol version should be \"2.0\"", __FILE__, __LINE__);
 
         RpcRequest r;
 
@@ -239,7 +239,7 @@ struct RpcRequest
                 foreach(string key, value; params)
                 {
                     if(value.type == Json.Type.object || value.type == Json.Type.array)
-                        throw new HttpException("Unexpected named parameter type", __FILE__, __LINE__);
+                        throw new HttpException(HTTPStatus.badRequest, "Unexpected named parameter type", __FILE__, __LINE__);
 
                     r.namedParams[key] = value.to!string;
                 }
@@ -249,14 +249,14 @@ struct RpcRequest
                 foreach(value; params)
                 {
                     if(value.type == Json.Type.object || value.type == Json.Type.array)
-                        throw new HttpException("Unexpected positional parameter type", __FILE__, __LINE__);
+                        throw new HttpException(HTTPStatus.badRequest, "Unexpected positional parameter type", __FILE__, __LINE__);
 
                     r.positionParams ~= value.to!string;
                 }
                 break;
 
             default:
-                throw new HttpException("Unexpected params type", __FILE__, __LINE__);
+                throw new HttpException(HTTPStatus.badRequest, "Unexpected params type", __FILE__, __LINE__);
         }
 
         return r;
@@ -265,8 +265,11 @@ struct RpcRequest
 
 class HttpException : Exception
 {
-    this(string msg, string file, size_t line)
+    const HTTPStatus status;
+
+    this(HTTPStatus status, string msg, string file, size_t line)
     {
+        this.status = status;
         super(msg, file, line);
     }
 }
