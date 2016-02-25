@@ -186,7 +186,9 @@ int main(string[] args)
         {
             auto rr = RpcRequest.toRpcRequest(req);
 
-            res.writeJsonBody("it works!");
+            res.writeJsonBody("it works!"~
+                "named params: "~rr.namedParams.to!string~
+                "positioned params: "~rr.positionParams.to!string);
         }
 
         auto settings = new HTTPServerSettings;
@@ -216,16 +218,46 @@ struct RpcRequest
 
     static RpcRequest toRpcRequest(scope HTTPServerRequest req)
     {
-        if (req.contentType != "application/json")
+        if(req.contentType != "application/json")
             throw new HttpException("Supported only application/json content type", __FILE__, __LINE__);
 
         Json j = req.json;
+
+        if(j["jsonrpc"] != "2.0")
+            throw new HttpException("Protocol version should be \"2.0\"", __FILE__, __LINE__);
 
         RpcRequest r;
 
         r.id = j["id"];
         r.method = j["method"].get!string;
-        r.method = j["method"].get!string;
+
+        Json params = j["params"];
+
+        switch(params.type)
+        {
+            case Json.Type.object:
+                foreach(string key, value; params)
+                {
+                    if(value.type == Json.Type.object || value.type == Json.Type.array)
+                        throw new HttpException("Unexpected parameter type", __FILE__, __LINE__);
+
+                    r.namedParams[key] = value.to!string;
+                }
+                break;
+
+            case Json.Type.array:
+                foreach(value; params)
+                {
+                    if(value.type == Json.Type.object || value.type == Json.Type.array)
+                        throw new HttpException("Unexpected parameter type", __FILE__, __LINE__);
+
+                    r.positionParams ~= value.to!string;
+                }
+                break;
+
+            default:
+                throw new HttpException("Unexpected params type", __FILE__, __LINE__);
+        }
 
         return r;
     }
