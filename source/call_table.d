@@ -5,13 +5,13 @@ import std.experimental.logger;
 
 struct Method
 {
-    string name;
+    string name; // TODO: remove it, AA already contains name of method
     string statement;
     string[] argsNames;
     bool oneRowFlag;
 }
 
-Method[string] readMethodsFromTable(immutable Answer answer)
+Method[string] readMethods(immutable Answer answer)
 {
     Method[string] methods;
 

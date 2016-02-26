@@ -2,6 +2,8 @@ import call_table;
 import std.getopt;
 import std.experimental.logger;
 import vibe.http.server;
+import vibe.db.postgresql;
+import dpq2;
 
 shared static this()
 {
@@ -61,8 +63,6 @@ int main(string[] args)
     readOpts(args);
     Bson cfg = readConfig();
 
-    import vibe.db.postgresql;
-
     auto server = cfg["sqlServer"];
     auto connString = server["connString"].get!string;
     auto maxConn = to!uint(server["maxConn"].get!long);
@@ -77,42 +77,22 @@ int main(string[] args)
     p.sqlCommand = "SELECT * FROM "~tableName;
     auto answer = client.execStatement(p, dur!"seconds"(10));
 
-    const methods = readMethodsFromTable(answer);
+    const methods = readMethods(answer);
 
     size_t failedCount = answer.length - methods.length;
-    trace("Number of methods in the table ", tableName,": ", answer.length, ", failed to load: ", failedCount);
 
     {
-        // try to prepare methods
-
-        foreach(const m; methods.byValue)
-        {
-            trace("try to prepare method ", m.name);
-
-            try
-            {
-                client.prepareStatement(m.name, m.statement, m.argsNames.length, dur!"seconds"(5));
-            }
-            catch(ConnectionException e)
-            {
-                throw e;
-            }
-            catch(Exception e)
-            {
-                warning(e.msg, ", skipping preparing of method ", m.name);
-                failedCount++;
-            }
-        }
-
-        info("Number of methods in the table ", tableName,": ", answer.length, ", failed to prepare: ", failedCount);
+        auto conn = client.lockConnection();
+        failedCount += prepareMethods(conn.__conn, methods);
+        conn.destroy();
     }
 
     {
         // try to use prepared statement
         QueryParams qp;
         qp.preparedStatementName = "echo";
-        qp.args.length = 1;
-        qp.args[0].value = "test value";
+        qp.argsFromArray = ["test value"];
+
         auto r = client.execPreparedStatement(qp);
 
         assert(r[0][0].as!string == qp.args[0].value);
@@ -255,4 +235,67 @@ class HttpException : Exception
         this.status = status;
         super(msg, file, line);
     }
+}
+
+/// returns number of failed prepare
+private size_t prepareMethods(Connection conn, in Method[string] methods)
+{
+    size_t failedCount = 0;
+
+    foreach(const m; methods.byValue)
+    {
+        trace("try to prepare method ", m.name);
+
+        try
+        {
+            conn.prepareMethod(m);
+
+            trace("method ", m.name, " prepared");
+        }
+        catch(ConnectionException e)
+        {
+            throw e;
+        }
+        catch(Exception e)
+        {
+            warning(e.msg, ", skipping preparing of method ", m.name);
+            failedCount++;
+        }
+    }
+
+    return failedCount;
+}
+
+private void prepareMethod(Connection conn, in Method method)
+{
+    immutable timeoutErrMsg = "Prepare statement: exceeded Posgres query time limit";
+
+    // waiting for socket changes for reading
+    if(!conn.waitEndOf(WaitType.READ, dur!"seconds"(5)))
+    {
+        conn.destroy(); // disconnect
+        throw new Exception(timeoutErrMsg, __FILE__, __LINE__);
+    }
+
+    conn.sendPrepare(method.name, method.statement, method.argsNames.length);
+
+    bool timeoutNotOccurred = conn.waitEndOf(WaitType.READ, dur!"seconds"(5));
+
+    conn.consumeInput();
+
+    immutable(Result)[] ret;
+
+    while(true)
+    {
+        auto r = conn.getResult();
+        if(r is null) break;
+        ret ~= r;
+    }
+
+    enforce(ret.length <= 1, "sendPrepare query can return only one Result instance");
+
+    if(!timeoutNotOccurred && ret.length == 0) // query timeout occured and result isn't received
+        throw new Exception(timeoutErrMsg, __FILE__, __LINE__);
+
+    ret[0].getAnswer; // result checking
 }
