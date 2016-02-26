@@ -137,9 +137,9 @@ int main(string[] args)
     if(testStatements)
     {
         auto conn = client.lockConnection();
-        assert(conn.__conn is null);
+        assert(conn.__conn !is null);
 
-        //conn = createNewConnection(connString, fArgs);
+        conn.connectStart;
 
         return !fArgs.failedCount ? 0 : 1;
     }
