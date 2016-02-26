@@ -74,7 +74,8 @@ class Connection : dpq2.Connection
     {
         super.connectStart;
 
-        prepareMethods(this, *fArgs);
+        fArgs.failedCount = prepareMethods(this, *fArgs);
+        info("Number of methods in the table ", fArgs.tableName,": ", fArgs.rpcTableLength, ", failed to prepare: ", fArgs.rpcTableLength - fArgs.failedCount);
     }
 }
 
@@ -85,14 +86,9 @@ private Connection createNewConnection(string connString, ref ConnFactoryArgs fA
         c.connString = connString;
         c.fArgs = &fArgs;
 
+        trace("starting new connection");
         c.connectStart;
         trace("new connection is started");
-
-        if(fArgs.tableName.length != 0)
-        {
-            fArgs.failedCount = c.prepareMethods(fArgs);
-            info("Number of methods in the table ", fArgs.tableName,": ", fArgs.rpcTableLength, ", failed to prepare: ", fArgs.rpcTableLength - fArgs.failedCount);
-        }
 
         return c;
 }
