@@ -127,20 +127,18 @@ int main(string[] args)
         trace("Number of methods in the table ", fArgs.tableName,": ", answer.length, ", failed to load into pgator: ", failed);
     }
 
-    {
-        // disconnecting used connection for starting new connection
-        // with prepared statements
-        auto conn = client.lockConnection();
-        conn.disconnect();
-    }
+    // disconnecting used connection for starting new connection
+    // with prepared statements
+    auto conn = client.lockConnection();
+    conn.disconnect();
+
+    assert(conn.__conn !is null);
+
+    // restart with prepared statements
+    conn.connectStart;
 
     if(testStatements)
     {
-        auto conn = client.lockConnection();
-        assert(conn.__conn !is null);
-
-        conn.connectStart;
-
         return !fArgs.failedCount ? 0 : 1;
     }
     else
