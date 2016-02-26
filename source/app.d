@@ -5,6 +5,8 @@ import vibe.http.server;
 import vibe.db.postgresql;
 static import dpq2;
 
+@trusted:
+
 shared static this()
 {
     sharedLog.fatalHandler = null;
@@ -70,12 +72,17 @@ class Connection : dpq2.Connection
 {
     ConnFactoryArgs* fArgs;
 
-    override void connectStart() @trusted
+    override void connectStart()
     {
         super.connectStart;
 
+        prepareStatements;
+    }
+
+    void prepareStatements()
+    {
         fArgs.failedCount = prepareMethods(this, *fArgs);
-        info("Number of methods in the table ", fArgs.tableName,": ", fArgs.rpcTableLength, ", failed to prepare: ", fArgs.rpcTableLength - fArgs.failedCount);
+        info("Number of methods in the table ", fArgs.tableName,": ", fArgs.rpcTableLength, ", failed to prepare: ", fArgs.rpcTableLength - fArgs.failedCount);        
     }
 }
 
@@ -127,15 +134,10 @@ int main(string[] args)
         trace("Number of methods in the table ", fArgs.tableName,": ", answer.length, ", failed to load into pgator: ", failed);
     }
 
-    // disconnecting previously used connection for starting
-    // new connection with prepared statements
+    // prepare statements for previously used connection
     auto conn = client.lockConnection();
-    conn.disconnect();
-
     assert(conn.__conn !is null);
-
-    conn.connectStart; // restart connection with prepared statements
-    conn.destroy; // reverts locked connection to pool
+    conn.prepareStatements();
 
     if(testStatements)
     {
