@@ -85,6 +85,8 @@ int main(string[] args)
         auto conn = client.lockConnection();
         failedCount += prepareMethods(conn.__conn, methods);
         conn.destroy();
+
+        info("Number of methods in the table ", tableName,": ", answer.length, ", failed to prepare: ", failedCount);
     }
 
     {
