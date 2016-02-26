@@ -206,7 +206,7 @@ int main(string[] args)
             }
             catch(HttpException e)
             {
-                res.writeJsonBody("error! "~e.msg~" "~"id: "~rpcRequest.id.to!string);
+                res.writeJsonBody("error! "~e.msg~" "~"id: "~rpcRequest.id.to!string, e.status);
             }
         }
 
