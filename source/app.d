@@ -169,7 +169,7 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
             rpcRequest = RpcRequest.toRpcRequest(req);
 
             if(rpcRequest.method !in methods)
-                throw new HttpException(HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
+                throw new RequestException(HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
 
             {
                 // exec prepared statement
@@ -190,7 +190,7 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 
             res.writeJsonBody("it works!");
         }
-        catch(HttpException e)
+        catch(RequestException e)
         {
             res.writeJsonBody("error! "~e.msg~" "~"id: "~rpcRequest.id.to!string, e.status);
         }
@@ -219,7 +219,7 @@ string[] named2positionalParameters(in Method method, in string[string] namedPar
         if(argName in namedParams)
             ret[i] = namedParams[argName];
         else
-            throw new HttpException(HTTPStatus.badRequest, "Missing required parameter "~argName, __FILE__, __LINE__);
+            throw new RequestException(HTTPStatus.badRequest, "Missing required parameter "~argName, __FILE__, __LINE__);
     }
 
     return ret;
@@ -240,12 +240,12 @@ struct RpcRequest
     static RpcRequest toRpcRequest(scope HTTPServerRequest req)
     {
         if(req.contentType != "application/json")
-            throw new HttpException(HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
+            throw new RequestException(HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
 
         Json j = req.json;
 
         if(j["jsonrpc"] != "2.0")
-            throw new HttpException(HTTPStatus.badRequest, "Protocol version should be \"2.0\"", __FILE__, __LINE__);
+            throw new RequestException(HTTPStatus.badRequest, "Protocol version should be \"2.0\"", __FILE__, __LINE__);
 
         RpcRequest r;
 
@@ -260,7 +260,7 @@ struct RpcRequest
                 foreach(string key, value; params)
                 {
                     if(value.type == Json.Type.object || value.type == Json.Type.array)
-                        throw new HttpException(HTTPStatus.badRequest, "Unexpected named parameter type", __FILE__, __LINE__);
+                        throw new RequestException(HTTPStatus.badRequest, "Unexpected named parameter type", __FILE__, __LINE__);
 
                     r.namedParams[key] = value.to!string;
                 }
@@ -270,21 +270,21 @@ struct RpcRequest
                 foreach(value; params)
                 {
                     if(value.type == Json.Type.object || value.type == Json.Type.array)
-                        throw new HttpException(HTTPStatus.badRequest, "Unexpected positional parameter type", __FILE__, __LINE__);
+                        throw new RequestException(HTTPStatus.badRequest, "Unexpected positional parameter type", __FILE__, __LINE__);
 
                     r.positionParams ~= value.to!string;
                 }
                 break;
 
             default:
-                throw new HttpException(HTTPStatus.badRequest, "Unexpected params type", __FILE__, __LINE__);
+                throw new RequestException(HTTPStatus.badRequest, "Unexpected params type", __FILE__, __LINE__);
         }
 
         return r;
     }
 }
 
-class HttpException : Exception
+class RequestException : Exception
 {
     const HTTPStatus status;
 
