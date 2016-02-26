@@ -76,7 +76,8 @@ class Connection : dpq2.Connection
     {
         super.connectStart;
 
-        prepareStatements;
+        if(fArgs.tableName.length != 0)
+            prepareStatements;
     }
 
     void prepareStatements()
