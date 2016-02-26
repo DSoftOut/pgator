@@ -1,3 +1,4 @@
+import call_table;
 import std.getopt;
 import std.experimental.logger;
 import vibe.http.server;
@@ -9,6 +10,7 @@ shared static this()
 
 string configFileName = "/wrong/path/to/file.json";
 bool debugEnabled = false;
+bool testStatements = false;
 
 void readOpts(string[] args)
 {
@@ -17,6 +19,7 @@ void readOpts(string[] args)
         auto helpInformation = getopt(
                 args,
                 "debug", &debugEnabled,
+                "test", &testStatements,
                 "config", &configFileName
             );
     }
@@ -74,61 +77,7 @@ int main(string[] args)
     p.sqlCommand = "SELECT * FROM "~tableName;
     auto answer = client.execStatement(p, dur!"seconds"(10));
 
-    Method[string] methods;
-
-    foreach(ref r; rangify(answer))
-    {
-        trace("found method row: ", r);
-
-        void getOptional(T)(string sqlName, ref T result)
-        {
-            try
-            {
-                auto v = r[sqlName];
-
-                if(v.isNull)
-                    throw new Exception("Value of column "~sqlName~" is NULL", __FILE__, __LINE__);
-
-                result = v.as!T;
-            }
-            catch(AnswerException e)
-            {
-                if(e.type != ExceptionType.COLUMN_NOT_FOUND) throw e;
-            }
-        }
-
-        Method m;
-
-        try
-        {
-            m.name = r["method"].as!string;
-
-            if(m.name.length == 0)
-                throw new Exception("Method name is empty string", __FILE__, __LINE__);
-
-            m.statement = r["sql_query"].as!string;
-
-            {
-                auto arr = r["args"].asArray;
-
-                if(arr.dimsSize.length > 1)
-                    throw new Exception("Array of args should be one dimensional", __FILE__, __LINE__);
-
-                foreach(ref v; rangify(arr))
-                    m.argsNames ~= v.as!string;
-            }
-
-            getOptional("one_row_flag", m.oneRowFlag);
-        }
-        catch(Exception e)
-        {
-            warning(e.msg, ", skipping reading of method ", m.name);
-            continue;
-        }
-
-        methods[m.name] = m;
-        info("Method ", m.name, " loaded. Content: ", m);
-    }
+    const methods = readMethodsFromTable(answer);
 
     size_t failedCount = answer.length - methods.length;
     trace("Number of methods in the table ", tableName,": ", answer.length, ", failed to load: ", failedCount);
@@ -221,14 +170,6 @@ int main(string[] args)
     }
 
     return 0;
-}
-
-struct Method
-{
-    string name;
-    string statement;
-    string[] argsNames;
-    bool oneRowFlag;
 }
 
 string[] named2positionalParameters(in Method method, in string[string] namedParams) pure
