@@ -62,6 +62,7 @@ Bson readConfig()
 
 private struct ConnFactoryArgs
 {
+    bool methodsLoadedFlag = false;
     Method[string] methods;
     size_t rpcTableLength;
     size_t failedCount;
@@ -76,12 +77,13 @@ class Connection : dpq2.Connection
     {
         super.connectStart;
 
-        if(fArgs.tableName.length != 0)
+        if(fArgs.methodsLoadedFlag)
             prepareStatements;
     }
 
     void prepareStatements()
     {
+        std.experimental.logger.trace("Preparing");
         fArgs.failedCount = prepareMethods(this, *fArgs);
         info("Number of methods in the table ", fArgs.tableName,": ", fArgs.rpcTableLength, ", failed to prepare: ", fArgs.rpcTableLength - fArgs.failedCount);        
     }
@@ -129,6 +131,7 @@ int main(string[] args)
     fArgs.rpcTableLength = answer.length;
 
     fArgs.methods = readMethods(answer);
+    fArgs.methodsLoadedFlag = true;
 
     {
         size_t failed = fArgs.rpcTableLength - fArgs.methods.length;
