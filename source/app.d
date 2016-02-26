@@ -73,12 +73,22 @@ class Connection : dpq2.Connection
 {
     ConnFactoryArgs* fArgs;
 
-    override void connectStart()
+    this(string connString, ConnFactoryArgs* fArgs)
     {
-        super.connectStart;
+        this.fArgs = fArgs;
+
+        super(ConnectionStart(), connString);
 
         if(fArgs.methodsLoadedFlag)
-            prepareStatements;
+            prepareStatements();
+    }
+
+    override void resetStart()
+    {
+        super.resetStart;
+
+        if(fArgs.methodsLoadedFlag)
+            prepareStatements();
     }
 
     void prepareStatements()
@@ -91,13 +101,8 @@ class Connection : dpq2.Connection
 
 private Connection createNewConnection(string connString, ref ConnFactoryArgs fArgs)
 {
-        trace("creating new connection");
-        auto c = new Connection;
-        c.connString = connString;
-        c.fArgs = &fArgs;
-
         trace("starting new connection");
-        c.connectStart;
+        auto c = new Connection(connString, &fArgs);
         trace("new connection is started");
 
         return c;
