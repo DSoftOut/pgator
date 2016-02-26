@@ -81,77 +81,74 @@ int main(string[] args)
 
     size_t failedCount = answer.length - methods.length;
 
+    if(testStatements)
     {
         auto conn = client.lockConnection();
         failedCount += prepareMethods(conn.__conn, methods);
         conn.destroy();
 
         info("Number of methods in the table ", tableName,": ", answer.length, ", failed to prepare: ", failedCount);
+
+        return !failedCount ? 0 : 1;
     }
-
+    else
     {
-        // try to use prepared statement
-        QueryParams qp;
-        qp.preparedStatementName = "echo";
-        qp.argsFromArray = ["test value"];
+        loop(cfg, client, methods);
 
-        auto r = client.execPreparedStatement(qp);
-
-        assert(r[0][0].as!string == qp.args[0].value);
+        assert(false);
     }
+}
 
+void loop(Bson cfg, PostgresClient client, in Method[string] methods)
+{
+    // http-server
+    import vibe.http.router;
+    import vibe.core.core;
+
+    void httpRequestHandler(scope HTTPServerRequest req, HTTPServerResponse res)
     {
-        // http-server
-        import vibe.http.router;
-        import vibe.core.core;
+        RpcRequest rpcRequest;
 
-        void httpRequestHandler(scope HTTPServerRequest req, HTTPServerResponse res)
+        try
         {
-            RpcRequest rpcRequest;
+            rpcRequest = RpcRequest.toRpcRequest(req);
 
-            try
+            if(rpcRequest.method !in methods)
+                throw new HttpException(HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
+
             {
-                rpcRequest = RpcRequest.toRpcRequest(req);
+                // exec prepared statement
+                QueryParams qp;
+                qp.preparedStatementName = rpcRequest.method;
 
-                if(rpcRequest.method !in methods)
-                    throw new HttpException(HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
+                string[] posParams;
 
-                {
-                    // exec prepared statement
-                    QueryParams qp;
-                    qp.preparedStatementName = rpcRequest.method;
+                if(rpcRequest.positionParams.length == 0)
+                    posParams = named2positionalParameters(methods[rpcRequest.method], rpcRequest.namedParams);
+                else
+                    posParams = rpcRequest.positionParams;
 
-                    string[] posParams;
+                qp.argsFromArray = posParams;
 
-                    if(rpcRequest.positionParams.length == 0)
-                        posParams = named2positionalParameters(methods[rpcRequest.method], rpcRequest.namedParams);
-                    else
-                        posParams = rpcRequest.positionParams;
-
-                    qp.argsFromArray = posParams;
-
-                    auto r = client.execPreparedStatement(qp);
-                }
-
-                res.writeJsonBody("it works!");
+                auto r = client.execPreparedStatement(qp);
             }
-            catch(HttpException e)
-            {
-                res.writeJsonBody("error! "~e.msg~" "~"id: "~rpcRequest.id.to!string, e.status);
-            }
+
+            res.writeJsonBody("it works!");
         }
-
-        auto settings = new HTTPServerSettings;
-        settings.options |= HTTPServerOption.parseJsonBody;
-        settings.bindAddresses = cfg["listenAddresses"].deserializeBson!(string[]);
-        settings.port = to!ushort(cfg["listenPort"].get!long);
-
-        auto listenHandler = listenHTTP(settings, &httpRequestHandler);
-
-        runEventLoop();
+        catch(HttpException e)
+        {
+            res.writeJsonBody("error! "~e.msg~" "~"id: "~rpcRequest.id.to!string, e.status);
+        }
     }
 
-    return 0;
+    auto settings = new HTTPServerSettings;
+    settings.options |= HTTPServerOption.parseJsonBody;
+    settings.bindAddresses = cfg["listenAddresses"].deserializeBson!(string[]);
+    settings.port = to!ushort(cfg["listenPort"].get!long);
+
+    auto listenHandler = listenHTTP(settings, &httpRequestHandler);
+
+    runEventLoop();
 }
 
 string[] named2positionalParameters(in Method method, in string[string] namedParams) pure
