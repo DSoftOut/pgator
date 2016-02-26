@@ -158,7 +158,6 @@ int main(string[] args)
 void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] methods)
 {
     // http-server
-    import vibe.http.router;
     import vibe.core.core;
 
     void httpRequestHandler(scope HTTPServerRequest req, HTTPServerResponse res)
