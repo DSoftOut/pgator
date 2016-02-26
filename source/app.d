@@ -1,4 +1,4 @@
-import call_table;
+import rpc_table;
 import std.getopt;
 import std.experimental.logger;
 import vibe.http.server;

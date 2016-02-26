@@ -1,4 +1,4 @@
-module call_table;
+module rpc_table;
 
 import dpq2.result;
 import std.experimental.logger;
