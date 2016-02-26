@@ -74,14 +74,6 @@ int main(string[] args)
     p.sqlCommand = "SELECT * FROM "~tableName;
     auto answer = client.execStatement(p, dur!"seconds"(10));
 
-    struct Method
-    {
-        string name;
-        string statement;
-        string[] args;
-        bool oneRowFlag;
-    }
-
     Method[string] methods;
 
     foreach(ref r; rangify(answer))
@@ -123,7 +115,7 @@ int main(string[] args)
                     throw new Exception("Array of args should be one dimensional", __FILE__, __LINE__);
 
                 foreach(ref v; rangify(arr))
-                    m.args ~= v.as!string;
+                    m.argsNames ~= v.as!string;
             }
 
             getOptional("one_row_flag", m.oneRowFlag);
@@ -150,7 +142,7 @@ int main(string[] args)
 
             try
             {
-                client.prepareStatement(m.name, m.statement, m.args.length, dur!"seconds"(5));
+                client.prepareStatement(m.name, m.statement, m.argsNames.length, dur!"seconds"(5));
             }
             catch(ConnectionException e)
             {
@@ -193,18 +185,14 @@ int main(string[] args)
                     QueryParams qp;
                     qp.preparedStatementName = rpcRequest.method;
 
-                    if(rpcRequest.positionParams.length == 0)
-                    {
-                    }
-                    else
-                    {
-                        qp.args.length = rpcRequest.positionParams.length;
+                    string[] posParams;
 
-                        foreach(i, ref a; qp.args)
-                        {
-                            a.value = rpcRequest.positionParams[i];
-                        }
-                    }
+                    if(rpcRequest.positionParams.length == 0)
+                        posParams = named2positionalParameters(methods[rpcRequest.method], rpcRequest.namedParams);
+                    else
+                        posParams = rpcRequest.positionParams;
+
+                    qp.argsFromArray = posParams;
 
                     auto r = client.execPreparedStatement(qp);
                 }
@@ -228,6 +216,29 @@ int main(string[] args)
     }
 
     return 0;
+}
+
+struct Method
+{
+    string name;
+    string statement;
+    string[] argsNames;
+    bool oneRowFlag;
+}
+
+string[] named2positionalParameters(in Method method, in string[string] namedParams) pure
+{
+    string[] ret = new string[method.argsNames.length];
+
+    foreach(i, argName; method.argsNames)
+    {
+        if(argName in namedParams)
+            ret[i] = namedParams[argName];
+        else
+            throw new HttpException(HTTPStatus.badRequest, "Missing required parameter "~argName, __FILE__, __LINE__);
+    }
+
+    return ret;
 }
 
 struct RpcRequest
@@ -293,7 +304,7 @@ class HttpException : Exception
 {
     const HTTPStatus status;
 
-    this(HTTPStatus status, string msg, string file, size_t line)
+    this(HTTPStatus status, string msg, string file, size_t line) pure
     {
         this.status = status;
         super(msg, file, line);
