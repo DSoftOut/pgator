@@ -58,44 +58,86 @@ Bson readConfig()
     return cfg;
 }
 
+private struct ConnFactoryArgs
+{
+    Method[string] methods;
+    size_t rpcTableLength;
+    size_t failedCount;
+    string tableName;
+}
+
+private Connection createNewConnection(string connString, ConnFactoryArgs fArgs)
+{
+        trace("creating new connection");
+        auto c = new Connection;
+        c.connString = connString;
+        c.connectStart;
+        trace("new connection is started");
+
+        if(fArgs.tableName.length != 0)
+        {
+            fArgs.failedCount = c.prepareMethods(fArgs);
+            info("Number of methods in the table ", fArgs.tableName,": ", fArgs.rpcTableLength, ", failed to prepare: ", fArgs.rpcTableLength - fArgs.failedCount);
+        }
+
+        return c;
+}
+
 int main(string[] args)
 {
     readOpts(args);
     Bson cfg = readConfig();
 
     auto server = cfg["sqlServer"];
-    auto connString = server["connString"].get!string;
+    const connString = server["connString"].get!string;
     auto maxConn = to!uint(server["maxConn"].get!long);
 
+    ConnFactoryArgs fArgs;
+
+    Connection connFactory()
+    {
+        return createNewConnection(connString, fArgs);
+    }
+
     // connect to db
-    auto client = connectPostgresDB(connString, maxConn, true);
+    auto client = new PostgresClient(connString, maxConn, false, &connFactory);
     auto sqlPgatorTable = cfg["sqlPgatorTable"].get!string;
 
     // read pgator_rpc
-    immutable tableName = client.escapeIdentifier(sqlPgatorTable);
+    fArgs.tableName = client.escapeIdentifier(sqlPgatorTable);
     QueryParams p;
-    p.sqlCommand = "SELECT * FROM "~tableName;
+    p.sqlCommand = "SELECT * FROM "~fArgs.tableName;
     auto answer = client.execStatement(p, dur!"seconds"(10));
+    fArgs.rpcTableLength = answer.length;
 
-    const methods = readMethods(answer);
+    fArgs.methods = readMethods(answer);
 
-    size_t failedCount = answer.length - methods.length;
+    {
+        size_t failed = fArgs.rpcTableLength - fArgs.methods.length;
+        trace("Number of methods in the table ", fArgs.tableName,": ", answer.length, ", failed to load into pgator: ", failed);
+    }
+
+    {
+        // disconnecting used connection for starting new connection
+        // with prepared statements
+        auto conn = client.lockConnection();
+        conn.disconnect();
+    }
 
     if(testStatements)
     {
         auto conn = client.lockConnection();
-        failedCount += prepareMethods(conn.__conn, methods);
-        conn.destroy();
+        assert(conn.__conn is null);
 
-        info("Number of methods in the table ", tableName,": ", answer.length, ", failed to prepare: ", failedCount);
+        //conn = createNewConnection(connString, fArgs);
 
-        return !failedCount ? 0 : 1;
+        return !fArgs.failedCount ? 0 : 1;
     }
     else
     {
-        loop(cfg, client, methods);
+        loop(cfg, client, fArgs.methods);
 
-        assert(false);
+        return 0;
     }
 }
 
@@ -236,12 +278,12 @@ class HttpException : Exception
     }
 }
 
-/// returns number of failed prepare
-private size_t prepareMethods(Connection conn, in Method[string] methods)
+/// returns number of successfully prepared methods
+private size_t prepareMethods(Connection conn, ref ConnFactoryArgs args)
 {
-    size_t failedCount = 0;
+    size_t count = 0;
 
-    foreach(const m; methods.byValue)
+    foreach(const m; args.methods.byValue)
     {
         trace("try to prepare method ", m.name);
 
@@ -250,6 +292,7 @@ private size_t prepareMethods(Connection conn, in Method[string] methods)
             conn.prepareMethod(m);
 
             trace("method ", m.name, " prepared");
+            count++;
         }
         catch(ConnectionException e)
         {
@@ -258,11 +301,10 @@ private size_t prepareMethods(Connection conn, in Method[string] methods)
         catch(Exception e)
         {
             warning(e.msg, ", skipping preparing of method ", m.name);
-            failedCount++;
         }
     }
 
-    return failedCount;
+    return count;
 }
 
 private void prepareMethod(Connection conn, in Method method)
