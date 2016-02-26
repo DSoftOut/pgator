@@ -180,6 +180,9 @@ int main(string[] args)
             {
                 auto rpcRequest = RpcRequest.toRpcRequest(req);
 
+                if(rpcRequest.method !in methods)
+                    throw new HttpException(HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
+
                 {
                     // exec prepared statement
                     QueryParams qp;
@@ -199,7 +202,7 @@ int main(string[] args)
 
                 res.writeJsonBody("it works!");
             }
-            catch(Exception e)
+            catch(HttpException e)
             {
                 res.writeJsonBody("error! "~e.msg);
             }
