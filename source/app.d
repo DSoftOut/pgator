@@ -176,9 +176,11 @@ int main(string[] args)
 
         void httpRequestHandler(scope HTTPServerRequest req, HTTPServerResponse res)
         {
+            RpcRequest rpcRequest;
+
             try
             {
-                auto rpcRequest = RpcRequest.toRpcRequest(req);
+                rpcRequest = RpcRequest.toRpcRequest(req);
 
                 if(rpcRequest.method !in methods)
                     throw new HttpException(HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
@@ -204,7 +206,7 @@ int main(string[] args)
             }
             catch(HttpException e)
             {
-                res.writeJsonBody("error! "~e.msg);
+                res.writeJsonBody("error! "~e.msg~" "~"id: "~rpcRequest.id.to!string);
             }
         }
 
