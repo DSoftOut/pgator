@@ -191,9 +191,13 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 
             res.writeJsonBody("it works!");
         }
-        catch(HttpException e) // FIXME: also need to check connection errors
+        catch(HttpException e)
         {
             res.writeJsonBody("error! "~e.msg~" "~"id: "~rpcRequest.id.to!string, e.status);
+        }
+        catch(ConnectionException e)
+        {
+            res.writeJsonBody("connection error! "~e.msg~" "~"id: "~rpcRequest.id.to!string, HTTPStatus.internalServerError);
         }
     }
 
