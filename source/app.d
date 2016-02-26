@@ -99,7 +99,7 @@ int main(string[] args)
     }
 }
 
-void loop(Bson cfg, PostgresClient client, in Method[string] methods)
+void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
 {
     // http-server
     import vibe.http.router;
