@@ -184,11 +184,37 @@ int main(string[] args)
 
         void httpRequestHandler(scope HTTPServerRequest req, HTTPServerResponse res)
         {
-            auto rr = RpcRequest.toRpcRequest(req);
+            try
+            {
+                auto rpcRequest = RpcRequest.toRpcRequest(req);
 
-            res.writeJsonBody("it works!"~
-                "named params: "~rr.namedParams.to!string~
-                "positional params: "~rr.positionParams.to!string);
+                {
+                    // exec prepared statement
+                    QueryParams qp;
+                    qp.preparedStatementName = rpcRequest.method;
+
+                    if(rpcRequest.positionParams.length == 0)
+                    {
+                    }
+                    else
+                    {
+                        qp.args.length = rpcRequest.positionParams.length;
+
+                        foreach(i, ref a; qp.args)
+                        {
+                            a.value = rpcRequest.positionParams[i];
+                        }
+                    }
+
+                    auto r = client.execPreparedStatement(qp);
+                }
+
+                res.writeJsonBody("it works!");
+            }
+            catch(Exception e)
+            {
+                res.writeJsonBody("error! "~e.msg);
+            }
         }
 
         auto settings = new HTTPServerSettings;
