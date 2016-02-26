@@ -3,7 +3,7 @@ import std.getopt;
 import std.experimental.logger;
 import vibe.http.server;
 import vibe.db.postgresql;
-import dpq2;
+static import dpq2;
 
 shared static this()
 {
@@ -66,11 +66,25 @@ private struct ConnFactoryArgs
     string tableName;
 }
 
-private Connection createNewConnection(string connString, ConnFactoryArgs fArgs)
+class Connection : dpq2.Connection
+{
+    ConnFactoryArgs* fArgs;
+
+    override void connectStart() @trusted
+    {
+        super.connectStart;
+
+        prepareMethods(this, *fArgs);
+    }
+}
+
+private Connection createNewConnection(string connString, ref ConnFactoryArgs fArgs)
 {
         trace("creating new connection");
         auto c = new Connection;
         c.connString = connString;
+        c.fArgs = &fArgs;
+
         c.connectStart;
         trace("new connection is started");
 
@@ -100,7 +114,7 @@ int main(string[] args)
     }
 
     // connect to db
-    auto client = new PostgresClient(connString, maxConn, false, &connFactory);
+    auto client = new PostgresClient!Connection(connString, maxConn, false, &connFactory);
     auto sqlPgatorTable = cfg["sqlPgatorTable"].get!string;
 
     // read pgator_rpc
@@ -141,7 +155,7 @@ int main(string[] args)
     }
 }
 
-void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
+void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] methods)
 {
     // http-server
     import vibe.http.router;
