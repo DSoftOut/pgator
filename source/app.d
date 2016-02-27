@@ -178,7 +178,7 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
                 rpcRequest = RpcRequest.toRpcRequest(req);
 
                 if(rpcRequest.method !in methods)
-                    throw new RequestException(HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
+                    throw new RequestException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
 
                 {
                     // exec prepared statement
@@ -215,7 +215,7 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
             }
             catch(ConnectionException e)
             {
-                throw new RequestException(HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
+                throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
 
             res.writeJsonBody(reply);
@@ -226,6 +226,7 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 
             err["id"] = rpcRequest.id; // TODO: if id == null it is no need to reply at all
             err["message"] = e.msg;
+            err["code"] = e.code;
 
             res.writeJsonBody(err, e.status);
         }
@@ -250,7 +251,7 @@ string[] named2positionalParameters(in Method method, in string[string] namedPar
         if(argName in namedParams)
             ret[i] = namedParams[argName];
         else
-            throw new RequestException(HTTPStatus.badRequest, "Missing required parameter "~argName, __FILE__, __LINE__);
+            throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Missing required parameter "~argName, __FILE__, __LINE__);
     }
 
     return ret;
@@ -271,12 +272,12 @@ struct RpcRequest
     static RpcRequest toRpcRequest(scope HTTPServerRequest req)
     {
         if(req.contentType != "application/json")
-            throw new RequestException(HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
+            throw new RequestException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
 
         Json j = req.json;
 
         if(j["jsonrpc"] != "2.0")
-            throw new RequestException(HTTPStatus.badRequest, "Protocol version should be \"2.0\"", __FILE__, __LINE__);
+            throw new RequestException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Protocol version should be \"2.0\"", __FILE__, __LINE__);
 
         RpcRequest r;
 
@@ -291,7 +292,7 @@ struct RpcRequest
                 foreach(string key, value; params)
                 {
                     if(value.type == Json.Type.object || value.type == Json.Type.array)
-                        throw new RequestException(HTTPStatus.badRequest, "Unexpected named parameter type", __FILE__, __LINE__);
+                        throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected named parameter type", __FILE__, __LINE__);
 
                     r.namedParams[key] = value.to!string;
                 }
@@ -301,27 +302,49 @@ struct RpcRequest
                 foreach(value; params)
                 {
                     if(value.type == Json.Type.object || value.type == Json.Type.array)
-                        throw new RequestException(HTTPStatus.badRequest, "Unexpected positional parameter type", __FILE__, __LINE__);
+                        throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected positional parameter type", __FILE__, __LINE__);
 
                     r.positionParams ~= value.to!string;
                 }
                 break;
 
             default:
-                throw new RequestException(HTTPStatus.badRequest, "Unexpected params type", __FILE__, __LINE__);
+                throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected params type", __FILE__, __LINE__);
         }
 
         return r;
     }
 }
 
+enum JsonRpcErrorCode : short
+{
+    /// Invalid JSON was received by the server.
+    /// An error occurred on the server while parsing the JSON text
+    parseError = -32700,
+
+    /// The JSON sent is not a valid Request object.
+    invalidRequest = -32600,
+
+    /// Method not found
+    methodNotFound = -32601,
+
+    /// Invalid params
+    invalidParams = -32602,
+
+    /// Internal error
+    internalError = -32603,
+}
+
 class RequestException : Exception
 {
+    const JsonRpcErrorCode code;
     const HTTPStatus status;
 
-    this(HTTPStatus status, string msg, string file, size_t line) pure
+    this(JsonRpcErrorCode code, HTTPStatus status, string msg, string file, size_t line) pure
     {
+        this.code = code;
         this.status = status;
+
         super(msg, file, line);
     }
 }
