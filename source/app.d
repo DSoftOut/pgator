@@ -171,37 +171,40 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 
         try
         {
-            rpcRequest = RpcRequest.toRpcRequest(req);
-
-            if(rpcRequest.method !in methods)
-                throw new RequestException(HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
-
+            try
             {
-                // exec prepared statement
-                QueryParams qp;
-                qp.preparedStatementName = rpcRequest.method;
+                rpcRequest = RpcRequest.toRpcRequest(req);
 
-                string[] posParams;
+                if(rpcRequest.method !in methods)
+                    throw new RequestException(HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
 
-                if(rpcRequest.positionParams.length == 0)
-                    posParams = named2positionalParameters(methods[rpcRequest.method], rpcRequest.namedParams);
-                else
-                    posParams = rpcRequest.positionParams;
+                {
+                    // exec prepared statement
+                    QueryParams qp;
+                    qp.preparedStatementName = rpcRequest.method;
 
-                qp.argsFromArray = posParams;
+                    string[] posParams;
 
-                auto r = client.execPreparedStatement(qp);
+                    if(rpcRequest.positionParams.length == 0)
+                        posParams = named2positionalParameters(methods[rpcRequest.method], rpcRequest.namedParams);
+                    else
+                        posParams = rpcRequest.positionParams;
+
+                    qp.argsFromArray = posParams;
+
+                    auto r = client.execPreparedStatement(qp);
+                }
+
+                res.writeJsonBody("it works!");
             }
-
-            res.writeJsonBody("it works!");
+            catch(ConnectionException e)
+            {
+                throw new RequestException(HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
+            }
         }
         catch(RequestException e)
         {
             res.writeJsonBody("error! "~e.msg~" "~"id: "~rpcRequest.id.to!string, e.status);
-        }
-        catch(ConnectionException e)
-        {
-            res.writeJsonBody("connection error! "~e.msg~" "~"id: "~rpcRequest.id.to!string, HTTPStatus.internalServerError);
         }
     }
 
