@@ -171,6 +171,8 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 
         try
         {
+            Bson reply = Bson.emptyObject;
+
             try
             {
                 rpcRequest = RpcRequest.toRpcRequest(req);
@@ -183,24 +185,40 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
                     QueryParams qp;
                     qp.preparedStatementName = rpcRequest.method;
 
-                    string[] posParams;
+                    {
+                        string[] posParams;
 
-                    if(rpcRequest.positionParams.length == 0)
-                        posParams = named2positionalParameters(methods[rpcRequest.method], rpcRequest.namedParams);
-                    else
-                        posParams = rpcRequest.positionParams;
+                        if(rpcRequest.positionParams.length == 0)
+                            posParams = named2positionalParameters(methods[rpcRequest.method], rpcRequest.namedParams);
+                        else
+                            posParams = rpcRequest.positionParams;
 
-                    qp.argsFromArray = posParams;
+                        qp.argsFromArray = posParams;
+                    }
 
-                    auto r = client.execPreparedStatement(qp);
+                    {
+                        auto answer = client.execPreparedStatement(qp);
+
+                        foreach(colNum; 0 .. answer.columnCount)
+                        {
+                            Bson[] col = new Bson[answer.length];
+
+                            foreach(rowNum; 0 .. answer.length)
+                            {
+                                col[rowNum] = answer[rowNum][colNum].toBson;
+                            }
+
+                            reply[answer.columnName(colNum)] = col;
+                        }
+                    }
                 }
-
-                res.writeJsonBody("it works!");
             }
             catch(ConnectionException e)
             {
                 throw new RequestException(HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
+
+            res.writeJsonBody(reply.toJson);
         }
         catch(RequestException e)
         {
