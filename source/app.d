@@ -196,6 +196,7 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
                         qp.argsFromArray = posParams;
                     }
 
+                    try
                     {
                         auto answer = client.execPreparedStatement(qp);
 
@@ -210,6 +211,10 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 
                             reply[answer.columnName(colNum)] = col;
                         }
+                    }
+                    catch(AnswerCreationException e)
+                    {
+                        throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__, e);
                     }
                 }
             }
@@ -227,6 +232,19 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
             err["id"] = rpcRequest.id; // TODO: if id == null it is no need to reply at all
             err["message"] = e.msg;
             err["code"] = e.code;
+
+            if(e.answerException !is null)
+            {
+                Bson hint =    Bson(e.answerException.resultErrorField(PG_DIAG_MESSAGE_HINT));
+                Bson detail =  Bson(e.answerException.resultErrorField(PG_DIAG_MESSAGE_DETAIL));
+                Bson errcode = Bson(e.answerException.resultErrorField(PG_DIAG_SQLSTATE));
+
+                err["data"] = Bson([
+                    "hint": hint,
+                    "detail": detail,
+                    "errcode": errcode
+                ]);
+            }
 
             res.writeJsonBody(err, e.status);
         }
@@ -339,11 +357,13 @@ class RequestException : Exception
 {
     const JsonRpcErrorCode code;
     const HTTPStatus status;
+    const AnswerCreationException answerException;
 
-    this(JsonRpcErrorCode code, HTTPStatus status, string msg, string file, size_t line) pure
+    this(JsonRpcErrorCode code, HTTPStatus status, string msg, string file, size_t line, AnswerCreationException ae = null) pure
     {
         this.code = code;
         this.status = status;
+        this.answerException = ae;
 
         super(msg, file, line);
     }
