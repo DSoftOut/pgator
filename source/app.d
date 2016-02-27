@@ -1,4 +1,4 @@
-import rpc_table;
+import pgator.rpc_table;
 import std.getopt;
 import std.experimental.logger;
 import vibe.http.server;

@@ -1,4 +1,4 @@
-module rpc_table;
+module pgator.rpc_table;
 
 import dpq2.result;
 import std.experimental.logger;
