@@ -7,3 +7,11 @@ dependency "vibe-d-postgresql" version="~master"
 dependency "vibe-d:http" version="~>0.7.27"
 buildType "release"
 targetType "executable"
+
+subPackage {
+    name "test"
+    sourcePaths "source/test"
+    targetType "executable"
+    versions "IntegrationTest"
+    libs "curl"
+}

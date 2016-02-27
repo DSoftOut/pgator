@@ -1,11 +1,18 @@
 // integration tests
 module pgator.test;
 
+version(IntegrationTest)
+{
+
 import std.conv;
 import std.net.curl;
 
-void __integration_test(string httpHost, ushort port)
+void main(string[] args)
 {
-    auto content = post(httpHost~":"~port.to!string~"/", [1,2,3,4]);
+    string httpHost = args[0];
+    string port = args[1];
+
+    auto content = post(httpHost~":"~port~"/", [1,2,3,4]);
 }
 
+}
