@@ -222,7 +222,12 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
         }
         catch(RequestException e)
         {
-            res.writeJsonBody("error! "~e.msg~" "~"id: "~rpcRequest.id.to!string, e.status);
+            Bson err = Bson.emptyObject;
+
+            err["id"] = rpcRequest.id; // TODO: if id == null it is no need to reply at all
+            err["message"] = e.msg;
+
+            res.writeJsonBody(err, e.status);
         }
     }
 
