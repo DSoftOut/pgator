@@ -218,7 +218,7 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
                 throw new RequestException(HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
 
-            res.writeJsonBody(reply.toJson);
+            res.writeJsonBody(reply);
         }
         catch(RequestException e)
         {
