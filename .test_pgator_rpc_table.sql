@@ -14,7 +14,7 @@ CREATE TABLE pgator_calls
 );
 
 CREATE OR REPLACE FUNCTION show_error(message text, internal boolean default false, error_code text default 'P0001'::text)
-RTURNS void LANGUAGE plpgsql AS $_$
+RETURNS void LANGUAGE plpgsql AS $_$
 begin
         if internal then
                 raise '%', message using errcode = error_code;
@@ -27,5 +27,7 @@ $_$;
 INSERT INTO pgator_calls VALUES
 ('echo', 'SELECT $1::text as echoed', '{"value_for_echo"}', false),
 ('echo2', 'SELECT $1::text', '{"value_for_echo"}', NULL),
-('wrong_sql_statement', 'wrong SQL statement', '{}', false),
+('wrong_sql_statement', 'wrong SQL statement', '{}', false);
+
+INSERT INTO pgator_calls VALUES
 ('show_error', 'SELECT show_error($1, $2, $3)', '{"msg", "internalFlag", "errorCode"}');
