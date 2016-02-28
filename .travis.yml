@@ -1,0 +1,14 @@
+language: d
+
+d:
+  - dmd
+  #- gdc is disabled, waiting for std.experimental.logger
+  - ldc
+
+addons:
+  postgresql: 9.4
+
+services: postgresql
+
+script:
+  - ./.test.sh "dbname=pgator-test"
