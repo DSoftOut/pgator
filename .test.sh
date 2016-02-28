@@ -1,6 +1,5 @@
 #!/bin/bash
 set -ve
-shopt -s huponexit
 
 CONNINFO=`jq '.sqlServer.connString' ${1}`
 CONNINFO_UNQUOTED=`echo $CONNINFO | xargs`
@@ -15,3 +14,5 @@ ADDRESS_UNQUOTED=`echo $ADDRESS | xargs`
 PORT=`jq '.listenPort' ${1}`
 
 dub run pgator:test --build=unittest-cov -- "$ADDRESS_UNQUOTED" "$PORT" || true
+
+kill %%
