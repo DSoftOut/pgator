@@ -58,7 +58,7 @@ version(IntegrationTest)
     alias QA = QueryAnswer;
 
     QueryAnswer[] tests = [
-        QA(__LINE__,
+QA(__LINE__,
 q"EOS
 {
     "jsonrpc": "2.0",
@@ -74,8 +74,9 @@ q"EOS
     "id": 1
 }
 EOS"
-        ),
-        QA(__LINE__,
+),
+
+QA(__LINE__,
 q"EOS
 {
     "jsonrpc": "2.0",
@@ -89,6 +90,21 @@ q"EOS
     "echoed":["123"],
 }
 EOS" // FIXME: should be empty answer only with HTTP code
-        ),
+),
+
+QA(__LINE__,
+q"EOS
+{
+    "method": "echo",
+    "params": [ 123 ],
+}
+EOS",
+
+q"EOS
+{
+}
+EOS", // FIXME: should be empty answer only with HTTP code
+400
+)
     ];
 }
