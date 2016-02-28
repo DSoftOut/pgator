@@ -171,14 +171,14 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 
         try
         {
-            Bson reply = Bson.emptyObject;
-
             try
             {
                 rpcRequest = RpcRequest.toRpcRequest(req);
 
                 if(rpcRequest.method !in methods)
                     throw new RequestException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
+
+                Bson reply = Bson(["id": rpcRequest.id]);
 
                 {
                     // exec prepared statement
@@ -211,6 +211,8 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 
                             reply[answer.columnName(colNum)] = col;
                         }
+
+                        res.writeJsonBody(reply);
                     }
                     catch(AnswerCreationException e)
                     {
@@ -222,8 +224,6 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
             {
                 throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
-
-            res.writeJsonBody(reply);
         }
         catch(RequestException e)
         {
@@ -280,7 +280,7 @@ string[] named2positionalParameters(in Method method, in string[string] namedPar
 
 struct RpcRequest
 {
-    Json id;
+    Bson id;
     string method;
     string[string] namedParams = null;
     string[] positionParams = null;
