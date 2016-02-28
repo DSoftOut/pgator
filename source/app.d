@@ -247,6 +247,9 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
             }
 
             res.writeJsonBody(err, e.status);
+
+            import vibe.core.log;
+            logWarn(err.toString);
         }
     }
 

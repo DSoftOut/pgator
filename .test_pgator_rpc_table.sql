@@ -1,6 +1,6 @@
-DROP TABLE IF EXISTS pgator_rpc;
+DROP TABLE IF EXISTS pgator_calls;
 
-CREATE TABLE pgator_rpc
+CREATE TABLE pgator_calls
 (
   method text NOT NULL,
   sql_query text NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE pgator_rpc
   --read_only boolean NOT NULL,
   --commentary text,
 
-  CONSTRAINT pgator_rpc_pkey PRIMARY KEY (method)
+  CONSTRAINT pgator_calls_pkey PRIMARY KEY (method)
 );
 
 CREATE OR REPLACE FUNCTION show_error(message text, internal boolean default false, error_code text default 'P0001'::text)
@@ -24,7 +24,7 @@ begin
 end;
 $_$;
 
-INSERT INTO pgator_rpc VALUES
+INSERT INTO pgator_calls VALUES
 ('echo', 'SELECT $1::text as echoed', '{"value_for_echo"}', false),
 ('echo2', 'SELECT $1::text', '{"value_for_echo"}', NULL),
 ('wrong_sql_statement', 'wrong SQL statement', '{}', false),
