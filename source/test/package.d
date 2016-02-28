@@ -18,7 +18,17 @@ version(IntegrationTest)
 
         foreach(t; tests)
         {
-            auto p = post(url, t.query, http);
+            try
+            {
+                auto p = post(url, t.query, http);
+            }
+            catch(CurlException e)
+            {
+                import std.algorithm.searching;
+
+                if(e.msg.canFind("status code 400 (Bad Request)") && t.httpCode != 400)
+                    throw new Exception("Test line "~t.line.to!string~": "~e.msg, __FILE__, __LINE__);
+            }
         }
     }
 
