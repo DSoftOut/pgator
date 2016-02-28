@@ -11,32 +11,33 @@ version(IntegrationTest)
         string httpHost = args[1];
         string port = args[2];
 
-        HTTP http = HTTP("test client");
-
-        const url = "http://"~httpHost~":"~port~"/";
+        HTTP http = HTTP();
+        http.method = HTTP.Method.post;
+        http.url = "http://"~httpHost~":"~port~"/";
         http.addRequestHeader("Content-Type", "application/json");
 
         foreach(t; tests)
         {
             try
             {
-                try
-                {
-                    auto p = post(url, t.query, http);
+                import vibe.data.json;
 
-                    import vibe.data.json;
-                    Json result = parseJsonString(p.to!string);
-                    Json expected = parseJsonString(t.expectedAnswer);
+                http.postData = parseJsonString(t.query).toString;
 
-                    enforce(result == expected, "result: "~result.toString~", expected: "~expected.toString);
-                }
-                catch(CurlException e)
-                {
-                    import std.algorithm.searching;
+                Json result;
+                http.onReceive = (ubyte[] data) {
+                    result = (cast(const(char)[]) data).to!string.parseJsonString;
+                    return data.length;
+                };
 
-                    if(e.msg.canFind("status code 400 (Bad Request)") && t.httpCode != 400)
-                        throw new Exception(e.msg, __FILE__, __LINE__);
-                }
+                http.perform();
+
+                if(http.statusLine.code != t.httpCode)
+                    throw new Exception("HTTP code mismatch: "~http.statusLine.toString~", expected: "~t.httpCode.to!string~". Result body: "~result.toString, __FILE__, __LINE__);
+
+                Json expected = parseJsonString(t.expectedAnswer);
+
+                enforce(result == expected, "result: "~result.toString~", expected: "~expected.toString);
             }
             catch(Exception e)
             {
@@ -101,8 +102,7 @@ q"EOS
 EOS",
 
 q"EOS
-{
-}
+{"code":-32600, "message":"Protocol version should be \"2.0\""}
 EOS", // FIXME: should be empty answer only with HTTP code
 400
 )
