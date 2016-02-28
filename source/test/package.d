@@ -8,14 +8,18 @@ version(IntegrationTest)
 
     void main(string[] args)
     {
-        string httpHost = args[0];
-        string port = args[1];
+        string httpHost = args[1];
+        string port = args[2];
 
         HTTP http = HTTP("test client");
 
-        http.url = "http://"~httpHost~":"~port~"/";
-        http.method = HTTP.Method.post;
+        const url = "http://"~httpHost~":"~port~"/";
         http.addRequestHeader("Content-Type", "application/json");
+
+        foreach(t; tests)
+        {
+            auto p = post(url, t.query, http);
+        }
     }
 
     struct QueryAnswer
@@ -44,9 +48,4 @@ EOS",
         ),
         QA(__LINE__, "asd", "qwe", 211),
     ];
-
-    foreach(t; tests)
-    {
-        http.
-    }
 }
