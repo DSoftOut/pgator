@@ -20,20 +20,23 @@ version(IntegrationTest)
         {
             try
             {
-                auto p = post(url, t.query, http);
+                try
+                {
+                    auto p = post(url, t.query, http);
 
-                import vibe.data.json;
-                Json result = parseJsonString(p.to!string);
-                Json expected = parseJsonString(t.expectedAnswer);
+                    import vibe.data.json;
+                    Json result = parseJsonString(p.to!string);
+                    Json expected = parseJsonString(t.expectedAnswer);
 
-                enforce(result == expected, "result: "~result.toString~", expected: "~expected.toString);
-            }
-            catch(CurlException e)
-            {
-                import std.algorithm.searching;
+                    enforce(result == expected, "result: "~result.toString~", expected: "~expected.toString);
+                }
+                catch(CurlException e)
+                {
+                    import std.algorithm.searching;
 
-                if(e.msg.canFind("status code 400 (Bad Request)") && t.httpCode != 400)
-                    throw new Exception(e.msg, __FILE__, __LINE__);
+                    if(e.msg.canFind("status code 400 (Bad Request)") && t.httpCode != 400)
+                        throw new Exception(e.msg, __FILE__, __LINE__);
+                }
             }
             catch(Exception e)
             {
@@ -67,8 +70,7 @@ EOS",
 
 q"EOS
 {
-    "params": [ 123 ],
-    "id": 1
+    "echoed":["123"]
 }
 EOS"
         ),
