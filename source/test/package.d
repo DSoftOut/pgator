@@ -75,6 +75,20 @@ q"EOS
 }
 EOS"
         ),
-        QA(__LINE__, "asd", "qwe", 211),
+        QA(__LINE__,
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo",
+    "params": [ 123 ],
+}
+EOS",
+
+q"EOS
+{
+    "echoed":["123"],
+}
+EOS" // FIXME: should be empty answer only with HTTP code
+        ),
     ];
 }
