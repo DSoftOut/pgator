@@ -2,8 +2,8 @@ language: d
 
 d:
   - dmd
-  #- gdc is disabled, waiting for std.experimental.logger
-  - ldc
+  #- gdc disabled, waiting for std.experimental.logger
+  #- ldc disabled, "logInfo: command not found"
 
 addons:
   postgresql: 9.4
