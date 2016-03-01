@@ -185,8 +185,8 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 
                 Bson reply = Bson(["id": rpcRequest.id]);
 
+                // exec prepared statement
                 {
-                    // exec prepared statement
                     QueryParams qp;
                     qp.preparedStatementName = rpcRequest.method;
 

@@ -24,19 +24,18 @@ version(IntegrationTest)
 
                 http.postData = parseJsonString(t.query).toString;
 
-                Json result;
+                string resultBody;
                 http.onReceive = (ubyte[] data) {
-                    auto s = (cast(const(char)[]) data).to!string;
-                    trace("received by Curl: "~s);
-                    result = s.parseJsonString;
-                    return s.length;
+                    resultBody ~= (cast(char[]) data).to!string;
+                    return data.length;
                 };
 
                 http.perform();
 
                 if(http.statusLine.code != t.httpCode)
-                    throw new Exception("HTTP code mismatch: "~http.statusLine.toString~", expected: "~t.httpCode.to!string~". Result body: "~result.toString, __FILE__, __LINE__);
+                    throw new Exception("HTTP code mismatch: "~http.statusLine.toString~", expected: "~t.httpCode.to!string~"\nResult body:\n"~resultBody, __FILE__, __LINE__);
 
+                Json result = resultBody.parseJsonString;
                 Json expected = parseJsonString(t.expectedAnswer);
 
                 enforce(result == expected, "result: "~result.toString~", expected: "~expected.toString);
@@ -119,7 +118,7 @@ q"EOS
 EOS",
 
 q"EOS
-{""}
+{"col1":["val1"],"id":1,"col2":["val2"]}
 EOS"
 )
 
