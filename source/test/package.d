@@ -118,12 +118,32 @@ q"EOS
 EOS",
 
 q"EOS
-{"col1":["val1"],"id":1,"col2":["val2"]}
+{
+    "id":1,
+    "col1":["val1"],
+    "col2":["val2"]
+}
+EOS"
+),
+
+QA(__LINE__,
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "two_lines"
+}
+EOS",
+
+q"EOS
+{
+    "id":1,
+    "column1":[1,2],
+    "column2":[3,4],
+    "column3":[5,6]
+}
 EOS"
 )
 
 ];
 }
-
-
-//one_row_flag
