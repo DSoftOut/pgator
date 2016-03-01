@@ -191,12 +191,18 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
                     qp.preparedStatementName = rpcRequest.method;
 
                     {
+                        const method = methods[rpcRequest.method];
                         string[] posParams;
 
-                        if(rpcRequest.positionParams.length == 0)
-                            posParams = named2positionalParameters(methods[rpcRequest.method], rpcRequest.namedParams);
-                        else
+                        if(rpcRequest.positionParams.length == 0) // named parameters
+                            posParams = named2positionalParameters(method, rpcRequest.namedParams);
+                        else // positional parameters
+                        {
+                            if(rpcRequest.positionParams.length != method.argsNames.length)
+                                throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number mismatch", __FILE__, __LINE__);
+
                             posParams = rpcRequest.positionParams;
+                        }
 
                         qp.argsFromArray = posParams;
                     }

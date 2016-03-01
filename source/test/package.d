@@ -113,7 +113,8 @@ q"EOS
 {
     "jsonrpc": "2.0",
     "id": 1,
-    "method": "one_line"
+    "method": "one_line",
+    "params": ["val1", "val2"]
 }
 EOS",
 
