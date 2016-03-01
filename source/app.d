@@ -150,16 +150,12 @@ int main(string[] args)
         assert(conn.__conn !is null);
         conn.prepareStatements();
 
-        if(testStatements)
-        {
-            return !fArgs.failedCount ? 0 : 2;
-        }
-        else
+        if(!testStatements)
         {
             loop(cfg, client, fArgs.methods);
-
-            return 0;
         }
+
+        return fArgs.failedCount ? 2 : 0;
     }
     catch(Exception e)
     {

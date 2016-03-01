@@ -39,7 +39,7 @@ Method[string] readMethods(immutable Answer answer)
 
         Method m;
 
-        // Reading of necessary parameters
+        // Reading of required parameters
         try
         {
             if(r["method"].isNull)
