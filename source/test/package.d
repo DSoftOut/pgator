@@ -26,8 +26,10 @@ version(IntegrationTest)
 
                 Json result;
                 http.onReceive = (ubyte[] data) {
-                    result = (cast(const(char)[]) data).to!string.parseJsonString;
-                    return data.length;
+                    auto s = (cast(const(char)[]) data).to!string;
+                    trace("received by Curl: "~s);
+                    result = s.parseJsonString;
+                    return s.length;
                 };
 
                 http.perform();
@@ -97,7 +99,7 @@ QA(__LINE__,
 q"EOS
 {
     "method": "echo",
-    "params": [ 123 ],
+    "params": [ 123 ]
 }
 EOS",
 
@@ -110,15 +112,15 @@ EOS", // FIXME: should be empty answer only with HTTP code
 QA(__LINE__,
 q"EOS
 {
-    "method": "one_row_flag",
-    "params": [],
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "one_line"
 }
 EOS",
 
 q"EOS
-{"code":-32600, "message":"Protocol version should be \"2.0\""}
-EOS", // FIXME: should be empty answer only with HTTP code
-400
+{""}
+EOS"
 )
 
 ];

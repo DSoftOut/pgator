@@ -314,6 +314,9 @@ struct RpcRequest
 
         switch(params.type)
         {
+            case Json.Type.undefined: // params omitted
+                break;
+
             case Json.Type.object:
                 foreach(string key, value; params)
                 {
