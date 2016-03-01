@@ -5,7 +5,9 @@ CONNINFO=`jq '.sqlServer.connString' ${1}`
 CONNINFO_UNQUOTED=`echo $CONNINFO | xargs`
 
 dub build --build=unittest
-psql -f .test_pgator_rpc_table.sql "$CONNINFO_UNQUOTED"
+
+# Setup Postgres test scheme
+psql -v ON_ERROR_STOP=ON -f .test_pgator_rpc_table.sql "$CONNINFO_UNQUOTED"
 
 # Test calls table by preparing statements
 `./pgator --config=${1} --debug=true --test=true; if [ $? -ne 2 ]; then exit 1; fi` # Some statements should be bad
