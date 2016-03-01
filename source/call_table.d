@@ -57,17 +57,22 @@ Method[string] readMethods(immutable Answer answer)
 
             if(r["args"].isNull)
             {
-                throw new Exception("args is NULL", __FILE__, __LINE__);
+                throw new Exception("args[] is NULL", __FILE__, __LINE__);
             }
             else
             {
                 auto arr = r["args"].asArray;
 
                 if(arr.dimsSize.length > 1)
-                    throw new Exception("Array of args should be one dimensional", __FILE__, __LINE__);
+                    throw new Exception("args[] should be one dimensional", __FILE__, __LINE__);
 
                 foreach(ref v; rangify(arr))
+                {
+                    if(v.isNull || v.as!string.length == 0)
+                        throw new Exception("args[] contains NULL or empty string", __FILE__, __LINE__);
+
                     m.argsNames ~= v.as!string;
+                }
             }
         }
         catch(Exception e)
