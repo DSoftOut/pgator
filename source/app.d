@@ -211,7 +211,13 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 
                             foreach(rowNum; 0 .. answer.length)
                             {
-                                col[rowNum] = answer[rowNum][colNum].toBson;
+                                try
+                                    col[rowNum] = answer[rowNum][colNum].toBson;
+                                catch(AnswerConvException e)
+                                {
+                                    e.msg = "Column "~answer.columnName(colNum)~": "~e.msg;
+                                    throw e;
+                                }
                             }
 
                             reply[answer.columnName(colNum)] = col;
