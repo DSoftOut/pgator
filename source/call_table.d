@@ -17,7 +17,7 @@ Method[string] readMethods(immutable Answer answer)
 
     foreach(ref r; rangify(answer))
     {
-        trace("found method row: ", r);
+        trace("found row: ", r);
 
         // optional params handler
         void getOptional(T)(string sqlName, ref T result)
@@ -39,15 +39,27 @@ Method[string] readMethods(immutable Answer answer)
 
         Method m;
 
+        // Reading of necessary parameters
         try
         {
+            if(r["method"].isNull)
+                throw new Exception("Method name is NULL", __FILE__, __LINE__);
+
             m.name = r["method"].as!string;
 
             if(m.name.length == 0)
                 throw new Exception("Method name is empty string", __FILE__, __LINE__);
 
+            if(r["sql_query"].isNull)
+                throw new Exception("sql_query is NULL", __FILE__, __LINE__);
+
             m.statement = r["sql_query"].as!string;
 
+            if(r["args"].isNull)
+            {
+                throw new Exception("args is NULL", __FILE__, __LINE__);
+            }
+            else
             {
                 auto arr = r["args"].asArray;
 
@@ -57,7 +69,16 @@ Method[string] readMethods(immutable Answer answer)
                 foreach(ref v; rangify(arr))
                     m.argsNames ~= v.as!string;
             }
+        }
+        catch(Exception e)
+        {
+            fatal(e.msg, ", failed on method ", m.name);
+            break;
+        }
 
+        // Reading of optional parameters
+        try
+        {
             getOptional("one_row_flag", m.oneRowFlag);
         }
         catch(Exception e)
