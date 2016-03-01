@@ -110,53 +110,62 @@ private Connection createNewConnection(string connString, ref ConnFactoryArgs fA
 
 int main(string[] args)
 {
-    readOpts(args);
-    Bson cfg = readConfig();
-
-    auto server = cfg["sqlServer"];
-    const connString = server["connString"].get!string;
-    auto maxConn = to!uint(server["maxConn"].get!long);
-
-    ConnFactoryArgs fArgs;
-
-    Connection connFactory()
+    try
     {
-        return createNewConnection(connString, fArgs);
+        readOpts(args);
+        Bson cfg = readConfig();
+
+        auto server = cfg["sqlServer"];
+        const connString = server["connString"].get!string;
+        auto maxConn = to!uint(server["maxConn"].get!long);
+
+        ConnFactoryArgs fArgs;
+
+        Connection connFactory()
+        {
+            return createNewConnection(connString, fArgs);
+        }
+
+        // connect to db
+        auto client = new PostgresClient!Connection(connString, maxConn, false, &connFactory);
+        auto sqlPgatorTable = cfg["sqlPgatorTable"].get!string;
+
+        // read pgator_rpc
+        fArgs.tableName = client.escapeIdentifier(sqlPgatorTable);
+        QueryParams p;
+        p.sqlCommand = "SELECT * FROM "~fArgs.tableName;
+        auto answer = client.execStatement(p, dur!"seconds"(10));
+        fArgs.rpcTableLength = answer.length;
+
+        fArgs.methods = readMethods(answer);
+        fArgs.methodsLoadedFlag = true;
+
+        {
+            size_t failed = fArgs.rpcTableLength - fArgs.methods.length;
+            trace("Number of methods in the table ", fArgs.tableName,": ", answer.length, ", failed to load into pgator: ", failed);
+        }
+
+        // prepare statements for previously used connection
+        auto conn = client.lockConnection();
+        assert(conn.__conn !is null);
+        conn.prepareStatements();
+
+        if(testStatements)
+        {
+            return !fArgs.failedCount ? 0 : 2;
+        }
+        else
+        {
+            loop(cfg, client, fArgs.methods);
+
+            return 0;
+        }
     }
-
-    // connect to db
-    auto client = new PostgresClient!Connection(connString, maxConn, false, &connFactory);
-    auto sqlPgatorTable = cfg["sqlPgatorTable"].get!string;
-
-    // read pgator_rpc
-    fArgs.tableName = client.escapeIdentifier(sqlPgatorTable);
-    QueryParams p;
-    p.sqlCommand = "SELECT * FROM "~fArgs.tableName;
-    auto answer = client.execStatement(p, dur!"seconds"(10));
-    fArgs.rpcTableLength = answer.length;
-
-    fArgs.methods = readMethods(answer);
-    fArgs.methodsLoadedFlag = true;
-
+    catch(Exception e)
     {
-        size_t failed = fArgs.rpcTableLength - fArgs.methods.length;
-        trace("Number of methods in the table ", fArgs.tableName,": ", answer.length, ", failed to load into pgator: ", failed);
-    }
+        fatal(e.msg);
 
-    // prepare statements for previously used connection
-    auto conn = client.lockConnection();
-    assert(conn.__conn !is null);
-    conn.prepareStatements();
-
-    if(testStatements)
-    {
-        return !fArgs.failedCount ? 0 : 1;
-    }
-    else
-    {
-        loop(cfg, client, fArgs.methods);
-
-        return 0;
+        return 1;
     }
 }
 
