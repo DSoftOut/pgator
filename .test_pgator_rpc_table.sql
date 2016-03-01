@@ -34,7 +34,7 @@ INSERT INTO pgator_tests VALUES
 INSERT INTO pgator_tests
 (method, sql_query, args)
 VALUES
-('one_line', 'SELECT $1::text as col1, $2::text as col2', '{''val1'', ''val2''}'),
+('one_line', 'SELECT $1::text as col1, $2::text as col2', '{"arg1", "arg2"}'::text[]),
 ('two_lines', 'VALUES (1,3,5), (2,4,6)', '{}'),
 ('show_error', 'SELECT show_error($1, $2, $3)', '{"msg", "internalFlag", "errorCode"}');
 
