@@ -105,6 +105,24 @@ q"EOS
 {"code":-32600, "message":"Protocol version should be \"2.0\""}
 EOS", // FIXME: should be empty answer only with HTTP code
 400
-)
-    ];
+),
+
+QA(__LINE__,
+q"EOS
+{
+    "method": "one_row_flag",
+    "params": [],
 }
+EOS",
+
+q"EOS
+{"code":-32600, "message":"Protocol version should be \"2.0\""}
+EOS", // FIXME: should be empty answer only with HTTP code
+400
+)
+
+];
+}
+
+
+//one_row_flag
