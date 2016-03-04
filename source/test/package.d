@@ -72,7 +72,7 @@ EOS",
 
 q"EOS
 {
-    "echoed":["123"],
+    "result": { "echoed":["123"] },
     "id": 1
 }
 EOS"
@@ -89,9 +89,9 @@ EOS",
 
 q"EOS
 {
-    "echoed":["123"],
+    "result": { "echoed":["123"] }
 }
-EOS" // FIXME: should be empty answer only with HTTP code
+EOS" // FIXME: should be interpereted as notify, without answer
 ),
 
 QA(__LINE__,
@@ -121,8 +121,11 @@ EOS",
 q"EOS
 {
     "id":1,
-    "col1":["val1"],
-    "col2":["val2"]
+    "result":
+    {
+        "col1":["val1"],
+        "col2":["val2"]
+    }
 }
 EOS"
 ),
@@ -140,8 +143,11 @@ EOS",
 q"EOS
 {
     "id":1,
-    "col1":["11"],
-    "col2":["22"]
+    "result":
+    {
+        "col1":["11"],
+        "col2":["22"]
+    }
 }
 EOS"
 ),
@@ -158,9 +164,12 @@ EOS",
 q"EOS
 {
     "id":1,
-    "column1":[1,2],
-    "column2":[3,4],
-    "column3":[5,6]
+    "result":
+    {
+        "column1":[1,2],
+        "column2":[3,4],
+        "column3":[5,6]
+    }
 }
 EOS"
 )

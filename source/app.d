@@ -1,6 +1,7 @@
 import pgator.rpc_table;
 import std.getopt;
 import std.experimental.logger;
+import std.typecons: Tuple;
 import vibe.http.server;
 import vibe.db.postgresql;
 static import dpq2;
@@ -184,58 +185,8 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
                     throw new RequestException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
 
                 Bson reply = Bson(["id": rpcRequest.id]);
-
-                // exec prepared statement
-                {
-                    QueryParams qp;
-                    qp.preparedStatementName = rpcRequest.method;
-
-                    {
-                        const method = methods[rpcRequest.method];
-                        string[] posParams;
-
-                        if(rpcRequest.positionParams.length == 0) // named parameters
-                            posParams = named2positionalParameters(method, rpcRequest.namedParams);
-                        else // positional parameters
-                        {
-                            if(rpcRequest.positionParams.length != method.argsNames.length)
-                                throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number mismatch", __FILE__, __LINE__);
-
-                            posParams = rpcRequest.positionParams;
-                        }
-
-                        qp.argsFromArray = posParams;
-                    }
-
-                    try
-                    {
-                        auto answer = client.execPreparedStatement(qp);
-
-                        foreach(colNum; 0 .. answer.columnCount)
-                        {
-                            Bson[] col = new Bson[answer.length];
-
-                            foreach(rowNum; 0 .. answer.length)
-                            {
-                                try
-                                    col[rowNum] = answer[rowNum][colNum].toBson;
-                                catch(AnswerConvException e)
-                                {
-                                    e.msg = "Column "~answer.columnName(colNum)~": "~e.msg;
-                                    throw e;
-                                }
-                            }
-
-                            reply[answer.columnName(colNum)] = col;
-                        }
-
-                        res.writeJsonBody(reply);
-                    }
-                    catch(AnswerCreationException e)
-                    {
-                        throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__, e);
-                    }
-                }
+                reply["result"] = execPreparedStatement(client, methods, rpcRequest);
+                res.writeJsonBody(reply);
             }
             catch(ConnectionException e)
             {
@@ -246,7 +197,9 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
         {
             Bson err = Bson.emptyObject;
 
-            err["id"] = rpcRequest.id; // TODO: if id == null it is no need to reply at all
+            // FIXME: if id == null it is no need to reply at all, but if there was an error in detecting
+            // the id in the Request object (e.g. Parse error/Invalid Request), it MUST be Null.
+            err["id"] = rpcRequest.id;
             err["message"] = e.msg;
             err["code"] = e.code;
 
@@ -279,6 +232,61 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 
     runEventLoop();
 }
+
+private Bson execPreparedStatement(
+    PostgresClient!Connection client,
+    in Method[string] methods,
+    in RpcRequest rpcRequest
+)
+{
+    QueryParams qp;
+    qp.preparedStatementName = rpcRequest.method;
+
+    {
+        const method = methods[rpcRequest.method];
+
+        if(rpcRequest.positionParams.length == 0) // named parameters
+            qp.argsFromArray = named2positionalParameters(method, rpcRequest.namedParams);
+        else // positional parameters
+        {
+            if(rpcRequest.positionParams.length != method.argsNames.length)
+                throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number mismatch", __FILE__, __LINE__);
+
+            qp.argsFromArray = rpcRequest.positionParams;
+        }
+    }
+
+    try
+    {
+        Bson reply = Bson.emptyObject;
+        auto answer = client.execPreparedStatement(qp);
+
+        foreach(colNum; 0 .. answer.columnCount)
+        {
+            Bson[] col = new Bson[answer.length];
+
+            foreach(rowNum; 0 .. answer.length)
+            {
+                try
+                    col[rowNum] = answer[rowNum][colNum].toBson;
+                catch(AnswerConvException e)
+                {
+                    e.msg = "Column "~answer.columnName(colNum)~": "~e.msg;
+                    throw e;
+                }
+            }
+
+            reply[answer.columnName(colNum)] = col;
+        }
+
+        return reply;
+    }
+    catch(AnswerCreationException e)
+    {
+        throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__, e);
+    }
+}
+
 
 string[] named2positionalParameters(in Method method, in string[string] namedParams) pure
 {
