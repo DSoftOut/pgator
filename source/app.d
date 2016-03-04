@@ -313,17 +313,7 @@ private Bson execPreparedStatement(
                 Bson row = Bson.emptyObject;
 
                 foreach(colNum; 0 .. answer.columnCount)
-                {
-                    string columnName = answer.columnName(colNum);
-
-                    try
-                        row[columnName] = answer[rowNum][colNum].toBson;
-                    catch(AnswerConvException e)
-                    {
-                        e.msg = "Column "~columnName~": "~e.msg;
-                        throw e;
-                    }
-                }
+                    row[answer.columnName(colNum)] = getValue(rowNum, colNum);
 
                 ret[rowNum] = row;
             }
