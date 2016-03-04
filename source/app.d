@@ -184,9 +184,19 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
                 if(rpcRequest.method !in methods)
                     throw new RequestException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
 
-                Bson reply = Bson(["id": rpcRequest.id]);
-                reply["result"] = execPreparedStatement(client, methods, rpcRequest);
-                res.writeJsonBody(reply);
+                if(rpcRequest.id.type != Bson.Type.undefined)
+                {
+                    Bson reply = Bson(["id": rpcRequest.id]);
+                    reply["result"] = execPreparedStatement(client, methods, rpcRequest);
+                    res.writeJsonBody(reply);
+                }
+                else // JSON-RPC 2.0 Notification
+                {
+                    execPreparedStatement(client, methods, rpcRequest);
+                    res.statusCode = HTTPStatus.noContent;
+                    res.statusPhrase = "Notification processed";
+                    res.writeVoidBody();
+                }
             }
             catch(ConnectionException e)
             {

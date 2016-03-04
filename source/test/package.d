@@ -35,10 +35,13 @@ version(IntegrationTest)
                 if(http.statusLine.code != t.httpCode)
                     throw new Exception("HTTP code mismatch: "~http.statusLine.toString~", expected: "~t.httpCode.to!string~"\nResult body:\n"~resultBody, __FILE__, __LINE__);
 
-                Json result = resultBody.parseJsonString;
-                Json expected = parseJsonString(t.expectedAnswer);
-
-                enforce(result == expected, "result: "~result.toString~", expected: "~expected.toString);
+                // Special valid case: expected and result is empty
+                if(!(t.expectedAnswer.length == 0 && resultBody.length == 0))
+                {
+                    Json result = resultBody.parseJsonString;
+                    Json expected = parseJsonString(t.expectedAnswer);
+                    enforce(result == expected, "result: "~result.toString~", expected: "~expected.toString);
+                }
             }
             catch(Exception e)
             {
@@ -76,22 +79,6 @@ q"EOS
     "id": 1
 }
 EOS"
-),
-
-QA(__LINE__,
-q"EOS
-{
-    "jsonrpc": "2.0",
-    "method": "echo",
-    "params": [ 123 ],
-}
-EOS",
-
-q"EOS
-{
-    "result": { "echoed":["123"] }
-}
-EOS" // FIXME: should be interpereted as notify, without answer
 ),
 
 QA(__LINE__,
@@ -231,6 +218,19 @@ q"EOS
     ]
 }
 EOS"
+),
+
+QA(__LINE__, // notification test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo",
+    "params": [ 123 ],
+}
+EOS",
+
+"", // empty body
+204
 )
 
 ];
