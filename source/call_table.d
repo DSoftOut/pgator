@@ -5,10 +5,14 @@ import std.experimental.logger;
 
 struct Method
 {
+    // Required parameters:
     string name; // TODO: remove it, AA already contains name of method
     string statement;
     string[] argsNames;
-    bool oneRowFlag;
+
+    // Optional parameters:
+    bool rotate = false; /// rotate result "counterclockwise"
+    bool oneRowFlag = false;
 }
 
 Method[string] readMethods(immutable Answer answer)
@@ -84,6 +88,7 @@ Method[string] readMethods(immutable Answer answer)
         // Reading of optional parameters
         try
         {
+            getOptional("rotate", m.rotate);
             getOptional("one_row_flag", m.oneRowFlag);
         }
         catch(Exception e)

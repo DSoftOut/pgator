@@ -172,6 +172,27 @@ q"EOS
     }
 }
 EOS"
+),
+
+QA(__LINE__,
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "rotated"
+}
+EOS",
+
+q"EOS
+{
+    "id":1,
+    "result":
+    [
+        {"column1":1, "column2":2, "column3":3},
+        {"column1":4, "column2":5, "column3":6}
+    ]
+}
+EOS"
 )
 
 ];

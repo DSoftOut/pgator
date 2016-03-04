@@ -239,12 +239,12 @@ private Bson execPreparedStatement(
     in RpcRequest rpcRequest
 )
 {
+    const method = methods[rpcRequest.method];
+
     QueryParams qp;
     qp.preparedStatementName = rpcRequest.method;
 
     {
-        const method = methods[rpcRequest.method];
-
         if(rpcRequest.positionParams.length == 0) // named parameters
             qp.argsFromArray = named2positionalParameters(method, rpcRequest.namedParams);
         else // positional parameters
@@ -258,35 +258,65 @@ private Bson execPreparedStatement(
 
     try
     {
-        Bson reply = Bson.emptyObject;
         auto answer = client.execPreparedStatement(qp);
 
-        foreach(colNum; 0 .. answer.columnCount)
+        if(!method.rotate)
         {
-            Bson[] col = new Bson[answer.length];
+            Bson ret = Bson.emptyObject;
+
+            foreach(colNum; 0 .. answer.columnCount)
+            {
+                Bson[] col = new Bson[answer.length];
+                string columnName = answer.columnName(colNum);
+
+                foreach(rowNum; 0 .. answer.length)
+                {
+                    try
+                        col[rowNum] = answer[rowNum][colNum].toBson;
+                    catch(AnswerConvException e)
+                    {
+                        e.msg = "Column "~columnName~": "~e.msg;
+                        throw e;
+                    }
+                }
+
+                ret[columnName] = col;
+            }
+
+            return ret;
+        }
+        else
+        {
+            Bson[] ret = new Bson[answer.length];
 
             foreach(rowNum; 0 .. answer.length)
             {
-                try
-                    col[rowNum] = answer[rowNum][colNum].toBson;
-                catch(AnswerConvException e)
+                Bson row = Bson.emptyObject;
+
+                foreach(colNum; 0 .. answer.columnCount)
                 {
-                    e.msg = "Column "~answer.columnName(colNum)~": "~e.msg;
-                    throw e;
+                    string columnName = answer.columnName(colNum);
+
+                    try
+                        row[columnName] = answer[rowNum][colNum].toBson;
+                    catch(AnswerConvException e)
+                    {
+                        e.msg = "Column "~columnName~": "~e.msg;
+                        throw e;
+                    }
                 }
+
+                ret[rowNum] = row;
             }
 
-            reply[answer.columnName(colNum)] = col;
+            return Bson(ret);
         }
-
-        return reply;
     }
     catch(AnswerCreationException e)
     {
         throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__, e);
     }
 }
-
 
 string[] named2positionalParameters(in Method method, in string[string] namedParams) pure
 {
