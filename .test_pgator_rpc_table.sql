@@ -39,10 +39,8 @@ VALUES
 ('two_lines', 'VALUES (1,3,5), (2,4,6)', '{}'),
 ('show_error', 'SELECT show_error($1, $2, $3)', '{"msg", "internalFlag", "errorCode"}');
 
-INSERT INTO pgator_tests
-(method, sql_query, args, one_row_flag)
-VALUES
-('one_row_flag', 'SELECT ''val1'' as col1, ''val2'' as col2', '{}', true);
+INSERT INTO pgator_tests (method, sql_query, args, one_row_flag)
+VALUES ('one_row_flag', 'SELECT ''val1'' as col1, ''val2'' as col2', '{}', true);
 
 INSERT INTO pgator_tests (method, sql_query, args, rotate)
 VALUES ('rotated', 'VALUES (1,2,3), (4,5,6)', '{}', true);

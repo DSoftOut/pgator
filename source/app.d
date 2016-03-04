@@ -258,29 +258,48 @@ private Bson execPreparedStatement(
 
     try
     {
-        auto answer = client.execPreparedStatement(qp);
+        immutable answer = client.execPreparedStatement(qp);
 
-        if(!method.rotate)
+        Bson getValue(size_t rowNum, size_t colNum)
+        {
+            string columnName = answer.columnName(colNum);
+
+            try
+            {
+                return answer[rowNum][colNum].toBson;
+            }
+            catch(AnswerConvException e)
+            {
+                e.msg = "Column "~columnName~" (row "~rowNum.to!string~"): "~e.msg;
+                throw e;
+            }
+        }
+
+        if(method.oneRowFlag)
+        {
+            if(answer.length > 1)
+                throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One row flag constraint failed", __FILE__, __LINE__);
+
+            Bson ret = Bson.emptyObject;
+
+            foreach(colNum; 0 .. answer.columnCount)
+                ret[answer.columnName(colNum)] = getValue(0, colNum);
+
+            return ret;
+        }
+
+        if(!method.rotateFlag)
         {
             Bson ret = Bson.emptyObject;
 
             foreach(colNum; 0 .. answer.columnCount)
             {
                 Bson[] col = new Bson[answer.length];
-                string columnName = answer.columnName(colNum);
 
                 foreach(rowNum; 0 .. answer.length)
-                {
-                    try
-                        col[rowNum] = answer[rowNum][colNum].toBson;
-                    catch(AnswerConvException e)
-                    {
-                        e.msg = "Column "~columnName~": "~e.msg;
-                        throw e;
-                    }
-                }
+                    col[rowNum] = getValue(rowNum, colNum);
 
-                ret[columnName] = col;
+                ret[answer.columnName(colNum)] = col;
             }
 
             return ret;

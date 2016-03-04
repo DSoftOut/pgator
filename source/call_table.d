@@ -11,7 +11,7 @@ struct Method
     string[] argsNames;
 
     // Optional parameters:
-    bool rotate = false; /// rotate result "counterclockwise"
+    bool rotateFlag = false; /// rotate result "counterclockwise"
     bool oneRowFlag = false;
 }
 
@@ -88,7 +88,7 @@ Method[string] readMethods(immutable Answer answer)
         // Reading of optional parameters
         try
         {
-            getOptional("rotate", m.rotate);
+            getOptional("rotate", m.rotateFlag);
             getOptional("one_row_flag", m.oneRowFlag);
         }
         catch(Exception e)
