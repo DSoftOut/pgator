@@ -200,6 +200,23 @@ q"EOS
 {
     "jsonrpc": "2.0",
     "id": 1,
+    "method": "one_cell_flag"
+}
+EOS",
+
+q"EOS
+{
+    "id":1,
+    "result": 123
+}
+EOS"
+),
+
+QA(__LINE__,
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "id": 1,
     "method": "rotated"
 }
 EOS",

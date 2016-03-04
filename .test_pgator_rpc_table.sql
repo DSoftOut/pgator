@@ -9,7 +9,8 @@ CREATE TABLE pgator_tests
 
   -- Optional parameters
   one_row_flag boolean DEFAULT FALSE, -- NOT NULL skipped for testing purposes
-  rotate boolean NOT NULL DEFAULT FALSE,
+  one_cell_flag boolean NOT NULL DEFAULT FALSE,
+  rotate_flag boolean NOT NULL DEFAULT FALSE,
   read_only boolean NOT NULL DEFAULT FALSE,
   set_username boolean NOT NULL DEFAULT FALSE,
 
@@ -42,5 +43,8 @@ VALUES
 INSERT INTO pgator_tests (method, sql_query, args, one_row_flag)
 VALUES ('one_row_flag', 'SELECT ''val1''::text as col1, ''val2''::text as col2', '{}', true);
 
-INSERT INTO pgator_tests (method, sql_query, args, rotate)
+INSERT INTO pgator_tests (method, sql_query, args, one_cell_flag)
+VALUES ('one_cell_flag', 'SELECT 123 as col1', '{}', true);
+
+INSERT INTO pgator_tests (method, sql_query, args, rotate_flag)
 VALUES ('rotated', 'VALUES (1,2,3), (4,5,6)', '{}', true);

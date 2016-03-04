@@ -275,9 +275,17 @@ private Bson execPreparedStatement(
             }
         }
 
+        if(method.oneCellFlag)
+        {
+            if(answer.length != 1 || answer.columnCount != 1)
+                throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One cell flag constraint failed", __FILE__, __LINE__);
+
+            return getValue(0, 0);
+        }
+
         if(method.oneRowFlag)
         {
-            if(answer.length > 1)
+            if(answer.length != 1)
                 throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One row flag constraint failed", __FILE__, __LINE__);
 
             Bson ret = Bson.emptyObject;
