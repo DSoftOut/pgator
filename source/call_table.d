@@ -14,6 +14,7 @@ struct Method
     bool rotateFlag = false; /// rotate result "counterclockwise"
     bool oneRowFlag = false;
     bool oneCellFlag = false; /// one cell result
+    bool readOnlyFlag = false;
 }
 
 Method[string] readMethods(immutable Answer answer)
@@ -92,6 +93,7 @@ Method[string] readMethods(immutable Answer answer)
             getOptional("rotate_flag", m.rotateFlag);
             getOptional("one_row_flag", m.oneRowFlag);
             getOptional("one_cell_flag", m.oneCellFlag);
+            getOptional("one_cell_flag", m.readOnlyFlag);
         }
         catch(Exception e)
         {

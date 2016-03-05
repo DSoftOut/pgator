@@ -48,3 +48,6 @@ VALUES ('one_cell_flag', 'SELECT 123 as col1', '{}', true);
 
 INSERT INTO pgator_tests (method, sql_query, args, rotate_flag)
 VALUES ('rotated', 'VALUES (1,2,3), (4,5,6)', '{}', true);
+
+INSERT INTO pgator_tests (method, sql_query, args, read_only)
+VALUES ('read_only', 'INSERT INTO pgator_tests VALUES(''a'', ''b'', ''{}'')', '{}', true);

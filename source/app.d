@@ -268,7 +268,25 @@ private Bson execPreparedStatement(
 
     try
     {
+        if(method.readOnlyFlag) // BEGIN READ ONLY
+        {
+            QueryParams q;
+            q.preparedStatementName = beginPreparedName;
+            auto a = client.execPreparedStatement(q);
+
+            import std.stdio; writeln("BEGIN READ ONLY=", a);
+        }
+
         immutable answer = client.execPreparedStatement(qp);
+
+        if(method.readOnlyFlag) // COMMIT
+        {
+            QueryParams q;
+            q.preparedStatementName = commitPreparedName;
+            auto a = client.execPreparedStatement(q);
+
+            import std.stdio; writeln("COMMIT=", a);
+        }
 
         Bson getValue(size_t rowNum, size_t colNum)
         {
@@ -457,9 +475,29 @@ class RequestException : Exception
     }
 }
 
+immutable string beginPreparedName = "#B#";
+immutable string commitPreparedName = "#C#";
+
 /// returns number of successfully prepared methods
 private size_t prepareMethods(Connection conn, ref ConnFactoryArgs args)
 {
+    {
+        trace("try to prepare methods BEGIN READ ONLY and COMMIT");
+
+        Method b;
+        b.name = beginPreparedName;
+        b.statement = "BEGIN READ ONLY";
+
+        Method c;
+        c.name = commitPreparedName;
+        c.statement = "COMMIT";
+
+        conn.prepareMethod(b);
+        conn.prepareMethod(c);
+
+        trace("BEGIN READ ONLY and COMMIT prepared");
+    }
+
     size_t count = 0;
 
     foreach(const m; args.methods.byValue)
