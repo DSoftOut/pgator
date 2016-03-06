@@ -86,10 +86,13 @@ int main(string[] args)
         // delegate
         void afterConnectOrReconnect(dpq2.Connection conn) @safe
         {
-            std.experimental.logger.trace("Preparing");
-            fArgs.failedCount = prepareMethods(conn, fArgs);
+            if(fArgs.methodsLoadedFlag)
+            {
+                std.experimental.logger.trace("Preparing");
+                fArgs.failedCount = prepareMethods(conn, fArgs);
 
-            info(fArgs.methodsLoadedFlag, "Number of methods in the table ", fArgs.tableName,": ", fArgs.rpcTableLength, ", failed to prepare: ", fArgs.rpcTableLength - fArgs.failedCount);
+                info(fArgs.methodsLoadedFlag, "Number of methods in the table ", fArgs.tableName,": ", fArgs.rpcTableLength, ", failed to prepare: ", fArgs.rpcTableLength - fArgs.failedCount);
+            }
         }
 
         // connect to db
