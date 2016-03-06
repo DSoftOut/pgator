@@ -101,11 +101,12 @@ int main(string[] args)
 
             // read pgator_rpc
             fArgs.tableName = conn.escapeIdentifier(sqlPgatorTable);
+
             QueryParams p;
             p.sqlCommand = "SELECT * FROM "~fArgs.tableName;
             auto answer = conn.execStatement(p, dur!"seconds"(10));
-            fArgs.rpcTableLength = answer.length;
 
+            fArgs.rpcTableLength = answer.length;
             fArgs.methods = readMethods(answer);
             fArgs.methodsLoadedFlag = true;
 
@@ -116,7 +117,7 @@ int main(string[] args)
 
             // prepare statements for previously used connection
             afterConnectOrReconnect(conn);
-            conn.destroy;
+            conn.destroy; // revert connection immediately
         }
 
         if(!testStatements)
