@@ -70,45 +70,6 @@ private struct ConnFactoryArgs
     string tableName;
 }
 
-class Connection : dpq2.Connection
-{
-    ConnFactoryArgs* fArgs;
-
-    this(string connString, ConnFactoryArgs* fArgs)
-    {
-        this.fArgs = fArgs;
-
-        super(ConnectionStart(), connString);
-
-        if(fArgs.methodsLoadedFlag)
-            prepareStatements();
-    }
-
-    override void resetStart()
-    {
-        super.resetStart;
-
-        if(fArgs.methodsLoadedFlag)
-            prepareStatements();
-    }
-
-    void prepareStatements()
-    {
-        std.experimental.logger.trace("Preparing");
-        fArgs.failedCount = prepareMethods(this, *fArgs);
-        info("Number of methods in the table ", fArgs.tableName,": ", fArgs.rpcTableLength, ", failed to prepare: ", fArgs.rpcTableLength - fArgs.failedCount);        
-    }
-}
-
-private Connection createNewConnection(string connString, ref ConnFactoryArgs fArgs)
-{
-        trace("starting new connection");
-        auto c = new Connection(connString, &fArgs);
-        trace("new connection is started");
-
-        return c;
-}
-
 int main(string[] args)
 {
     try
@@ -122,20 +83,25 @@ int main(string[] args)
 
         ConnFactoryArgs fArgs;
 
-        Connection connFactory()
+        // delegate
+        void afterConnectOrReconnect(dpq2.Connection conn) @safe
         {
-            return createNewConnection(connString, fArgs);
+            std.experimental.logger.trace("Preparing");
+            fArgs.failedCount = prepareMethods(conn, fArgs);
+
+            info(fArgs.methodsLoadedFlag, "Number of methods in the table ", fArgs.tableName,": ", fArgs.rpcTableLength, ", failed to prepare: ", fArgs.rpcTableLength - fArgs.failedCount);
         }
 
         // connect to db
-        auto client = new PostgresClient!Connection(connString, maxConn, false, &connFactory);
+        auto client = new PostgresClient(connString, maxConn, &afterConnectOrReconnect);
+        auto conn = client.lockConnection();
         auto sqlPgatorTable = cfg["sqlPgatorTable"].get!string;
 
         // read pgator_rpc
-        fArgs.tableName = client.escapeIdentifier(sqlPgatorTable);
+        fArgs.tableName = conn.escapeIdentifier(sqlPgatorTable);
         QueryParams p;
         p.sqlCommand = "SELECT * FROM "~fArgs.tableName;
-        auto answer = client.execStatement(p, dur!"seconds"(10));
+        auto answer = conn.execStatement(p, dur!"seconds"(10));
         fArgs.rpcTableLength = answer.length;
 
         fArgs.methods = readMethods(answer);
@@ -147,9 +113,7 @@ int main(string[] args)
         }
 
         // prepare statements for previously used connection
-        auto conn = client.lockConnection();
-        assert(conn.__conn !is null);
-        conn.prepareStatements();
+        afterConnectOrReconnect(conn);
 
         if(!testStatements)
         {
@@ -166,7 +130,7 @@ int main(string[] args)
     }
 }
 
-void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] methods)
+void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
 {
     // http-server
     import vibe.core.core;
@@ -184,15 +148,17 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
                 if(rpcRequest.method !in methods)
                     throw new RequestException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
 
+                PostgresClient.Connection conn = client.lockConnection();
+
                 if(rpcRequest.id.type != Bson.Type.undefined)
                 {
                     Bson reply = Bson(["id": rpcRequest.id]);
-                    reply["result"] = execPreparedStatement(client, methods, rpcRequest);
+                    reply["result"] = execPreparedStatement(conn, methods, rpcRequest);
                     res.writeJsonBody(reply);
                 }
                 else // JSON-RPC 2.0 Notification
                 {
-                    execPreparedStatement(client, methods, rpcRequest);
+                    execPreparedStatement(conn, methods, rpcRequest);
                     res.statusCode = HTTPStatus.noContent;
                     res.statusPhrase = "Notification processed";
                     res.writeVoidBody();
@@ -244,7 +210,7 @@ void loop(in Bson cfg, PostgresClient!Connection client, in Method[string] metho
 }
 
 private Bson execPreparedStatement(
-    PostgresClient!Connection client,
+    PostgresClient.Connection conn,
     in Method[string] methods,
     in RpcRequest rpcRequest
 )
@@ -272,18 +238,18 @@ private Bson execPreparedStatement(
         {
             QueryParams q;
             q.preparedStatementName = beginPreparedName;
-            auto a = client.execPreparedStatement(q);
+            auto a = conn.execPreparedStatement(q);
 
             import std.stdio; writeln("BEGIN READ ONLY=", a);
         }
 
-        immutable answer = client.execPreparedStatement(qp);
+        immutable answer = conn.execPreparedStatement(qp);
 
         if(method.readOnlyFlag) // COMMIT
         {
             QueryParams q;
             q.preparedStatementName = commitPreparedName;
-            auto a = client.execPreparedStatement(q);
+            auto a = conn.execPreparedStatement(q);
 
             import std.stdio; writeln("COMMIT=", a);
         }
@@ -479,7 +445,7 @@ immutable string beginPreparedName = "#B#";
 immutable string commitPreparedName = "#C#";
 
 /// returns number of successfully prepared methods
-private size_t prepareMethods(Connection conn, ref ConnFactoryArgs args)
+private size_t prepareMethods(dpq2.Connection conn, ref ConnFactoryArgs args)
 {
     {
         trace("try to prepare methods BEGIN READ ONLY and COMMIT");
@@ -524,7 +490,7 @@ private size_t prepareMethods(Connection conn, ref ConnFactoryArgs args)
     return count;
 }
 
-private void prepareMethod(Connection conn, in Method method)
+private void prepareMethod(dpq2.Connection conn, in Method method)
 {
     immutable timeoutErrMsg = "Prepare statement: exceeded Posgres query time limit";
 
