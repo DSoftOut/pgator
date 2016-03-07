@@ -119,7 +119,6 @@ int main(string[] args)
 
             // prepare statements for previously used connection
             afterConnectOrReconnect(conn);
-            conn.destroy; // revert connection immediately
         }
 
         if(!testStatements)
@@ -170,8 +169,6 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
                     res.statusPhrase = "Notification processed";
                     res.writeVoidBody();
                 }
-
-                conn.destroy();
             }
             catch(ConnectionException e)
             {
@@ -506,7 +503,6 @@ private void prepareMethod(PostgresClient.Connection conn, in Method method)
     // waiting for socket changes for reading
     if(!conn.waitEndOf(WaitType.READ, dur!"seconds"(5)))
     {
-        conn.destroy(); // disconnect
         throw new Exception(timeoutErrMsg, __FILE__, __LINE__);
     }
 
