@@ -4,7 +4,6 @@ import std.experimental.logger;
 import std.typecons: Tuple;
 import vibe.http.server;
 import vibe.db.postgresql;
-static import dpq2;
 
 @trusted:
 
@@ -84,7 +83,7 @@ int main(string[] args)
         ConnFactoryArgs fArgs;
 
         // delegate
-        void afterConnectOrReconnect(dpq2.Connection conn) @safe
+        void afterConnectOrReconnect(PostgresClient.Connection conn) @safe
         {
             if(fArgs.methodsLoadedFlag)
             {
@@ -171,6 +170,8 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
                     res.statusPhrase = "Notification processed";
                     res.writeVoidBody();
                 }
+
+                conn.destroy();
             }
             catch(ConnectionException e)
             {
@@ -453,7 +454,7 @@ immutable string beginPreparedName = "#B#";
 immutable string commitPreparedName = "#C#";
 
 /// returns number of successfully prepared methods
-private size_t prepareMethods(dpq2.Connection conn, ref ConnFactoryArgs args)
+private size_t prepareMethods(PostgresClient.Connection conn, ref ConnFactoryArgs args)
 {
     {
         trace("try to prepare methods BEGIN READ ONLY and COMMIT");
@@ -498,7 +499,7 @@ private size_t prepareMethods(dpq2.Connection conn, ref ConnFactoryArgs args)
     return count;
 }
 
-private void prepareMethod(dpq2.Connection conn, in Method method)
+private void prepareMethod(PostgresClient.Connection conn, in Method method)
 {
     immutable timeoutErrMsg = "Prepare statement: exceeded Posgres query time limit";
 

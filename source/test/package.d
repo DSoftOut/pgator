@@ -91,7 +91,7 @@ EOS",
 
 q"EOS
 {"code":-32600, "message":"Protocol version should be \"2.0\""}
-EOS", // FIXME: should be empty answer only with HTTP code
+EOS", // FIXME: should be empty answer only with HTTP code because "id" isn't specified
 400
 ),
 
