@@ -60,7 +60,7 @@ Bson readConfig()
     return cfg;
 }
 
-private struct ConnFactoryArgs
+private struct PrepareMethodsArgs
 {
     bool methodsLoadedFlag = false;
     Method[string] methods;
@@ -80,7 +80,7 @@ int main(string[] args)
         const connString = server["connString"].get!string;
         auto maxConn = to!uint(server["maxConn"].get!long);
 
-        ConnFactoryArgs fArgs;
+        PrepareMethodsArgs fArgs;
 
         // delegate
         void afterConnectOrReconnect(PostgresClient.Connection conn) @safe
@@ -453,7 +453,7 @@ immutable string beginPreparedName = "#B#";
 immutable string commitPreparedName = "#C#";
 
 /// returns number of successfully prepared methods
-private size_t prepareMethods(PostgresClient.Connection conn, ref ConnFactoryArgs args)
+private size_t prepareMethods(PostgresClient.Connection conn, ref PrepareMethodsArgs args)
 {
     {
         trace("try to prepare methods BEGIN READ ONLY and COMMIT");
