@@ -215,6 +215,26 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
     runEventLoop();
 }
 
+private immutable(Answer) transaction(PostgresClient.Connection conn, in Method method, in QueryParams qp)
+{
+    if(method.readOnlyFlag) // BEGIN READ ONLY
+    {
+        QueryParams q;
+        q.preparedStatementName = beginPreparedName;
+        conn.execPreparedStatement(q); // FIXME: timeout check
+    }
+
+    scope(exit)
+    if(method.readOnlyFlag) // COMMIT
+    {
+        QueryParams q;
+        q.preparedStatementName = commitPreparedName;
+        auto a = conn.execPreparedStatement(q); // FIXME: timeout check
+    }
+
+    return conn.execPreparedStatement(qp); // FIXME: timeout check
+}
+
 private Bson execPreparedStatement(
     PostgresClient.Connection conn,
     in Method[string] methods,
@@ -240,21 +260,7 @@ private Bson execPreparedStatement(
 
     try
     {
-        if(method.readOnlyFlag) // BEGIN READ ONLY
-        {
-            QueryParams q;
-            q.preparedStatementName = beginPreparedName;
-            conn.execPreparedStatement(q); // FIXME: timeout check
-        }
-
-        immutable answer = conn.execPreparedStatement(qp); // FIXME: timeout check
-
-        if(method.readOnlyFlag) // COMMIT
-        {
-            QueryParams q;
-            q.preparedStatementName = commitPreparedName;
-            conn.execPreparedStatement(q); // FIXME: timeout check
-        }
+        immutable answer = conn.transaction(method, qp);
 
         Bson getValue(size_t rowNum, size_t colNum)
         {

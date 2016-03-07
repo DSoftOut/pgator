@@ -35,8 +35,8 @@ version(IntegrationTest)
                 if(http.statusLine.code != t.httpCode)
                     throw new Exception("HTTP code mismatch: "~http.statusLine.toString~", expected: "~t.httpCode.to!string~"\nResult body:\n"~resultBody, __FILE__, __LINE__);
 
-                // Special valid case: expected and result is empty
-                if(!(t.expectedAnswer.length == 0 && resultBody.length == 0))
+                // Special valid case: expected is empty
+                if(t.expectedAnswer.length != 0)
                 {
                     Json result = resultBody.parseJsonString;
                     Json expected = parseJsonString(t.expectedAnswer);
@@ -242,14 +242,27 @@ q"EOS
 }
 EOS",
 
+null,
+500
+),
+
+QA(__LINE__, // transaction completion check
 q"EOS
 {
-    "id":1,
-    "result": 123
+    "jsonrpc": "2.0",
+    "method": "echo",
+    "params": [ 123 ],
+    "id": 1
+}
+EOS",
+
+q"EOS
+{
+    "result": { "echoed":["123"] },
+    "id": 1
 }
 EOS"
-)
-
+),
 
 ];
 }
