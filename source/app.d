@@ -500,33 +500,5 @@ private size_t prepareMethods(PostgresClient.Connection conn, ref ConnFactoryArg
 
 private void prepareMethod(PostgresClient.Connection conn, in Method method)
 {
-    immutable timeoutErrMsg = "Prepare statement: exceeded Posgres query time limit";
-
-    // waiting for socket changes for reading
-    if(!conn.waitEndOf(WaitType.READ, dur!"seconds"(5)))
-    {
-        throw new Exception(timeoutErrMsg, __FILE__, __LINE__);
-    }
-
-    conn.sendPrepare(method.name, method.statement, method.argsNames.length);
-
-    bool timeoutNotOccurred = conn.waitEndOf(WaitType.READ, dur!"seconds"(5));
-
-    conn.consumeInput();
-
-    immutable(Result)[] ret;
-
-    while(true)
-    {
-        auto r = conn.getResult();
-        if(r is null) break;
-        ret ~= r;
-    }
-
-    enforce(ret.length <= 1, "sendPrepare query can return only one Result instance");
-
-    if(!timeoutNotOccurred && ret.length == 0) // query timeout occured and result isn't received
-        throw new Exception(timeoutErrMsg, __FILE__, __LINE__);
-
-    ret[0].getAnswer; // result checking
+    conn.prepareStatement(method.name, method.statement, method.argsNames.length);
 }
