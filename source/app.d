@@ -152,7 +152,7 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
                 rpcRequest = RpcRequest.toRpcRequest(req);
 
                 if(rpcRequest.method !in methods)
-                    throw new RequestException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
+                    throw new LoopException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
 
                 PostgresClient.Connection conn = client.lockConnection();
 
@@ -172,10 +172,10 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
             }
             catch(ConnectionException e)
             {
-                throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
+                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
         }
-        catch(RequestException e)
+        catch(LoopException e)
         {
             Bson err = Bson.emptyObject;
 
@@ -252,7 +252,7 @@ private Bson execPreparedStatement(
         else // positional parameters
         {
             if(rpcRequest.positionParams.length != method.argsNames.length)
-                throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number mismatch", __FILE__, __LINE__);
+                throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number mismatch", __FILE__, __LINE__);
 
             qp.argsFromArray = rpcRequest.positionParams;
         }
@@ -280,7 +280,7 @@ private Bson execPreparedStatement(
         if(method.oneCellFlag)
         {
             if(answer.length != 1 || answer.columnCount != 1)
-                throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One cell flag constraint failed", __FILE__, __LINE__);
+                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One cell flag constraint failed", __FILE__, __LINE__);
 
             return getValue(0, 0);
         }
@@ -288,7 +288,7 @@ private Bson execPreparedStatement(
         if(method.oneRowFlag)
         {
             if(answer.length != 1)
-                throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One row flag constraint failed", __FILE__, __LINE__);
+                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One row flag constraint failed", __FILE__, __LINE__);
 
             Bson ret = Bson.emptyObject;
 
@@ -333,7 +333,7 @@ private Bson execPreparedStatement(
     }
     catch(AnswerCreationException e)
     {
-        throw new RequestException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__, e);
+        throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__, e);
     }
 }
 
@@ -346,7 +346,7 @@ string[] named2positionalParameters(in Method method, in string[string] namedPar
         if(argName in namedParams)
             ret[i] = namedParams[argName];
         else
-            throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Missing required parameter "~argName, __FILE__, __LINE__);
+            throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Missing required parameter "~argName, __FILE__, __LINE__);
     }
 
     return ret;
@@ -367,12 +367,12 @@ struct RpcRequest
     static RpcRequest toRpcRequest(scope HTTPServerRequest req)
     {
         if(req.contentType != "application/json")
-            throw new RequestException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
+            throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
 
         Json j = req.json;
 
         if(j["jsonrpc"] != "2.0")
-            throw new RequestException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Protocol version should be \"2.0\"", __FILE__, __LINE__);
+            throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Protocol version should be \"2.0\"", __FILE__, __LINE__);
 
         RpcRequest r;
 
@@ -390,7 +390,7 @@ struct RpcRequest
                 foreach(string key, value; params)
                 {
                     if(value.type == Json.Type.object || value.type == Json.Type.array)
-                        throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected named parameter type", __FILE__, __LINE__);
+                        throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected named parameter type", __FILE__, __LINE__);
 
                     r.namedParams[key] = value.to!string;
                 }
@@ -400,14 +400,14 @@ struct RpcRequest
                 foreach(value; params)
                 {
                     if(value.type == Json.Type.object || value.type == Json.Type.array)
-                        throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected positional parameter type", __FILE__, __LINE__);
+                        throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected positional parameter type", __FILE__, __LINE__);
 
                     r.positionParams ~= value.to!string;
                 }
                 break;
 
             default:
-                throw new RequestException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected params type", __FILE__, __LINE__);
+                throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected params type", __FILE__, __LINE__);
         }
 
         return r;
@@ -433,7 +433,7 @@ enum JsonRpcErrorCode : short
     internalError = -32603,
 }
 
-class RequestException : Exception
+class LoopException : Exception
 {
     const JsonRpcErrorCode code;
     const HTTPStatus status;
