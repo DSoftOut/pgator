@@ -93,7 +93,7 @@ Method[string] readMethods(immutable Answer answer)
             getOptional("rotate_flag", m.rotateFlag);
             getOptional("one_row_flag", m.oneRowFlag);
             getOptional("one_cell_flag", m.oneCellFlag);
-            getOptional("one_cell_flag", m.readOnlyFlag);
+            getOptional("read_only", m.readOnlyFlag);
         }
         catch(Exception e)
         {

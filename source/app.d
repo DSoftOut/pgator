@@ -244,20 +244,16 @@ private Bson execPreparedStatement(
         {
             QueryParams q;
             q.preparedStatementName = beginPreparedName;
-            auto a = conn.execPreparedStatement(q);
-
-            import std.stdio; writeln("BEGIN READ ONLY=", a);
+            conn.execPreparedStatement(q); // FIXME: timeout check
         }
 
-        immutable answer = conn.execPreparedStatement(qp);
+        immutable answer = conn.execPreparedStatement(qp); // FIXME: timeout check
 
         if(method.readOnlyFlag) // COMMIT
         {
             QueryParams q;
             q.preparedStatementName = commitPreparedName;
-            auto a = conn.execPreparedStatement(q);
-
-            import std.stdio; writeln("COMMIT=", a);
+            conn.execPreparedStatement(q); // FIXME: timeout check
         }
 
         Bson getValue(size_t rowNum, size_t colNum)
