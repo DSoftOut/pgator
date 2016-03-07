@@ -80,17 +80,17 @@ int main(string[] args)
         const connString = server["connString"].get!string;
         auto maxConn = to!uint(server["maxConn"].get!long);
 
-        PrepareMethodsArgs fArgs;
+        PrepareMethodsArgs prepArgs;
 
         // delegate
         void afterConnectOrReconnect(PostgresClient.Connection conn) @safe
         {
-            if(fArgs.methodsLoadedFlag)
+            if(prepArgs.methodsLoadedFlag)
             {
                 std.experimental.logger.trace("Preparing");
-                fArgs.failedCount = prepareMethods(conn, fArgs);
+                prepArgs.failedCount = prepareMethods(conn, prepArgs);
 
-                info(fArgs.methodsLoadedFlag, "Number of methods in the table ", fArgs.tableName,": ", fArgs.rpcTableLength, ", failed to prepare: ", fArgs.rpcTableLength - fArgs.failedCount);
+                info(prepArgs.methodsLoadedFlag, "Number of methods in the table ", prepArgs.tableName,": ", prepArgs.rpcTableLength, ", failed to prepare: ", prepArgs.rpcTableLength - prepArgs.failedCount);
             }
         }
 
@@ -102,19 +102,19 @@ int main(string[] args)
             auto sqlPgatorTable = cfg["sqlPgatorTable"].get!string;
 
             // read pgator_rpc
-            fArgs.tableName = conn.escapeIdentifier(sqlPgatorTable);
+            prepArgs.tableName = conn.escapeIdentifier(sqlPgatorTable);
 
             QueryParams p;
-            p.sqlCommand = "SELECT * FROM "~fArgs.tableName;
+            p.sqlCommand = "SELECT * FROM "~prepArgs.tableName;
             auto answer = conn.execStatement(p, dur!"seconds"(10));
 
-            fArgs.rpcTableLength = answer.length;
-            fArgs.methods = readMethods(answer);
-            fArgs.methodsLoadedFlag = true;
+            prepArgs.rpcTableLength = answer.length;
+            prepArgs.methods = readMethods(answer);
+            prepArgs.methodsLoadedFlag = true;
 
             {
-                size_t failed = fArgs.rpcTableLength - fArgs.methods.length;
-                trace("Number of methods in the table ", fArgs.tableName,": ", answer.length, ", failed to load into pgator: ", failed);
+                size_t failed = prepArgs.rpcTableLength - prepArgs.methods.length;
+                trace("Number of methods in the table ", prepArgs.tableName,": ", answer.length, ", failed to load into pgator: ", failed);
             }
 
             // prepare statements for previously used connection
@@ -123,10 +123,10 @@ int main(string[] args)
 
         if(!testStatements)
         {
-            loop(cfg, client, fArgs.methods);
+            loop(cfg, client, prepArgs.methods);
         }
 
-        return fArgs.failedCount ? 2 : 0;
+        return prepArgs.failedCount ? 2 : 0;
     }
     catch(Exception e)
     {
