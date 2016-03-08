@@ -160,12 +160,12 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
                 if(rpcRequest.id.type != Bson.Type.undefined)
                 {
                     Bson reply = Bson(["id": rpcRequest.id]);
-                    reply["result"] = execPreparedStatement(conn, method, rpcRequest);
+                    reply["result"] = execPreparedMethod(conn, method, rpcRequest);
                     res.writeJsonBody(reply);
                 }
                 else // JSON-RPC 2.0 Notification
                 {
-                    execPreparedStatement(conn, method, rpcRequest);
+                    execPreparedMethod(conn, method, rpcRequest);
                     res.statusCode = HTTPStatus.noContent;
                     res.statusPhrase = "Notification processed";
                     res.writeVoidBody();
@@ -220,21 +220,41 @@ private struct TransactionQueryParams
 {
     QueryParams queryParams;
     AuthorizationCredentials auth;
+    string usernameVarName;
+    string passwordVarName;
 
     alias queryParams this;
 }
 
 private immutable(Answer) transaction(PostgresClient.Connection conn, in Method* method, in TransactionQueryParams qp)
 {
+    if(method.needAuthVariablesFlag && !qp.auth.authVariablesSet)
+        throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic access authentication need", __FILE__, __LINE__);
+
+    bool transactionStarted = false;
+
     if(method.readOnlyFlag) // BEGIN READ ONLY
     {
         QueryParams q;
         q.preparedStatementName = beginPreparedName;
         conn.execPreparedStatement(q); // FIXME: timeout check
+
+        transactionStarted = true;
+    }
+
+    if(method.needAuthVariablesFlag)
+    {
+        conn.execStatement(
+            transactionStarted ? "" : "BEGIN;"~
+            "SET LOCAL "~conn.escapeIdentifier(qp.usernameVarName)~" = "~conn.escapeLiteral(qp.auth.user)~";"~
+            "SET LOCAL "~conn.escapeIdentifier(qp.passwordVarName)~" = "~conn.escapeLiteral(qp.auth.password)
+        );
+
+        transactionStarted = true;
     }
 
     scope(exit)
-    if(method.readOnlyFlag) // COMMIT
+    if(transactionStarted) // COMMIT
     {
         QueryParams q;
         q.preparedStatementName = commitPreparedName;
@@ -244,7 +264,7 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
     return conn.execPreparedStatement(qp); // FIXME: timeout check
 }
 
-private Bson execPreparedStatement(
+private Bson execPreparedMethod(
     PostgresClient.Connection conn,
     in Method* method,
     in RpcRequest rpcRequest
@@ -255,7 +275,9 @@ private Bson execPreparedStatement(
 
     {
         if(rpcRequest.positionParams.length == 0) // named parameters
+        {
             qp.argsFromArray = named2positionalParameters(method, rpcRequest.namedParams);
+        }
         else // positional parameters
         {
             if(rpcRequest.positionParams.length != method.argsNames.length)
