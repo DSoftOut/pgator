@@ -29,7 +29,6 @@ version(IntegrationTest)
                 {
                     http.authenticationMethod(CurlAuth.basic);
                     http.setAuthentication(t.username, t.password);
-                    import std.stdio; writeln("auth set!!!");
                 }
 
                 string resultBody;

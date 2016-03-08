@@ -473,9 +473,7 @@ struct RpcRequest
             import std.base64;
 
             // Copypaste from vibe.d code, see https://github.com/rejectedsoftware/vibe.d/issues/1449
-
             auto pauth = "Authorization" in req.headers;
-            logInfo("pauth is null? "~ (pauth is null ? "NULL" : *pauth));
             if( pauth && (*pauth).startsWith("Basic ") )
             {
                 string user_pw = cast(string)Base64.decode((*pauth)[6 .. $]);
@@ -486,8 +484,6 @@ struct RpcRequest
                 r.auth.authVariablesSet = true;
                 r.auth.user = user_pw[0 .. idx];
                 r.auth.password = user_pw[idx+1 .. $];
-
-                logInfo("user="~r.auth.user~" pass="~r.auth.password);
             }
         }
 
