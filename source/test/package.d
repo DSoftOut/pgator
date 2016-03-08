@@ -284,7 +284,11 @@ EOS",
 
 q"EOS
 {
-    "result": { "echoed":["123"] },
+    "result":
+    {
+        "user":"test user",
+        "pass":"test password"
+    },
     "id": 1
 }
 EOS",

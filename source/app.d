@@ -243,8 +243,6 @@ private struct TransactionQueryParams
 
 private immutable(Answer) transaction(PostgresClient.Connection conn, in Method* method, in TransactionQueryParams qp)
 {
-    logInfo(method.needAuthVariablesFlag.to!string);
-    logInfo(qp.auth.authVariablesSet.to!string);
     if(method.needAuthVariablesFlag && !qp.auth.authVariablesSet)
         throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic HTTP authentication need", __FILE__, __LINE__);
 
@@ -261,13 +259,15 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
 
     if(method.needAuthVariablesFlag)
     {
-        conn.execStatement(
-            transactionStarted ? "" : "BEGIN;"~
-            "SET LOCAL "~conn.escapeIdentifier(qp.varNames.user)~" = "~conn.escapeLiteral(qp.auth.user)~";"~
-            "SET LOCAL "~conn.escapeIdentifier(qp.varNames.password)~" = "~conn.escapeLiteral(qp.auth.password)
-        );
+        // FIXME: timeout check
+        if(!transactionStarted)
+        {
+            conn.execStatement("BEGIN");
+            transactionStarted = true;
+        }
 
-        transactionStarted = true;
+        conn.execStatement("SET LOCAL "~qp.varNames.user~"="~conn.escapeLiteral(qp.auth.user));
+        conn.execStatement("SET LOCAL "~qp.varNames.password~"="~conn.escapeLiteral(qp.auth.password));
     }
 
     scope(exit)

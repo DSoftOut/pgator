@@ -52,5 +52,5 @@ VALUES ('rotated', 'VALUES (1,2,3), (4,5,6)', '{}', true);
 INSERT INTO pgator_tests (method, sql_query, args, read_only)
 VALUES ('read_only', 'INSERT INTO pgator_tests VALUES(''a'', ''b'', ''{}'')', '{}', true);
 
-INSERT INTO pgator_tests (method, sql_query, args, set_auth_variables)
-VALUES ('echo_auth_variables', 'SELECT current_setting(''pgator.username''), current_setting(''pgator.password'')', '{}', true);
+INSERT INTO pgator_tests (method, sql_query, args, set_auth_variables, one_row_flag)
+VALUES ('echo_auth_variables', 'SELECT current_setting(''pgator.username'') as user, current_setting(''pgator.password'') as pass', '{}', true, true);
