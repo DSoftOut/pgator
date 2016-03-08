@@ -15,6 +15,7 @@ struct Method
     bool oneRowFlag = false;
     bool oneCellFlag = false; /// one cell result
     bool readOnlyFlag = false;
+    bool authVariablesFlag = false; /// pass username and password from HTTP session to SQL session
 }
 
 Method[string] readMethods(immutable Answer answer)
@@ -94,6 +95,7 @@ Method[string] readMethods(immutable Answer answer)
             getOptional("one_row_flag", m.oneRowFlag);
             getOptional("one_cell_flag", m.oneCellFlag);
             getOptional("read_only", m.readOnlyFlag);
+            getOptional("set_auth_variables", m.authVariablesFlag);
         }
         catch(Exception e)
         {

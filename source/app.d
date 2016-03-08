@@ -358,6 +358,9 @@ struct RpcRequest
     string method;
     string[string] namedParams = null;
     string[] positionParams = null;
+    bool authVariablesSet = false;
+    string user;
+    string password;
 
     invariant()
     {
@@ -408,6 +411,26 @@ struct RpcRequest
 
             default:
                 throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected params type", __FILE__, __LINE__);
+        }
+
+        // pick out name and password from the request
+        {
+            import std.string;
+            import std.base64;
+
+            // Copypaste from vibe.d code, see https://github.com/rejectedsoftware/vibe.d/issues/1449
+
+            auto pauth = "Authorization" in req.headers;
+            if( pauth && (*pauth).startsWith("Basic ") ){
+                string user_pw = cast(string)Base64.decode((*pauth)[6 .. $]);
+
+                auto idx = user_pw.indexOf(":");
+                enforceBadRequest(idx >= 0, "Invalid auth string format!");
+
+                r.authVariablesSet = true;
+                r.user = user_pw[0 .. idx];
+                r.password = user_pw[idx+1 .. $];
+            }
         }
 
         return r;
