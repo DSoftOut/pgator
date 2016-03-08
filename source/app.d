@@ -150,8 +150,9 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
             try
             {
                 rpcRequest = RpcRequest.toRpcRequest(req);
+                const method = (rpcRequest.method in methods);
 
-                if(rpcRequest.method !in methods)
+                if(method is null)
                     throw new LoopException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~rpcRequest.method~" not found", __FILE__, __LINE__);
 
                 PostgresClient.Connection conn = client.lockConnection();
@@ -159,12 +160,12 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
                 if(rpcRequest.id.type != Bson.Type.undefined)
                 {
                     Bson reply = Bson(["id": rpcRequest.id]);
-                    reply["result"] = execPreparedStatement(conn, methods, rpcRequest);
+                    reply["result"] = execPreparedStatement(conn, method, rpcRequest);
                     res.writeJsonBody(reply);
                 }
                 else // JSON-RPC 2.0 Notification
                 {
-                    execPreparedStatement(conn, methods, rpcRequest);
+                    execPreparedStatement(conn, method, rpcRequest);
                     res.statusCode = HTTPStatus.noContent;
                     res.statusPhrase = "Notification processed";
                     res.writeVoidBody();
@@ -215,7 +216,7 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
     runEventLoop();
 }
 
-private immutable(Answer) transaction(PostgresClient.Connection conn, in Method method, in QueryParams qp)
+private immutable(Answer) transaction(PostgresClient.Connection conn, in Method* method, in QueryParams qp)
 {
     if(method.readOnlyFlag) // BEGIN READ ONLY
     {
@@ -237,12 +238,10 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method 
 
 private Bson execPreparedStatement(
     PostgresClient.Connection conn,
-    in Method[string] methods,
+    in Method* method,
     in RpcRequest rpcRequest
 )
 {
-    const method = methods[rpcRequest.method];
-
     QueryParams qp;
     qp.preparedStatementName = rpcRequest.method;
 
@@ -337,7 +336,7 @@ private Bson execPreparedStatement(
     }
 }
 
-string[] named2positionalParameters(in Method method, in string[string] namedParams) pure
+string[] named2positionalParameters(in Method* method, in string[string] namedParams) pure
 {
     string[] ret = new string[method.argsNames.length];
 
