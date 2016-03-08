@@ -62,7 +62,7 @@ Bson readConfig()
 
 private struct PrepareMethodsArgs
 {
-    bool methodsLoadedFlag = false;
+    bool methodsLoadedFlag = false; // need for bootstrap
     Method[string] methods;
     size_t rpcTableLength;
     size_t failedCount;
@@ -88,9 +88,14 @@ int main(string[] args)
             if(prepArgs.methodsLoadedFlag)
             {
                 std.experimental.logger.trace("Preparing");
-                prepArgs.failedCount = prepareMethods(conn, prepArgs);
+                auto failedMethodsNames = prepareMethods(conn, prepArgs);
+                prepArgs.failedCount += failedMethodsNames.length;
 
-                info(prepArgs.methodsLoadedFlag, "Number of methods in the table ", prepArgs.tableName,": ", prepArgs.rpcTableLength, ", failed to prepare: ", prepArgs.rpcTableLength - prepArgs.failedCount);
+                foreach(n; failedMethodsNames)
+                    prepArgs.methods.remove(n);
+
+                info(prepArgs.methodsLoadedFlag, "Number of methods in the table ", prepArgs.tableName,": ",
+                    prepArgs.rpcTableLength, ", failed to prepare: ", prepArgs.failedCount);
             }
         }
 
@@ -521,8 +526,8 @@ class LoopException : Exception
 immutable string beginPreparedName = "#B#";
 immutable string commitPreparedName = "#C#";
 
-/// returns number of successfully prepared methods
-private size_t prepareMethods(PostgresClient.Connection conn, ref PrepareMethodsArgs args)
+/// returns names of unprepared methods
+private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMethodsArgs args)
 {
     {
         trace("try to prepare methods BEGIN READ ONLY and COMMIT");
@@ -541,7 +546,7 @@ private size_t prepareMethods(PostgresClient.Connection conn, ref PrepareMethods
         trace("BEGIN READ ONLY and COMMIT prepared");
     }
 
-    size_t count = 0;
+    string[] failedMethods;
 
     foreach(const m; args.methods.byValue)
     {
@@ -552,7 +557,6 @@ private size_t prepareMethods(PostgresClient.Connection conn, ref PrepareMethods
             conn.prepareMethod(m);
 
             trace("method ", m.name, " prepared");
-            count++;
         }
         catch(ConnectionException e)
         {
@@ -561,10 +565,11 @@ private size_t prepareMethods(PostgresClient.Connection conn, ref PrepareMethods
         catch(Exception e)
         {
             warning(e.msg, ", skipping preparing of method ", m.name);
+            failedMethods ~= m.name;
         }
     }
 
-    return count;
+    return failedMethods;
 }
 
 private void prepareMethod(PostgresClient.Connection conn, in Method method)

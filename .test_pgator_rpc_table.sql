@@ -12,7 +12,7 @@ CREATE TABLE pgator_tests
   one_cell_flag boolean NOT NULL DEFAULT FALSE,
   rotate_flag boolean NOT NULL DEFAULT FALSE,
   read_only boolean NOT NULL DEFAULT FALSE,
-  set_username boolean NOT NULL DEFAULT FALSE,
+  set_auth_variables boolean NOT NULL DEFAULT FALSE,
 
   CONSTRAINT pgator_tests_pkey PRIMARY KEY (method)
 );
@@ -51,3 +51,6 @@ VALUES ('rotated', 'VALUES (1,2,3), (4,5,6)', '{}', true);
 
 INSERT INTO pgator_tests (method, sql_query, args, read_only)
 VALUES ('read_only', 'INSERT INTO pgator_tests VALUES(''a'', ''b'', ''{}'')', '{}', true);
+
+INSERT INTO pgator_tests (method, sql_query, args, set_auth_variables)
+VALUES ('echo_auth_variables', 'SELECT pgator.username, pgator.password', '{}', true);

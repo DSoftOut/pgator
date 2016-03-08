@@ -264,5 +264,22 @@ q"EOS
 EOS"
 ),
 
+QA(__LINE__,
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo_auth_variables",
+    "id": 1
+}
+EOS",
+
+q"EOS
+{
+    "result": { "echoed":["123"] },
+    "id": 1
+}
+EOS"
+),
+
 ];
 }
