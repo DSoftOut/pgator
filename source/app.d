@@ -147,8 +147,8 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
     import vibe.core.core;
 
     const varNames = SQLVariablesNames(
-        cfg["sqlAuthVariables"][0].to!string,
-        cfg["sqlAuthVariables"][1].to!string
+        cfg["sqlAuthVariables"]["username"].to!string,
+        cfg["sqlAuthVariables"]["password"].to!string
     );
 
     void httpRequestHandler(scope HTTPServerRequest req, HTTPServerResponse res)
@@ -251,7 +251,7 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
     if(method.readOnlyFlag) // BEGIN READ ONLY
     {
         QueryParams q;
-        q.preparedStatementName = beginPreparedName;
+        q.preparedStatementName = beginROPreparedName;
         conn.execPreparedStatement(q); // FIXME: timeout check
 
         transactionStarted = true;
@@ -523,27 +523,19 @@ class LoopException : Exception
     }
 }
 
-immutable string beginPreparedName = "#B#";
+immutable string beginROPreparedName = "#R#";
 immutable string commitPreparedName = "#C#";
 
 /// returns names of unprepared methods
 private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMethodsArgs args)
 {
     {
-        trace("try to prepare methods BEGIN READ ONLY and COMMIT");
+        trace("try to prepare internal statements");
 
-        Method b;
-        b.name = beginPreparedName;
-        b.statement = "BEGIN READ ONLY";
+        conn.prepareStatement(beginROPreparedName, "BEGIN READ ONLY", 0);
+        conn.prepareStatement(commitPreparedName, "COMMIT", 0);
 
-        Method c;
-        c.name = commitPreparedName;
-        c.statement = "COMMIT";
-
-        conn.prepareMethod(b);
-        conn.prepareMethod(c);
-
-        trace("BEGIN READ ONLY and COMMIT prepared");
+        trace("internal statements prepared");
     }
 
     string[] failedMethods;

@@ -53,4 +53,4 @@ INSERT INTO pgator_tests (method, sql_query, args, read_only)
 VALUES ('read_only', 'INSERT INTO pgator_tests VALUES(''a'', ''b'', ''{}'')', '{}', true);
 
 INSERT INTO pgator_tests (method, sql_query, args, set_auth_variables)
-VALUES ('echo_auth_variables', 'SELECT pgator.username, pgator.password', '{}', true);
+VALUES ('echo_auth_variables', 'SELECT current_setting(''pgator.username''), current_setting(''pgator.password'')', '{}', true);
