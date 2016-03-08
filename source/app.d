@@ -216,7 +216,15 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
     runEventLoop();
 }
 
-private immutable(Answer) transaction(PostgresClient.Connection conn, in Method* method, in QueryParams qp)
+private struct TransactionQueryParams
+{
+    QueryParams queryParams;
+    AuthorizationCredentials auth;
+
+    alias queryParams this;
+}
+
+private immutable(Answer) transaction(PostgresClient.Connection conn, in Method* method, in TransactionQueryParams qp)
 {
     if(method.readOnlyFlag) // BEGIN READ ONLY
     {
@@ -242,7 +250,7 @@ private Bson execPreparedStatement(
     in RpcRequest rpcRequest
 )
 {
-    QueryParams qp;
+    TransactionQueryParams qp;
     qp.preparedStatementName = rpcRequest.method;
 
     {
@@ -351,15 +359,20 @@ string[] named2positionalParameters(in Method* method, in string[string] namedPa
     return ret;
 }
 
+private struct AuthorizationCredentials
+{
+    bool authVariablesSet = false;
+    string user;
+    string password;
+}
+
 struct RpcRequest
 {
     Bson id;
     string method;
     string[string] namedParams = null;
     string[] positionParams = null;
-    bool authVariablesSet = false;
-    string user;
-    string password;
+    AuthorizationCredentials auth;
 
     invariant()
     {
@@ -426,9 +439,9 @@ struct RpcRequest
                 auto idx = user_pw.indexOf(":");
                 enforceBadRequest(idx >= 0, "Invalid auth string format!");
 
-                r.authVariablesSet = true;
-                r.user = user_pw[0 .. idx];
-                r.password = user_pw[idx+1 .. $];
+                r.auth.authVariablesSet = true;
+                r.auth.user = user_pw[0 .. idx];
+                r.auth.password = user_pw[idx+1 .. $];
             }
         }
 
