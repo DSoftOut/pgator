@@ -141,6 +141,11 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
     // http-server
     import vibe.core.core;
 
+    const varNames = SQLVariablesNames(
+        cfg["sqlAuthVariables"][0].to!string,
+        cfg["sqlAuthVariables"][1].to!string
+    );
+
     void httpRequestHandler(scope HTTPServerRequest req, HTTPServerResponse res)
     {
         RpcRequest rpcRequest;
@@ -160,12 +165,12 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
                 if(rpcRequest.id.type != Bson.Type.undefined)
                 {
                     Bson reply = Bson(["id": rpcRequest.id]);
-                    reply["result"] = execPreparedMethod(conn, method, rpcRequest);
+                    reply["result"] = conn.execPreparedMethod(varNames, method, rpcRequest);
                     res.writeJsonBody(reply);
                 }
                 else // JSON-RPC 2.0 Notification
                 {
-                    execPreparedMethod(conn, method, rpcRequest);
+                    conn.execPreparedMethod(varNames, method, rpcRequest);
                     res.statusCode = HTTPStatus.noContent;
                     res.statusPhrase = "Notification processed";
                     res.writeVoidBody();
@@ -216,12 +221,17 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
     runEventLoop();
 }
 
+struct SQLVariablesNames
+{
+    string user;
+    string password;
+}
+
 private struct TransactionQueryParams
 {
     QueryParams queryParams;
     AuthorizationCredentials auth;
-    string usernameVarName;
-    string passwordVarName;
+    SQLVariablesNames varNames;
 
     alias queryParams this;
 }
@@ -246,8 +256,8 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
     {
         conn.execStatement(
             transactionStarted ? "" : "BEGIN;"~
-            "SET LOCAL "~conn.escapeIdentifier(qp.usernameVarName)~" = "~conn.escapeLiteral(qp.auth.user)~";"~
-            "SET LOCAL "~conn.escapeIdentifier(qp.passwordVarName)~" = "~conn.escapeLiteral(qp.auth.password)
+            "SET LOCAL "~conn.escapeIdentifier(qp.varNames.user)~" = "~conn.escapeLiteral(qp.auth.user)~";"~
+            "SET LOCAL "~conn.escapeIdentifier(qp.varNames.password)~" = "~conn.escapeLiteral(qp.auth.password)
         );
 
         transactionStarted = true;
@@ -266,12 +276,14 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
 
 private Bson execPreparedMethod(
     PostgresClient.Connection conn,
+    in SQLVariablesNames varNames,
     in Method* method,
     in RpcRequest rpcRequest
 )
 {
     TransactionQueryParams qp;
     qp.preparedStatementName = rpcRequest.method;
+    qp.varNames = varNames;
 
     {
         if(rpcRequest.positionParams.length == 0) // named parameters
