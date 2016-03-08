@@ -1,16 +1,16 @@
 import pgator.rpc_table;
 import std.getopt;
-import std.experimental.logger;
 import std.typecons: Tuple;
 import vibe.http.server;
+import vibe.core.log;
 import vibe.db.postgresql;
 
 @trusted:
 
-shared static this()
-{
-    sharedLog.fatalHandler = null;
-}
+//~ shared static this()
+//~ {
+    //~ sharedLog.fatalHandler = null;
+//~ }
 
 string configFileName = "/wrong/path/to/file.json";
 bool debugEnabled = false;
@@ -29,10 +29,10 @@ void readOpts(string[] args)
     }
     catch(Exception e)
     {
-        fatal(e.msg);
+        logFatal(e.msg);
     }
 
-    if(!debugEnabled) sharedLog.logLevel = LogLevel.warning;
+    //if(!debugEnabled) sharedLog.logLevel = LogLevel.warning;
 }
 
 import vibe.data.json;
@@ -53,7 +53,7 @@ Bson readConfig()
     }
     catch(Exception e)
     {
-        fatal(e.msg);
+        logFatal(e.msg);
         throw e;
     }
 
@@ -87,15 +87,15 @@ int main(string[] args)
         {
             if(prepArgs.methodsLoadedFlag)
             {
-                std.experimental.logger.trace("Preparing");
+                logTrace("Preparing");
                 auto failedMethodsNames = prepareMethods(conn, prepArgs);
                 prepArgs.failedCount += failedMethodsNames.length;
 
                 foreach(n; failedMethodsNames)
                     prepArgs.methods.remove(n);
 
-                info(prepArgs.methodsLoadedFlag, "Number of methods in the table ", prepArgs.tableName,": ",
-                    prepArgs.rpcTableLength, ", failed to prepare: ", prepArgs.failedCount);
+                logInfo("Number of methods in the table "~prepArgs.tableName~": "~
+                    prepArgs.rpcTableLength.to!string~", failed to prepare: "~prepArgs.failedCount.to!string);
             }
         }
 
@@ -119,7 +119,7 @@ int main(string[] args)
 
             {
                 size_t failed = prepArgs.rpcTableLength - prepArgs.methods.length;
-                trace("Number of methods in the table ", prepArgs.tableName,": ", answer.length, ", failed to load into pgator: ", failed);
+                logTrace("Number of methods in the table "~prepArgs.tableName~": "~answer.length.to!string~", failed to load into pgator: "~failed.to!string);
             }
 
             // prepare statements for previously used connection
@@ -135,7 +135,7 @@ int main(string[] args)
     }
     catch(Exception e)
     {
-        fatal(e.msg);
+        logFatal(e.msg);
 
         return 1;
     }
@@ -243,8 +243,10 @@ private struct TransactionQueryParams
 
 private immutable(Answer) transaction(PostgresClient.Connection conn, in Method* method, in TransactionQueryParams qp)
 {
+    logInfo(method.needAuthVariablesFlag.to!string);
+    logInfo(qp.auth.authVariablesSet.to!string);
     if(method.needAuthVariablesFlag && !qp.auth.authVariablesSet)
-        throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic access authentication need", __FILE__, __LINE__);
+        throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic HTTP authentication need", __FILE__, __LINE__);
 
     bool transactionStarted = false;
 
@@ -289,6 +291,7 @@ private Bson execPreparedMethod(
     TransactionQueryParams qp;
     qp.preparedStatementName = rpcRequest.method;
     qp.varNames = varNames;
+    qp.auth = rpcRequest.auth;
 
     {
         if(rpcRequest.positionParams.length == 0) // named parameters
@@ -472,7 +475,9 @@ struct RpcRequest
             // Copypaste from vibe.d code, see https://github.com/rejectedsoftware/vibe.d/issues/1449
 
             auto pauth = "Authorization" in req.headers;
-            if( pauth && (*pauth).startsWith("Basic ") ){
+            logInfo("pauth is null? "~ (pauth is null ? "NULL" : *pauth));
+            if( pauth && (*pauth).startsWith("Basic ") )
+            {
                 string user_pw = cast(string)Base64.decode((*pauth)[6 .. $]);
 
                 auto idx = user_pw.indexOf(":");
@@ -481,6 +486,8 @@ struct RpcRequest
                 r.auth.authVariablesSet = true;
                 r.auth.user = user_pw[0 .. idx];
                 r.auth.password = user_pw[idx+1 .. $];
+
+                logInfo("user="~r.auth.user~" pass="~r.auth.password);
             }
         }
 
@@ -530,25 +537,25 @@ immutable string commitPreparedName = "#C#";
 private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMethodsArgs args)
 {
     {
-        trace("try to prepare internal statements");
+        logTrace("try to prepare internal statements");
 
         conn.prepareStatement(beginROPreparedName, "BEGIN READ ONLY", 0);
         conn.prepareStatement(commitPreparedName, "COMMIT", 0);
 
-        trace("internal statements prepared");
+        logTrace("internal statements prepared");
     }
 
     string[] failedMethods;
 
     foreach(const m; args.methods.byValue)
     {
-        trace("try to prepare method ", m.name);
+        logTrace("try to prepare method ", m.name);
 
         try
         {
             conn.prepareMethod(m);
 
-            trace("method ", m.name, " prepared");
+            logTrace("method ", m.name, " prepared");
         }
         catch(ConnectionException e)
         {
@@ -556,7 +563,7 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
         }
         catch(Exception e)
         {
-            warning(e.msg, ", skipping preparing of method ", m.name);
+            logWarn(e.msg, ", skipping preparing of method ", m.name);
             failedMethods ~= m.name;
         }
     }

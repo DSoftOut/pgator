@@ -5,6 +5,7 @@ version(IntegrationTest)
 {
     import std.conv;
     import std.net.curl;
+    import etc.c.curl: CurlAuth;
 
     void main(string[] args)
     {
@@ -23,6 +24,13 @@ version(IntegrationTest)
                 import vibe.data.json;
 
                 http.postData = parseJsonString(t.query).toString;
+
+                if(t.username.length)
+                {
+                    http.authenticationMethod(CurlAuth.basic);
+                    http.setAuthentication(t.username, t.password);
+                    import std.stdio; writeln("auth set!!!");
+                }
 
                 string resultBody;
                 http.onReceive = (ubyte[] data) {
@@ -58,6 +66,8 @@ version(IntegrationTest)
         string expectedAnswer;
         ushort httpCode = 200;
         string contentType = "application/json";
+        string username;
+        string password;
     }
 
     alias QA = QueryAnswer;
@@ -278,7 +288,11 @@ q"EOS
     "result": { "echoed":["123"] },
     "id": 1
 }
-EOS"
+EOS",
+200,
+"application/json",
+"test user",
+"test password"
 ),
 
 ];
