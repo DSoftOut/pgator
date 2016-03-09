@@ -62,6 +62,7 @@ Bson readConfig()
 
 private struct PrepareMethodsArgs
 {
+    const SQLVariablesNames varNames;
     bool methodsLoadedFlag = false; // need for bootstrap
     Method[string] methods;
     size_t rpcTableLength;
@@ -80,7 +81,12 @@ int main(string[] args)
         const connString = server["connString"].get!string;
         auto maxConn = to!uint(server["maxConn"].get!long);
 
-        PrepareMethodsArgs prepArgs;
+        PrepareMethodsArgs prepArgs = {
+            varNames: SQLVariablesNames(
+                cfg["sqlAuthVariables"]["username"].get!string,
+                cfg["sqlAuthVariables"]["password"].get!string
+            )
+        };
 
         // delegate
         void afterConnectOrReconnect(PostgresClient.Connection conn) @safe
@@ -146,11 +152,6 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
     // http-server
     import vibe.core.core;
 
-    const varNames = SQLVariablesNames(
-        cfg["sqlAuthVariables"]["username"].to!string,
-        cfg["sqlAuthVariables"]["password"].to!string
-    );
-
     void httpRequestHandler(scope HTTPServerRequest req, HTTPServerResponse res)
     {
         RpcRequest rpcRequest;
@@ -170,12 +171,12 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
                 if(rpcRequest.id.type != Bson.Type.undefined)
                 {
                     Bson reply = Bson(["id": rpcRequest.id]);
-                    reply["result"] = conn.execPreparedMethod(varNames, method, rpcRequest);
+                    reply["result"] = conn.execPreparedMethod(method, rpcRequest);
                     res.writeJsonBody(reply);
                 }
                 else // JSON-RPC 2.0 Notification
                 {
-                    conn.execPreparedMethod(varNames, method, rpcRequest);
+                    conn.execPreparedMethod(method, rpcRequest);
                     res.statusCode = HTTPStatus.noContent;
                     res.statusPhrase = "Notification processed";
                     res.writeVoidBody();
@@ -228,7 +229,7 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
 
 struct SQLVariablesNames
 {
-    string user;
+    string username;
     string password;
 }
 
@@ -236,7 +237,6 @@ private struct TransactionQueryParams
 {
     QueryParams queryParams;
     AuthorizationCredentials auth;
-    SQLVariablesNames varNames;
 
     alias queryParams this;
 }
@@ -262,12 +262,17 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
         // FIXME: timeout check
         if(!transactionStarted)
         {
-            conn.execStatement("BEGIN");
+            QueryParams q;
+            q.preparedStatementName = beginPreparedName;
+            conn.execPreparedStatement(q); // FIXME: timeout check
+
             transactionStarted = true;
         }
 
-        conn.execStatement("SET LOCAL "~qp.varNames.user~"="~conn.escapeLiteral(qp.auth.user));
-        conn.execStatement("SET LOCAL "~qp.varNames.password~"="~conn.escapeLiteral(qp.auth.password));
+        QueryParams q;
+        q.preparedStatementName = authVariablesSetPreparedName;
+        q.argsFromArray = [qp.auth.username, qp.auth.password];
+        conn.execPreparedStatement(q); // FIXME: timeout check
     }
 
     scope(exit)
@@ -283,14 +288,12 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
 
 private Bson execPreparedMethod(
     PostgresClient.Connection conn,
-    in SQLVariablesNames varNames,
     in Method* method,
     in RpcRequest rpcRequest
 )
 {
     TransactionQueryParams qp;
     qp.preparedStatementName = rpcRequest.method;
-    qp.varNames = varNames;
     qp.auth = rpcRequest.auth;
 
     {
@@ -404,7 +407,7 @@ string[] named2positionalParameters(in Method* method, in string[string] namedPa
 private struct AuthorizationCredentials
 {
     bool authVariablesSet = false;
-    string user;
+    string username;
     string password;
 }
 
@@ -482,7 +485,7 @@ struct RpcRequest
                 enforceBadRequest(idx >= 0, "Invalid auth string format!");
 
                 r.auth.authVariablesSet = true;
-                r.auth.user = user_pw[0 .. idx];
+                r.auth.username = user_pw[0 .. idx];
                 r.auth.password = user_pw[idx+1 .. $];
             }
         }
@@ -526,8 +529,10 @@ class LoopException : Exception
     }
 }
 
+immutable string beginPreparedName = "#B#";
 immutable string beginROPreparedName = "#R#";
 immutable string commitPreparedName = "#C#";
+immutable string authVariablesSetPreparedName = "#A#";
 
 /// returns names of unprepared methods
 private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMethodsArgs args)
@@ -535,8 +540,12 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
     {
         logTrace("try to prepare internal statements");
 
+        conn.prepareStatement(beginPreparedName, "BEGIN", 0);
         conn.prepareStatement(beginROPreparedName, "BEGIN READ ONLY", 0);
         conn.prepareStatement(commitPreparedName, "COMMIT", 0);
+        conn.prepareStatement(authVariablesSetPreparedName,
+            "SELECT set_config("~conn.escapeLiteral(args.varNames.username)~", $1, true),"~
+            "set_config("~conn.escapeLiteral(args.varNames.password)~", $2, true)", 2);
 
         logTrace("internal statements prepared");
     }
