@@ -6,22 +6,21 @@ version(IntegrationTest)
     import std.conv;
     import std.net.curl;
     import etc.c.curl: CurlAuth;
+    import vibe.data.json;
 
     void main(string[] args)
     {
-        string httpHost = args[1];
-        string port = args[2];
-
-        HTTP http = HTTP();
-        http.method = HTTP.Method.post;
-        http.url = "http://"~httpHost~":"~port~"/";
-        http.addRequestHeader("Content-Type", "application/json");
+        const string httpHost = args[1];
+        const string port = args[2];
 
         foreach(t; tests)
         {
             try
             {
-                import vibe.data.json;
+                HTTP http = HTTP();
+                http.method = HTTP.Method.post;
+                http.url = "http://"~httpHost~":"~port~"/";
+                http.addRequestHeader("Content-Type", "application/json");
 
                 http.postData = parseJsonString(t.query).toString;
 
@@ -273,7 +272,7 @@ q"EOS
 EOS"
 ),
 
-QA(__LINE__,
+QA(__LINE__, // successful auth test
 q"EOS
 {
     "jsonrpc": "2.0",
@@ -296,6 +295,18 @@ EOS",
 "application/json",
 "test user",
 "test password"
+),
+
+QA(__LINE__, // failed auth test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo_auth_variables",
+    "id": 1
+}
+EOS",
+null,
+401
 ),
 
 ];
