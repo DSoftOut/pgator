@@ -8,9 +8,7 @@ CREATE TABLE pgator_tests
   args text[] NOT NULL,
 
   -- Optional parameters
-  one_row_flag boolean DEFAULT FALSE, -- NOT NULL skipped for testing purposes
-  one_cell_flag boolean NOT NULL DEFAULT FALSE,
-  rotate_flag boolean NOT NULL DEFAULT FALSE,
+  result_format text DEFAULT 'TABLE', -- NOT NULL skipped for testing purposes
   read_only boolean NOT NULL DEFAULT FALSE,
   set_auth_variables boolean NOT NULL DEFAULT FALSE,
 
@@ -29,9 +27,9 @@ end;
 $_$;
 
 INSERT INTO pgator_tests VALUES
-('echo', 'SELECT $1::text as echoed', '{"value_for_echo"}', false),
+('echo', 'SELECT $1::text as echoed', '{"value_for_echo"}', 'TABLE'),
 ('null_flag_test', 'SELECT $1::text', '{"value_for_echo"}', NULL),
-('wrong_sql_statement', 'wrong SQL statement', '{}', false);
+('wrong_sql_statement', 'wrong SQL statement', '{}', 'TABLE');
 
 INSERT INTO pgator_tests
 (method, sql_query, args)
@@ -40,17 +38,17 @@ VALUES
 ('two_lines', 'VALUES (1,3,5), (2,4,6)', '{}'),
 ('show_error', 'SELECT show_error($1, $2, $3)', '{"msg", "internalFlag", "errorCode"}');
 
-INSERT INTO pgator_tests (method, sql_query, args, one_row_flag)
-VALUES ('one_row_flag', 'SELECT ''val1''::text as col1, ''val2''::text as col2', '{}', true);
+INSERT INTO pgator_tests (method, sql_query, args, result_format)
+VALUES ('one_row_flag', 'SELECT ''val1''::text as col1, ''val2''::text as col2', '{}', 'ROW');
 
-INSERT INTO pgator_tests (method, sql_query, args, one_cell_flag)
-VALUES ('one_cell_flag', 'SELECT 123 as col1', '{}', true);
+INSERT INTO pgator_tests (method, sql_query, args, result_format)
+VALUES ('one_cell_flag', 'SELECT 123 as col1', '{}', 'CELL');
 
-INSERT INTO pgator_tests (method, sql_query, args, rotate_flag)
-VALUES ('rotated', 'VALUES (1,2,3), (4,5,6)', '{}', true);
+INSERT INTO pgator_tests (method, sql_query, args, result_format)
+VALUES ('rotated', 'VALUES (1,2,3), (4,5,6)', '{}', 'ROTATED');
 
 INSERT INTO pgator_tests (method, sql_query, args, read_only)
 VALUES ('read_only', 'INSERT INTO pgator_tests VALUES(''a'', ''b'', ''{}'')', '{}', true);
 
-INSERT INTO pgator_tests (method, sql_query, args, set_auth_variables, one_row_flag)
-VALUES ('echo_auth_variables', 'SELECT current_setting(''pgator.username'') as user, current_setting(''pgator.password'') as pass', '{}', true, true);
+INSERT INTO pgator_tests (method, sql_query, args, set_auth_variables, result_format)
+VALUES ('echo_auth_variables', 'SELECT current_setting(''pgator.username'') as user, current_setting(''pgator.password'') as pass', '{}', true, 'ROW');

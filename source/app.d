@@ -124,8 +124,8 @@ int main(string[] args)
             prepArgs.methodsLoadedFlag = true;
 
             {
-                size_t failed = prepArgs.rpcTableLength - prepArgs.methods.length;
-                logTrace("Number of methods in the table "~prepArgs.tableName~": "~answer.length.to!string~", failed to load into pgator: "~failed.to!string);
+                prepArgs.failedCount = prepArgs.rpcTableLength - prepArgs.methods.length;
+                logTrace("Number of methods in the table "~prepArgs.tableName~": "~prepArgs.rpcTableLength.to!string~", failed to load into pgator: "~prepArgs.failedCount.to!string);
             }
 
             // prepare statements for previously used connection
@@ -329,58 +329,63 @@ private Bson execPreparedMethod(
             }
         }
 
-        if(method.oneCellFlag)
+        with(ResultFormat)
+        final switch(method.resultFormat)
         {
-            if(answer.length != 1 || answer.columnCount != 1)
-                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One cell flag constraint failed", __FILE__, __LINE__);
-
-            return getValue(0, 0);
-        }
-
-        if(method.oneRowFlag)
-        {
-            if(answer.length != 1)
-                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One row flag constraint failed", __FILE__, __LINE__);
-
-            Bson ret = Bson.emptyObject;
-
-            foreach(colNum; 0 .. answer.columnCount)
-                ret[answer.columnName(colNum)] = getValue(0, colNum);
-
-            return ret;
-        }
-
-        if(!method.rotateFlag)
-        {
-            Bson ret = Bson.emptyObject;
-
-            foreach(colNum; 0 .. answer.columnCount)
+            case CELL:
             {
-                Bson[] col = new Bson[answer.length];
+                if(answer.length != 1 || answer.columnCount != 1)
+                    throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One cell flag constraint failed", __FILE__, __LINE__);
 
-                foreach(rowNum; 0 .. answer.length)
-                    col[rowNum] = getValue(rowNum, colNum);
-
-                ret[answer.columnName(colNum)] = col;
+                return getValue(0, 0);
             }
 
-            return ret;
-        }
-        else
-        {
-            Bson[] ret = new Bson[answer.length];
-
-            foreach(rowNum; 0 .. answer.length)
+            case ROW:
             {
-                Bson row = Bson.emptyObject;
+                if(answer.length != 1)
+                    throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One row flag constraint failed", __FILE__, __LINE__);
+
+                Bson ret = Bson.emptyObject;
 
                 foreach(colNum; 0 .. answer.columnCount)
-                    row[answer.columnName(colNum)] = getValue(rowNum, colNum);
+                    ret[answer.columnName(colNum)] = getValue(0, colNum);
 
-                ret[rowNum] = row;
+                return ret;
             }
 
-            return Bson(ret);
+            case TABLE:
+            {
+                Bson ret = Bson.emptyObject;
+
+                foreach(colNum; 0 .. answer.columnCount)
+                {
+                    Bson[] col = new Bson[answer.length];
+
+                    foreach(rowNum; 0 .. answer.length)
+                        col[rowNum] = getValue(rowNum, colNum);
+
+                    ret[answer.columnName(colNum)] = col;
+                }
+
+                return ret;
+            }
+
+            case ROTATED:
+            {
+                Bson[] ret = new Bson[answer.length];
+
+                foreach(rowNum; 0 .. answer.length)
+                {
+                    Bson row = Bson.emptyObject;
+
+                    foreach(colNum; 0 .. answer.columnCount)
+                        row[answer.columnName(colNum)] = getValue(rowNum, colNum);
+
+                    ret[rowNum] = row;
+                }
+
+                return Bson(ret);
+            }
         }
     }
     catch(AnswerCreationException e)

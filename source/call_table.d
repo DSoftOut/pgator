@@ -11,11 +11,17 @@ struct Method
     string[] argsNames;
 
     // Optional parameters:
-    bool rotateFlag = false; /// rotate result "counterclockwise"
-    bool oneRowFlag = false;
-    bool oneCellFlag = false; /// one cell result
+    ResultFormat resultFormat = ResultFormat.TABLE;
     bool readOnlyFlag = false;
     bool needAuthVariablesFlag = false; /// pass username and password from HTTP session to SQL session
+}
+
+enum ResultFormat
+{
+    TABLE,
+    ROTATED, /// rotate result "counterclockwise"
+    ROW,
+    CELL /// one cell result
 }
 
 Method[string] readMethods(immutable Answer answer)
@@ -91,11 +97,35 @@ Method[string] readMethods(immutable Answer answer)
         // Reading of optional parameters
         try
         {
-            getOptional("rotate_flag", m.rotateFlag);
-            getOptional("one_row_flag", m.oneRowFlag);
-            getOptional("one_cell_flag", m.oneCellFlag);
             getOptional("read_only", m.readOnlyFlag);
             getOptional("set_auth_variables", m.needAuthVariablesFlag);
+
+            {
+                string s;
+                getOptional("result_format", s);
+
+                switch(s)
+                {
+                    case "TABLE":
+                        m.resultFormat = ResultFormat.TABLE;
+                        break;
+
+                    case "ROTATED":
+                        m.resultFormat = ResultFormat.ROTATED;
+                        break;
+
+                    case "ROW":
+                        m.resultFormat = ResultFormat.ROW;
+                        break;
+
+                    case "CELL":
+                        m.resultFormat = ResultFormat.CELL;
+                        break;
+
+                    default:
+                        throw new Exception("Unknown result format type "~s, __FILE__, __LINE__);
+                }
+            }
         }
         catch(Exception e)
         {
