@@ -307,5 +307,36 @@ null,
 401
 ),
 
+QA(__LINE__,
+q"EOS
+[
+    {
+        "jsonrpc": "2.0",
+        "method": "echo",
+        "params": [ 123 ],
+        "id": 1
+    },
+    {
+        "jsonrpc": "2.0",
+        "method": "echo",
+        "id": 1
+    },
+    {
+        "jsonrpc": "2.0",
+        "method": "echo",
+        "params": [ 456 ],
+        "id": 1
+    }
+]
+EOS",
+
+q"EOS
+{
+    "result": { "echoed":["123"] },
+    "id": 1
+}
+EOS"
+),
+
 ];
 }

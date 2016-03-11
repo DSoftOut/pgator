@@ -155,7 +155,7 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
         {
             try
             {
-                rpcRequest = RpcRequest.toRpcRequest(req);
+                rpcRequest = RpcRequest.toRpcRequests(req)[0];
                 const method = (rpcRequest.method in methods);
 
                 if(method is null)
@@ -436,13 +436,35 @@ struct RpcRequest
         assert(namedParams is null || positionParams is null);
     }
 
-    static RpcRequest toRpcRequest(scope HTTPServerRequest req)
+    static RpcRequest[] toRpcRequests(scope HTTPServerRequest req)
     {
         if(req.contentType != "application/json")
             throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
 
         Json j = req.json;
 
+        switch(j.type)
+        {
+            case Json.Type.array:
+                RpcRequest[] ret = new RpcRequest[j.length];
+                foreach(i, ref r; ret)
+                {
+                    r = jsonToRpcRequest(j[i], req);
+                }
+                return ret;
+
+            case Json.Type.object:
+                RpcRequest[] ret= new RpcRequest[1];
+                ret[0] = jsonToRpcRequest(j, req);
+                return ret;
+
+            default:
+                throw new LoopException(JsonRpcErrorCode.parseError, HTTPStatus.badRequest, "Parse error", __FILE__, __LINE__);
+        }
+    }
+
+    private static RpcRequest jsonToRpcRequest(scope Json j, in HTTPServerRequest req)
+    {
         if(j["jsonrpc"] != "2.0")
             throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Protocol version should be \"2.0\"", __FILE__, __LINE__);
 
