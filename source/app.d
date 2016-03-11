@@ -209,9 +209,18 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
                 ]);
             }
 
-            res.writeJsonBody(err, e.status);
+            res.statusPhrase = e.msg;
 
-            import vibe.core.log;
+            if(rpcRequest.id.type != Bson.Type.undefined)
+            {
+                res.writeJsonBody(err, e.status);
+            }
+            else // Error during processing JSON-RPC 2.0 Notification
+            {
+                res.statusCode = e.status;
+                res.writeVoidBody();
+            }
+
             logWarn(err.toString);
         }
     }

@@ -92,20 +92,6 @@ EOS"
 QA(__LINE__,
 q"EOS
 {
-    "method": "echo",
-    "params": [ 123 ]
-}
-EOS",
-
-q"EOS
-{"code":-32600, "message":"Protocol version should be \"2.0\""}
-EOS", // FIXME: should be empty answer only with HTTP code because "id" isn't specified
-400
-),
-
-QA(__LINE__,
-q"EOS
-{
     "jsonrpc": "2.0",
     "id": 1,
     "method": "one_line",
@@ -239,6 +225,18 @@ EOS",
 
 "", // empty body
 204
+),
+
+QA(__LINE__, // failed notification test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo"
+}
+EOS",
+
+null,
+400
 ),
 
 QA(__LINE__,
