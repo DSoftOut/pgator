@@ -10,7 +10,7 @@ dub build --build=unittest
 psql -v ON_ERROR_STOP=ON -f .test_pgator_rpc_table.sql "$CONNINFO_UNQUOTED"
 
 # Test calls table by preparing statements
-`./pgator --config=${1} --debug=true --test=true > /dev/null; if [ $? -ne 2 ]; then exit 1; fi` # Some statements should be bad
+`./pgator --config=${1} --debug=true --check=true > /dev/null; if [ $? -ne 2 ]; then exit 1; fi` # Some statements should be bad
 
 # Start pgator server
 ./pgator --config=${1} --debug=true &

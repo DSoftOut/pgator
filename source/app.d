@@ -7,14 +7,9 @@ import vibe.db.postgresql;
 
 @trusted:
 
-//~ shared static this()
-//~ {
-    //~ sharedLog.fatalHandler = null;
-//~ }
-
 string configFileName = "/wrong/path/to/file.json";
 bool debugEnabled = false;
-bool testStatements = false;
+bool checkMethods = false;
 
 void readOpts(string[] args)
 {
@@ -23,7 +18,7 @@ void readOpts(string[] args)
         auto helpInformation = getopt(
                 args,
                 "debug", &debugEnabled,
-                "test", &testStatements,
+                "check", &checkMethods,
                 "config", &configFileName
             );
     }
@@ -32,7 +27,7 @@ void readOpts(string[] args)
         logFatal(e.msg);
     }
 
-    //if(!debugEnabled) sharedLog.logLevel = LogLevel.warning;
+    if(debugEnabled) setLogLevel = LogLevel.debugV;
 }
 
 import vibe.data.json;
@@ -93,7 +88,7 @@ int main(string[] args)
         {
             if(prepArgs.methodsLoadedFlag)
             {
-                logTrace("Preparing");
+                logDebugV("Preparing");
                 auto failedMethodsNames = prepareMethods(conn, prepArgs);
                 prepArgs.failedCount += failedMethodsNames.length;
 
@@ -125,14 +120,14 @@ int main(string[] args)
 
             {
                 prepArgs.failedCount = prepArgs.rpcTableLength - prepArgs.methods.length;
-                logTrace("Number of methods in the table "~prepArgs.tableName~": "~prepArgs.rpcTableLength.to!string~", failed to load into pgator: "~prepArgs.failedCount.to!string);
+                logDebugV("Number of methods in the table "~prepArgs.tableName~": "~prepArgs.rpcTableLength.to!string~", failed to load into pgator: "~prepArgs.failedCount.to!string);
             }
 
             // prepare statements for previously used connection
             afterConnectOrReconnect(conn);
         }
 
-        if(!testStatements)
+        if(!checkMethods)
         {
             loop(cfg, client, prepArgs.methods);
         }
@@ -543,7 +538,7 @@ immutable string authVariablesSetPreparedName = "#A#";
 private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMethodsArgs args)
 {
     {
-        logTrace("try to prepare internal statements");
+        logDebugV("try to prepare internal statements");
 
         conn.prepareStatement(beginPreparedName, "BEGIN", 0);
         conn.prepareStatement(beginROPreparedName, "BEGIN READ ONLY", 0);
@@ -552,20 +547,20 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
             "SELECT set_config("~conn.escapeLiteral(args.varNames.username)~", $1, true),"~
             "set_config("~conn.escapeLiteral(args.varNames.password)~", $2, true)", 2);
 
-        logTrace("internal statements prepared");
+        logDebugV("internal statements prepared");
     }
 
     string[] failedMethods;
 
     foreach(const m; args.methods.byValue)
     {
-        logTrace("try to prepare method ", m.name);
+        logDebugV("try to prepare method ", m.name);
 
         try
         {
             conn.prepareMethod(m);
 
-            logTrace("method ", m.name, " prepared");
+            logDebugV("method ", m.name, " prepared");
         }
         catch(ConnectionException e)
         {

@@ -1,7 +1,7 @@
 module pgator.rpc_table;
 
 import dpq2.result;
-import std.experimental.logger;
+import vibe.core.log;
 
 struct Method
 {
@@ -30,7 +30,7 @@ Method[string] readMethods(immutable Answer answer)
 
     foreach(ref r; rangify(answer))
     {
-        trace("found row: ", r);
+        logDebugV("found row: ", r);
 
         // optional params handler
         void getOptional(T)(string sqlName, ref T result)
@@ -90,7 +90,7 @@ Method[string] readMethods(immutable Answer answer)
         }
         catch(Exception e)
         {
-            fatal(e.msg, ", failed on method ", m.name);
+            logFatal(e.msg, ", failed on method ", m.name);
             break;
         }
 
@@ -129,12 +129,12 @@ Method[string] readMethods(immutable Answer answer)
         }
         catch(Exception e)
         {
-            warning(e.msg, ", skipping reading of method ", m.name);
+            logWarn(e.msg, ", skipping reading of method ", m.name);
             continue;
         }
 
         methods[m.name] = m;
-        info("Method ", m.name, " loaded. Content: ", m);
+        logInfo("Method ", m.name, " loaded. Content: ", m);
     }
 
     return methods;
