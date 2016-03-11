@@ -251,19 +251,18 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
     {
         QueryParams q;
         q.preparedStatementName = beginROPreparedName;
-        conn.execPreparedStatement(q); // FIXME: timeout check
+        conn.execPreparedStatement(q);
 
         transactionStarted = true;
     }
 
     if(method.needAuthVariablesFlag)
     {
-        // FIXME: timeout check
         if(!transactionStarted)
         {
             QueryParams q;
             q.preparedStatementName = beginPreparedName;
-            conn.execPreparedStatement(q); // FIXME: timeout check
+            conn.execPreparedStatement(q);
 
             transactionStarted = true;
         }
@@ -271,7 +270,7 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
         QueryParams q;
         q.preparedStatementName = authVariablesSetPreparedName;
         q.argsFromArray = [qp.auth.username, qp.auth.password];
-        conn.execPreparedStatement(q); // FIXME: timeout check
+        conn.execPreparedStatement(q);
     }
 
     scope(exit)
@@ -279,10 +278,10 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
     {
         QueryParams q;
         q.preparedStatementName = commitPreparedName;
-        auto a = conn.execPreparedStatement(q); // FIXME: timeout check
+        auto a = conn.execPreparedStatement(q);
     }
 
-    return conn.execPreparedStatement(qp); // FIXME: timeout check
+    return conn.execPreparedStatement(qp);
 }
 
 private Bson execPreparedMethod(
