@@ -112,7 +112,7 @@ int main(string[] args)
 
             QueryParams p;
             p.sqlCommand = "SELECT * FROM "~prepArgs.tableName;
-            auto answer = conn.execStatement(p, dur!"seconds"(10));
+            auto answer = conn.execStatement(p);
 
             prepArgs.rpcTableLength = answer.length;
             prepArgs.methods = readMethods(answer);
