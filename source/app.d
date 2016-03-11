@@ -181,6 +181,10 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
             {
                 throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
+            catch(PostgresClientTimeoutException e)
+            {
+                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
+            }
         }
         catch(LoopException e)
         {
