@@ -30,7 +30,7 @@ Method[string] readMethods(immutable Answer answer)
 
     foreach(ref r; rangify(answer))
     {
-        logDebugV("found row: ", r);
+        logDebugV("found row: "~r.toString);
 
         // optional params handler
         void getOptional(T)(string sqlName, ref T result)
