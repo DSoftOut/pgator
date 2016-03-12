@@ -189,7 +189,7 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
 
                 foreach(ref r; results.results) // fill response array
                 {
-                    if(r.responseBody != Bson.emptyObject) // skip notify responses
+                    if(!r.isNotify) // skip notify responses
                         ret ~= r.responseBody;
                 }
 
@@ -586,9 +586,6 @@ struct RpcRequest
         {
             Bson err = Bson.emptyObject;
 
-            // If id == null this is notify and it is no need to reply at all,
-            // but if there was an error in detecting the id in the Request object
-            // (e.g. Parse error/Invalid Request), it MUST be Null.
             err["id"] = cast() id; // FIXME: remove cast!
             err["message"] = e.msg;
             err["code"] = e.code;

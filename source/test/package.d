@@ -306,37 +306,42 @@ EOS",
 null,
 401
 ),
-/+
-QA(__LINE__,
+
+QA(__LINE__, // batch mode test
 q"EOS
 [
     {
         "jsonrpc": "2.0",
+        "method": "one_cell_flag",
+        "id": 1
+    },
+    {
+        "jsonrpc": "2.0",
+        "method": "echo",
+        "id": 2
+    },
+    {
+        "jsonrpc": "2.0",
         "method": "echo",
         "params": [ 123 ],
-        "id": 1
+        "id": 3
     },
     {
         "jsonrpc": "2.0",
-        "method": "echo",
-        "id": 1
-    },
-    {
-        "jsonrpc": "2.0",
-        "method": "echo",
-        "params": [ 456 ],
-        "id": 1
+        "method": "one_cell_flag",
+        "params": [ 456 ]
     }
 ]
 EOS",
 
 q"EOS
-{
-    "result": { "echoed":["123"] },
-    "id": 1
-}
+[
+    {"result":123, "id":1},
+    {"message":"Missing required parameter value_for_echo","id":2,"code":-32602},
+    {"result":{"echoed":["123"]},"id":3}
+]
 EOS"
 ),
-+/
+
 ];
 }
