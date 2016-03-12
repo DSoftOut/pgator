@@ -173,13 +173,13 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
                 {
                     if(result.isNotify)
                     {
-                        res.statusCode = result.exception.status;
+                        res.statusCode = result.exception.httpCode;
                         res.statusPhrase = result.exception.msg;
                         res.writeVoidBody();
                     }
                     else
                     {
-                        res.writeJsonBody(result.responseBody, result.exception.status);
+                        res.writeJsonBody(result.responseBody, result.exception.httpCode);
                     }
                 }
             }
@@ -206,7 +206,7 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
         }
         catch(LoopException e)
         {
-            res.writeJsonBody(Bson(e.msg), e.status); // FIXME: wrong error body format
+            res.writeJsonBody(Bson(e.msg), e.httpCode); // FIXME: wrong error body format
 
             logWarn(e.msg);
         }
@@ -588,7 +588,7 @@ struct RpcRequest
 
             err["id"] = cast() id; // FIXME: remove cast!
             err["message"] = e.msg;
-            err["code"] = e.code;
+            err["code"] = e.jsonCode;
 
             if(e.answerException !is null)
             {
@@ -649,14 +649,14 @@ enum JsonRpcErrorCode : short
 
 class LoopException : Exception
 {
-    const JsonRpcErrorCode code;
-    const HTTPStatus status;
+    const JsonRpcErrorCode jsonCode;
+    const HTTPStatus httpCode;
     const AnswerCreationException answerException;
 
-    this(JsonRpcErrorCode code, HTTPStatus status, string msg, string file, size_t line, AnswerCreationException ae = null) pure
+    this(JsonRpcErrorCode jsonCode, HTTPStatus httpCode, string msg, string file, size_t line, AnswerCreationException ae = null) pure
     {
-        this.code = code;
-        this.status = status;
+        this.jsonCode = jsonCode;
+        this.httpCode = httpCode;
         this.answerException = ae;
 
         super(msg, file, line);
