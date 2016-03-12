@@ -149,79 +149,66 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
 
     void httpRequestHandler(scope HTTPServerRequest req, HTTPServerResponse res)
     {
-        RpcRequest rpcRequest;
-
         try
         {
-            try
+            RpcRequestResults results = performRpcRequests(methods, client, req);
+
+            if(!results.isBatchMode) // normal mode response
             {
-                rpcRequest = RpcRequest.toRpcRequests(req)[0];
-                const method = (rpcRequest.methodName in methods);
+                const result = &results.results[0];
 
-                if(method is null)
-                    throw new LoopException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~rpcRequest.methodName~" not found", __FILE__, __LINE__);
-
-                PostgresClient.Connection conn = client.lockConnection();
-
-                if(rpcRequest.id.type != Bson.Type.undefined)
+                if(result.exception is null)
                 {
-                    Bson reply = Bson(["id": rpcRequest.id]);
-                    reply["result"] = conn.execPreparedMethod(method, rpcRequest);
-                    res.writeJsonBody(reply);
+                    if(result.isNotify)
+                    {
+                        res.statusCode = HTTPStatus.noContent;
+                        res.writeVoidBody();
+                    }
+                    else
+                    {
+                        res.writeJsonBody(result.responseBody);
+                    }
                 }
-                else // JSON-RPC 2.0 Notification
+                else // error handling
                 {
-                    conn.execPreparedMethod(method, rpcRequest);
+                    if(result.isNotify)
+                    {
+                        res.statusCode = result.exception.status;
+                        res.statusPhrase = result.exception.msg;
+                        res.writeVoidBody();
+                    }
+                    else
+                    {
+                        res.writeJsonBody(result.responseBody, result.exception.status);
+                    }
+                }
+            }
+            else // batch mode response
+            {
+                Bson[] ret;
+
+                foreach(ref r; results.results) // fill response array
+                {
+                    if(r.responseBody != Bson.emptyObject) // skip notify responses
+                        ret ~= r.responseBody;
+                }
+
+                if(ret.length)
+                {
+                    res.writeJsonBody(Bson(ret)); // normal batch response
+                }
+                else
+                {
                     res.statusCode = HTTPStatus.noContent;
-                    res.statusPhrase = "Notification processed";
-                    res.writeVoidBody();
+                    res.writeVoidBody(); // empty response for batch with notifies only
                 }
-            }
-            catch(ConnectionException e)
-            {
-                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
-            }
-            catch(PostgresClientTimeoutException e)
-            {
-                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
         }
         catch(LoopException e)
         {
-            Bson err = Bson.emptyObject;
+            res.writeJsonBody(Bson(e.msg), e.status); // FIXME: wrong error body format
 
-            // FIXME: if id == null it is no need to reply at all, but if there was an error in detecting
-            // the id in the Request object (e.g. Parse error/Invalid Request), it MUST be Null.
-            err["id"] = rpcRequest.id;
-            err["message"] = e.msg;
-            err["code"] = e.code;
-
-            if(e.answerException !is null)
-            {
-                Bson hint =    Bson(e.answerException.resultErrorField(PG_DIAG_MESSAGE_HINT));
-                Bson detail =  Bson(e.answerException.resultErrorField(PG_DIAG_MESSAGE_DETAIL));
-                Bson errcode = Bson(e.answerException.resultErrorField(PG_DIAG_SQLSTATE));
-
-                err["data"] = Bson([
-                    "hint": hint,
-                    "detail": detail,
-                    "errcode": errcode
-                ]);
-            }
-
-            res.statusPhrase = e.msg;
-
-            if(rpcRequest.id.type != Bson.Type.undefined)
-            {
-                res.writeJsonBody(err, e.status);
-            }
-            else // Error during processing JSON-RPC 2.0 Notification
-            {
-                res.statusCode = e.status;
-                res.writeVoidBody();
-            }
-
-            logWarn(err.toString);
+            logWarn(e.msg);
         }
     }
 
@@ -423,6 +410,58 @@ private struct AuthorizationCredentials
     string password;
 }
 
+RpcRequestResults performRpcRequests(in Method[string] methods, PostgresClient client, scope HTTPServerRequest req)
+{
+    if(req.contentType != "application/json")
+        throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
+
+    RpcRequestResults ret;
+    Json j = req.json;
+
+    switch(j.type)
+    {
+        case Json.Type.array:
+            if(!j.length)
+                throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Empty batch array", __FILE__, __LINE__);
+
+            ret.isBatchMode = true;
+            break;
+
+        case Json.Type.object:
+            ret.isBatchMode = false;
+            break;
+
+        default:
+            throw new LoopException(JsonRpcErrorCode.parseError, HTTPStatus.badRequest, "Parse error", __FILE__, __LINE__);
+    }
+
+    RpcRequest[] requests;
+
+    if(!ret.isBatchMode)
+    {
+        requests.length = 1;
+        requests[0] = RpcRequest.jsonToRpcRequest(j, req);
+    }
+    else
+    {
+        requests.length = j.length;
+
+        foreach(i, ref request; requests)
+        {
+            request = RpcRequest.jsonToRpcRequest(j[i], req);
+        }
+    }
+
+    ret.results.length = requests.length;
+
+    foreach(i, ref request; requests)
+    {
+        ret.results[i] = request.performRpcRequest(methods, client); // TODO: async exec
+    }
+
+    return ret;
+}
+
 struct RpcRequest
 {
     Bson id;
@@ -436,31 +475,9 @@ struct RpcRequest
         assert(namedParams is null || positionParams is null);
     }
 
-    static RpcRequest[] toRpcRequests(scope HTTPServerRequest req)
+    bool isNotify() const
     {
-        if(req.contentType != "application/json")
-            throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
-
-        Json j = req.json;
-
-        switch(j.type)
-        {
-            case Json.Type.array:
-                RpcRequest[] ret = new RpcRequest[j.length];
-                foreach(i, ref r; ret)
-                {
-                    r = jsonToRpcRequest(j[i], req);
-                }
-                return ret;
-
-            case Json.Type.object:
-                RpcRequest[] ret= new RpcRequest[1];
-                ret[0] = jsonToRpcRequest(j, req);
-                return ret;
-
-            default:
-                throw new LoopException(JsonRpcErrorCode.parseError, HTTPStatus.badRequest, "Parse error", __FILE__, __LINE__);
-        }
+        return id.type == Bson.Type.undefined;
     }
 
     private static RpcRequest jsonToRpcRequest(scope Json j, in HTTPServerRequest req)
@@ -527,10 +544,8 @@ struct RpcRequest
         return r;
     }
 
-    RpcRequestResult performRpcRequest(in Method[string] methods, PostgresClient client)
+    RpcRequestResult performRpcRequest(in Method[string] methods, PostgresClient client) const
     {
-        RpcRequestResult ret;
-
         try
         {
             try
@@ -542,7 +557,10 @@ struct RpcRequest
 
                 PostgresClient.Connection conn = client.lockConnection();
 
-                if(id.type != Bson.Type.undefined)
+                RpcRequestResult ret;
+                ret.isNotify = isNotify;
+
+                if(!ret.isNotify)
                 {
                     ret.responseBody = Bson(["id": id]);
                     ret.responseBody["result"] = conn.execPreparedMethod(method, this);
@@ -551,8 +569,6 @@ struct RpcRequest
                 else // JSON-RPC 2.0 Notification
                 {
                     conn.execPreparedMethod(method, this);
-                    ret.statusCode = HTTPStatus.noContent;
-                    ret.statusPhrase = "Notification processed";
                     ret.responseBody = Bson.emptyObject;
                     return ret;
                 }
@@ -570,9 +586,10 @@ struct RpcRequest
         {
             Bson err = Bson.emptyObject;
 
-            // FIXME: if id == null it is no need to reply at all, but if there was an error in detecting
-            // the id in the Request object (e.g. Parse error/Invalid Request), it MUST be Null.
-            err["id"] = id;
+            // If id == null this is notify and it is no need to reply at all,
+            // but if there was an error in detecting the id in the Request object
+            // (e.g. Parse error/Invalid Request), it MUST be Null.
+            err["id"] = cast() id; // FIXME: remove cast!
             err["message"] = e.msg;
             err["code"] = e.code;
 
@@ -589,17 +606,10 @@ struct RpcRequest
                 ]);
             }
 
-            ret.statusCode = e.status;
-            ret.statusPhrase = e.msg;
-
-            if(id.type != Bson.Type.undefined)
-            {
-                ret.responseBody = err;
-            }
-            else // Error during processing JSON-RPC 2.0 Notification
-            {
-                ret.responseBody = Bson.emptyObject;
-            }
+            RpcRequestResult ret;
+            ret.isNotify = isNotify;
+            ret.responseBody = err;
+            ret.exception = e;
 
             logWarn(err.toString);
 
@@ -611,8 +621,14 @@ struct RpcRequest
 private struct RpcRequestResult
 {
     Bson responseBody;
-    HTTPStatus statusCode;
-    string statusPhrase;
+    LoopException exception;
+    bool isNotify;
+}
+
+private struct RpcRequestResults
+{
+    RpcRequestResult[] results;
+    bool isBatchMode;
 }
 
 enum JsonRpcErrorCode : short
