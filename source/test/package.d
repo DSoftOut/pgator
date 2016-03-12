@@ -343,5 +343,18 @@ q"EOS
 EOS"
 ),
 
+QA(__LINE__, // RECORD test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "record_returning",
+    "id": 1
+}
+EOS",
+
+null,
+500
+),
+
 ];
 }

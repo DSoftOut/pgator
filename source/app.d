@@ -318,7 +318,7 @@ private Bson execPreparedMethod(
             }
             catch(AnswerConvException e)
             {
-                e.msg = "Column "~columnName~" (row "~rowNum.to!string~"): "~e.msg;
+                e.msg = "Column "~columnName~" ("~rowNum.to!string~" row): "~e.msg;
                 throw e;
             }
         }
@@ -578,6 +578,10 @@ struct RpcRequest
                 throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
             catch(PostgresClientTimeoutException e)
+            {
+                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
+            }
+            catch(AnswerConvException e)
             {
                 throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
