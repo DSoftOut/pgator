@@ -307,7 +307,12 @@ private Bson execPreparedMethod(
         }
 
         foreach(b; params)
-            qp.queryParams.args ~= bsonToValue(b, OidType.Text);
+        {
+            try
+                qp.queryParams.args ~= bsonToValue(b);
+            catch(AnswerConvException e)
+                throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, e.msg, __FILE__, __LINE__);
+        }
     }
 
     try

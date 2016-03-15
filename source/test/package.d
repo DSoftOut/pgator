@@ -93,6 +93,24 @@ QA(__LINE__,
 q"EOS
 {
     "jsonrpc": "2.0",
+    "method": "echo",
+    "params": [ null ],
+    "id": 1
+}
+EOS",
+
+q"EOS
+{
+    "result": { "echoed": [null] },
+    "id": 1
+}
+EOS"
+),
+
+QA(__LINE__,
+q"EOS
+{
+    "jsonrpc": "2.0",
     "id": 1,
     "method": "one_line",
     "params": ["val1", "val2"]
@@ -356,7 +374,7 @@ null,
 500
 ),
 
-QA(__LINE__,
+QA(__LINE__, // array test
 q"EOS
 {
     "jsonrpc": "2.0",
@@ -369,6 +387,38 @@ EOS",
 q"EOS
 {
     "result": { "echoed": [[123, 456], [null, 789]] },
+    "id": 1
+}
+EOS"
+),
+
+QA(__LINE__, // empty array test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo_array",
+    "params": { "arr_value": [] },
+    "id": 1
+}
+EOS",
+
+null,
+400
+),
+
+QA(__LINE__, // null array test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo_array",
+    "params": { "arr_value": null },
+    "id": 1
+}
+EOS",
+
+q"EOS
+{
+    "result": { "echoed": null },
     "id": 1
 }
 EOS"
