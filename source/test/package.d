@@ -117,7 +117,7 @@ q"EOS
     "jsonrpc": "2.0",
     "id": 1,
     "method": "one_line",
-    "params": {"arg2": 22, "arg1": 11}
+    "params": {"arg2": "22", "arg1": "11"}
 }
 EOS",
 
@@ -264,7 +264,7 @@ EOS",
 
 q"EOS
 {
-    "result": { "echoed":["123"] },
+    "result": { "echoed":[123] },
     "id": 1
 }
 EOS"
@@ -338,7 +338,7 @@ q"EOS
 [
     {"result":123, "id":1},
     {"message":"Missing required parameter value_for_echo","id":2,"code":-32602},
-    {"result":{"echoed":["123"]},"id":3}
+    {"result":{"echoed":[123]},"id":3}
 ]
 EOS"
 ),
