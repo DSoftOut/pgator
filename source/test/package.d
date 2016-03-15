@@ -403,7 +403,7 @@ q"EOS
 EOS",
 
 null,
-500
+400
 ),
 
 QA(__LINE__, // null array test
