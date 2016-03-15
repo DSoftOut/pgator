@@ -3,7 +3,11 @@ import std.getopt;
 import std.typecons: Tuple;
 import vibe.http.server;
 import vibe.core.log;
+import vibe.data.json;
+import vibe.data.bson;
 import vibe.db.postgresql;
+import dpq2.types.from_bson; // FIXME: must be imported by vibe.db.postgresql
+import dpq2.types.from_d_types; // FIXME: must be imported by vibe.db.postgresql
 
 @trusted:
 
@@ -29,9 +33,6 @@ void readOpts(string[] args)
 
     if(debugEnabled) setLogLevel = LogLevel.debugV;
 }
-
-import vibe.data.json;
-import vibe.data.bson;
 
 private Bson _cfg;
 
@@ -265,7 +266,7 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
 
         QueryParams q;
         q.preparedStatementName = authVariablesSetPreparedName;
-        q.argsFromArray = [qp.auth.username, qp.auth.password];
+        q.args = [qp.auth.username.toValue, qp.auth.password.toValue];
         conn.execPreparedStatement(q);
     }
 
@@ -283,7 +284,7 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
 private Bson execPreparedMethod(
     PostgresClient.Connection conn,
     in Method* method,
-    in RpcRequest rpcRequest
+    ref RpcRequest rpcRequest
 )
 {
     TransactionQueryParams qp;
@@ -291,17 +292,22 @@ private Bson execPreparedMethod(
     qp.auth = rpcRequest.auth;
 
     {
+        Bson params;
+
         if(rpcRequest.positionParams.length == 0) // named parameters
         {
-            qp.argsFromArray = named2positionalParameters(method, rpcRequest.namedParams);
+            params = named2positionalParameters(method, rpcRequest.namedParams);
         }
         else // positional parameters
         {
             if(rpcRequest.positionParams.length != method.argsNames.length)
                 throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number mismatch", __FILE__, __LINE__);
 
-            qp.argsFromArray = rpcRequest.positionParams;
+            params = rpcRequest.positionParams;
         }
+
+        foreach(b; params)
+            qp.queryParams.args ~= bsonToValue(b, OidType.Text);
     }
 
     try
@@ -388,9 +394,9 @@ private Bson execPreparedMethod(
     }
 }
 
-string[] named2positionalParameters(in Method* method, in string[string] namedParams) pure
+Bson[] named2positionalParameters(in Method* method, Bson[string] namedParams)
 {
-    string[] ret = new string[method.argsNames.length];
+    Bson[] ret = new Bson[method.argsNames.length];
 
     foreach(i, argName; method.argsNames)
     {
@@ -466,8 +472,8 @@ struct RpcRequest
 {
     Bson id;
     string methodName;
-    string[string] namedParams = null;
-    string[] positionParams = null;
+    Bson[string] namedParams = null;
+    Bson[] positionParams = null;
     AuthorizationCredentials auth;
 
     invariant()
@@ -500,20 +506,20 @@ struct RpcRequest
             case Json.Type.object:
                 foreach(string key, value; params)
                 {
-                    if(value.type == Json.Type.object || value.type == Json.Type.array)
+                    if(value.type == Json.Type.object)
                         throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected named parameter type", __FILE__, __LINE__);
 
-                    r.namedParams[key] = value.to!string;
+                    r.namedParams[key] = value;
                 }
                 break;
 
             case Json.Type.array:
                 foreach(value; params)
                 {
-                    if(value.type == Json.Type.object || value.type == Json.Type.array)
+                    if(value.type == Json.Type.object)
                         throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected positional parameter type", __FILE__, __LINE__);
 
-                    r.positionParams ~= value.to!string;
+                    r.positionParams ~= Bson(value);
                 }
                 break;
 
@@ -544,7 +550,7 @@ struct RpcRequest
         return r;
     }
 
-    RpcRequestResult performRpcRequest(in Method[string] methods, PostgresClient client) const
+    RpcRequestResult performRpcRequest(in Method[string] methods, PostgresClient client)
     {
         try
         {

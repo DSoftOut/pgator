@@ -83,7 +83,7 @@ EOS",
 
 q"EOS
 {
-    "result": { "echoed":["123"] },
+    "result": { "echoed":[123] },
     "id": 1
 }
 EOS"
