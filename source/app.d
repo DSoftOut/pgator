@@ -236,7 +236,7 @@ private struct TransactionQueryParams
     alias queryParams this;
 }
 
-private immutable(Answer) transaction(PostgresClient.Connection conn, in Method* method, in TransactionQueryParams qp)
+private immutable(Answer) transaction(PostgresClient.Connection conn, in Method* method, ref TransactionQueryParams qp)
 {
     if(method.needAuthVariablesFlag && !qp.auth.authVariablesSet)
         throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic HTTP authentication need", __FILE__, __LINE__);
@@ -678,12 +678,12 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
     {
         logDebugV("try to prepare internal statements");
 
-        conn.prepareStatement(beginPreparedName, "BEGIN", 0);
-        conn.prepareStatement(beginROPreparedName, "BEGIN READ ONLY", 0);
-        conn.prepareStatement(commitPreparedName, "COMMIT", 0);
+        conn.prepareStatement(beginPreparedName, "BEGIN");
+        conn.prepareStatement(beginROPreparedName, "BEGIN READ ONLY");
+        conn.prepareStatement(commitPreparedName, "COMMIT");
         conn.prepareStatement(authVariablesSetPreparedName,
             "SELECT set_config("~conn.escapeLiteral(args.varNames.username)~", $1, true),"~
-            "set_config("~conn.escapeLiteral(args.varNames.password)~", $2, true)", 2);
+            "set_config("~conn.escapeLiteral(args.varNames.password)~", $2, true)");
 
         logDebugV("internal statements prepared");
     }
@@ -716,5 +716,5 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
 
 private void prepareMethod(PostgresClient.Connection conn, in Method method)
 {
-    conn.prepareStatement(method.name, method.statement, method.argsNames.length);
+    conn.prepareStatement(method.name, method.statement);
 }
