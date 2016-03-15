@@ -356,5 +356,23 @@ null,
 500
 ),
 
+QA(__LINE__,
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo_array",
+    "params": { "arr_value": [[123, 456], [null, 789]] },
+    "id": 1
+}
+EOS",
+
+q"EOS
+{
+    "result": { "echoed": [[123, 456], [null, 789]] },
+    "id": 1
+}
+EOS"
+),
+
 ];
 }

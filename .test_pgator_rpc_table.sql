@@ -53,3 +53,6 @@ VALUES ('read_only', 'INSERT INTO pgator_tests VALUES(''a'', ''b'', ''{}'')', '{
 
 INSERT INTO pgator_tests (method, sql_query, args, set_auth_variables, result_format)
 VALUES ('echo_auth_variables', 'SELECT current_setting(''pgator.username'') as user, current_setting(''pgator.password'') as pass', '{}', true, 'ROW');
+
+INSERT INTO pgator_tests (method, sql_query, args, result_format)
+VALUES ('echo_array', 'SELECT $1::bigint[] as echoed', '{"arr_value"}', 'ROW');
