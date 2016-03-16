@@ -172,7 +172,7 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
                 {
                     if(result.isNotify)
                     {
-                        res.statusCode = result.exception.httpCode;
+                        res.statusCode = HTTPStatus.noContent;
                         res.statusPhrase = result.exception.msg;
                         res.writeVoidBody();
                     }
@@ -235,8 +235,12 @@ private struct TransactionQueryParams
     alias queryParams this;
 }
 
-private immutable(Answer) transaction(PostgresClient.Connection conn, in Method* method, ref TransactionQueryParams qp)
+private immutable(Answer) transaction(PostgresClient client, in Method* method, ref TransactionQueryParams qp)
 {
+    logDebugV("Try to exec transaction with prepared method "~qp.preparedStatementName);
+
+    PostgresClient.Connection conn = client.lockConnection();
+
     if(method.needAuthVariablesFlag && !qp.auth.authVariablesSet)
         throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic HTTP authentication need", __FILE__, __LINE__);
 
@@ -256,7 +260,7 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
     {
         QueryParams q;
         q.preparedStatementName = commitPreparedName;
-        auto a = conn.execPreparedStatement(q);
+        conn.execPreparedStatement(q);
     }
 
     scope(failure)
@@ -264,7 +268,7 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
     {
         QueryParams q;
         q.preparedStatementName = rollbackPreparedName;
-        auto a = conn.execPreparedStatement(q);
+        conn.execPreparedStatement(q);
     }
 
     if(method.needAuthVariablesFlag)
@@ -288,7 +292,7 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
 }
 
 private Bson execPreparedMethod(
-    PostgresClient.Connection conn,
+    PostgresClient client,
     in Method* method,
     ref RpcRequest rpcRequest
 )
@@ -323,7 +327,7 @@ private Bson execPreparedMethod(
 
     try
     {
-        immutable answer = conn.transaction(method, qp);
+        immutable answer = client.transaction(method, qp);
 
         Bson getValue(size_t rowNum, size_t colNum)
         {
@@ -572,23 +576,21 @@ struct RpcRequest
                 if(method is null)
                     throw new LoopException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~methodName~" not found", __FILE__, __LINE__);
 
-                PostgresClient.Connection conn = client.lockConnection();
-
                 RpcRequestResult ret;
                 ret.isNotify = isNotify;
 
                 if(!ret.isNotify)
                 {
                     ret.responseBody = Bson(["id": id]);
-                    ret.responseBody["result"] = conn.execPreparedMethod(method, this);
-                    return ret;
+                    ret.responseBody["result"] = client.execPreparedMethod(method, this);
                 }
                 else // JSON-RPC 2.0 Notification
                 {
-                    conn.execPreparedMethod(method, this);
+                    client.execPreparedMethod(method, this);
                     ret.responseBody = Bson.emptyObject;
-                    return ret;
                 }
+
+                return ret;
             }
             catch(ConnectionException e)
             {
