@@ -6,8 +6,6 @@ import vibe.core.log;
 import vibe.data.json;
 import vibe.data.bson;
 import vibe.db.postgresql;
-import dpq2.conv.from_bson; // FIXME: must be imported by vibe.db.postgresql
-import dpq2.conv.from_d_types; // FIXME: must be imported by vibe.db.postgresql
 
 @trusted:
 
