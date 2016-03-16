@@ -6,8 +6,8 @@ import vibe.core.log;
 import vibe.data.json;
 import vibe.data.bson;
 import vibe.db.postgresql;
-import dpq2.types.from_bson; // FIXME: must be imported by vibe.db.postgresql
-import dpq2.types.from_d_types; // FIXME: must be imported by vibe.db.postgresql
+import dpq2.conv.from_bson; // FIXME: must be imported by vibe.db.postgresql
+import dpq2.conv.from_d_types; // FIXME: must be imported by vibe.db.postgresql
 
 @trusted:
 
@@ -325,7 +325,7 @@ private Bson execPreparedMethod(
 
             try
             {
-                return answer[rowNum][colNum].toBson;
+                return answer[rowNum][colNum].as!Bson;
             }
             catch(AnswerConvException e)
             {
