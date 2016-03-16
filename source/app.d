@@ -251,6 +251,22 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
         transactionStarted = true;
     }
 
+    scope(success)
+    if(transactionStarted) // COMMIT
+    {
+        QueryParams q;
+        q.preparedStatementName = commitPreparedName;
+        auto a = conn.execPreparedStatement(q);
+    }
+
+    scope(failure)
+    if(transactionStarted) // ROLLBACK
+    {
+        QueryParams q;
+        q.preparedStatementName = rollbackPreparedName;
+        auto a = conn.execPreparedStatement(q);
+    }
+
     if(method.needAuthVariablesFlag)
     {
         if(!transactionStarted)
@@ -266,14 +282,6 @@ private immutable(Answer) transaction(PostgresClient.Connection conn, in Method*
         q.preparedStatementName = authVariablesSetPreparedName;
         q.args = [qp.auth.username.toValue, qp.auth.password.toValue];
         conn.execPreparedStatement(q);
-    }
-
-    scope(exit)
-    if(transactionStarted) // COMMIT
-    {
-        QueryParams q;
-        q.preparedStatementName = commitPreparedName;
-        auto a = conn.execPreparedStatement(q);
     }
 
     return conn.execPreparedStatement(qp);
@@ -676,10 +684,11 @@ class LoopException : Exception
     }
 }
 
-immutable string beginPreparedName = "#B#";
-immutable string beginROPreparedName = "#R#";
+immutable string beginPreparedName = "#b#";
+immutable string beginROPreparedName = "#r#";
 immutable string commitPreparedName = "#C#";
-immutable string authVariablesSetPreparedName = "#A#";
+immutable string rollbackPreparedName = "#R#";
+immutable string authVariablesSetPreparedName = "#a#";
 
 /// returns names of unprepared methods
 private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMethodsArgs args)
@@ -690,6 +699,7 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
         conn.prepareStatement(beginPreparedName, "BEGIN");
         conn.prepareStatement(beginROPreparedName, "BEGIN READ ONLY");
         conn.prepareStatement(commitPreparedName, "COMMIT");
+        conn.prepareStatement(rollbackPreparedName, "ROLLBACK");
         conn.prepareStatement(authVariablesSetPreparedName,
             "SELECT set_config("~conn.escapeLiteral(args.varNames.username)~", $1, true),"~
             "set_config("~conn.escapeLiteral(args.varNames.password)~", $2, true)");
