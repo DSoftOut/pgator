@@ -302,26 +302,17 @@ private Bson execPreparedMethod(
     qp.auth = rpcRequest.auth;
 
     {
-        Bson params;
-
         if(rpcRequest.positionParams.length == 0) // named parameters
         {
-            params = named2positionalParameters(method, rpcRequest.namedParams);
+            qp.args = named2positionalParameters(method, rpcRequest.namedParams);
         }
         else // positional parameters
         {
             if(rpcRequest.positionParams.length != method.argsNames.length)
                 throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number mismatch", __FILE__, __LINE__);
 
-            params = rpcRequest.positionParams;
-        }
-
-        foreach(b; params)
-        {
-            try
-                qp.queryParams.args ~= bsonToValue(b);
-            catch(AnswerConvException e)
-                throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, e.msg, __FILE__, __LINE__);
+            foreach(ref b; rpcRequest.positionParams)
+                qp.args ~= bsonToValue(b); // FIXME: type check need
         }
     }
 
@@ -409,16 +400,33 @@ private Bson execPreparedMethod(
     }
 }
 
-Bson[] named2positionalParameters(in Method* method, Bson[string] namedParams)
+Value[] named2positionalParameters(in Method* method, Bson[string] namedParams)
 {
-    Bson[] ret = new Bson[method.argsNames.length];
+    Value[] ret = new Value[method.argsNames.length];
 
     foreach(i, argName; method.argsNames)
     {
-        if(argName in namedParams)
-            ret[i] = namedParams[argName];
+        auto b = argName in namedParams;
+
+        if(b)
+        {
+            // check params types
+            const oid = method.argsOids[i];
+            Value v = bsonToValue(*b, oid);
+
+            if(v.oidType != oid)
+                throw new LoopException(
+                    JsonRpcErrorCode.invalidParams,
+                    HTTPStatus.badRequest,
+                    argName~" parameter type is "~v.oidType.to!string~", but expected "~oid.to!string,
+                    __FILE__, __LINE__);
+
+            ret[i] = v;
+        }
         else
+        {
             throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Missing required parameter "~argName, __FILE__, __LINE__);
+        }
     }
 
     return ret;

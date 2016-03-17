@@ -402,8 +402,30 @@ q"EOS
 }
 EOS",
 
-null,
-400
+q"EOS
+{
+    "result": { "echoed": [] },
+    "id": 1
+}
+EOS"
+),
+
+QA(__LINE__, // null values array test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo_array",
+    "params": { "arr_value": [null, null] },
+    "id": 1
+}
+EOS",
+
+q"EOS
+{
+    "result": { "echoed": [null, null] },
+    "id": 1
+}
+EOS"
 ),
 
 QA(__LINE__, // null array test
@@ -422,6 +444,20 @@ q"EOS
     "id": 1
 }
 EOS"
+),
+
+QA(__LINE__, // named param type failed test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo_array",
+    "params": { "arr_value": [null, "wrong_value"] },
+    "id": 1
+}
+EOS",
+
+null,
+400
 ),
 
 ];
