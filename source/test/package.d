@@ -451,7 +451,7 @@ q"EOS
 {
     "jsonrpc": "2.0",
     "method": "echo_array",
-    "params": { "arr_value": [null, "wrong_value"] },
+    "params": { "arr_value": [null, "wrong_value_type"] },
     "id": 1
 }
 EOS",
@@ -465,7 +465,7 @@ q"EOS
 {
     "jsonrpc": "2.0",
     "method": "echo_array",
-    "params": [ [null, "wrong_value"] ],
+    "params": [ [null, "wrong_value_type"] ],
     "id": 1
 }
 EOS",
