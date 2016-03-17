@@ -324,7 +324,7 @@ private Bson execPreparedMethod(
                     throw new LoopException(
                         JsonRpcErrorCode.invalidParams,
                         HTTPStatus.badRequest,
-                        "Parameter #"~(i+1).to!string~" type is "~v.oidType.to!string~", but expected "~oid.to!string,
+                        "Parameter #"~i.to!string~" type is "~v.oidType.to!string~", but expected "~oid.to!string,
                         __FILE__, __LINE__);
             }
         }
