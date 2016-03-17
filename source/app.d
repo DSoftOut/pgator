@@ -311,8 +311,22 @@ private Bson execPreparedMethod(
             if(rpcRequest.positionParams.length != method.argsNames.length)
                 throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number mismatch", __FILE__, __LINE__);
 
-            foreach(ref b; rpcRequest.positionParams)
-                qp.args ~= bsonToValue(b); // FIXME: type check need
+            qp.args = new Value[rpcRequest.positionParams.length];
+
+            foreach(i, ref b; rpcRequest.positionParams)
+            {
+                auto v = &qp.args[i];
+
+                const oid = method.argsOids[i];
+                *v = bsonToValue(b, oid);
+
+                if(v.oidType != oid)
+                    throw new LoopException(
+                        JsonRpcErrorCode.invalidParams,
+                        HTTPStatus.badRequest,
+                        "Parameter #"~(i+1).to!string~" type is "~v.oidType.to!string~", but expected "~oid.to!string,
+                        __FILE__, __LINE__);
+            }
         }
     }
 

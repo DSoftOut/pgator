@@ -446,12 +446,26 @@ q"EOS
 EOS"
 ),
 
-QA(__LINE__, // named param type failed test
+QA(__LINE__, // named param array type failed test
 q"EOS
 {
     "jsonrpc": "2.0",
     "method": "echo_array",
     "params": { "arr_value": [null, "wrong_value"] },
+    "id": 1
+}
+EOS",
+
+null,
+400
+),
+
+QA(__LINE__, // positional param array type failed test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo_array",
+    "params": [ [null, "wrong_value"] ],
     "id": 1
 }
 EOS",
