@@ -235,7 +235,7 @@ private struct TransactionQueryParams
     alias queryParams this;
 }
 
-private immutable(Answer) transaction(PostgresClient client, in Method* method, ref TransactionQueryParams qp)
+private immutable(Answer) transaction(PostgresClient client, in Method method, ref TransactionQueryParams qp)
 {
     logDebugV("Try to exec transaction with prepared method "~qp.preparedStatementName);
 
@@ -293,7 +293,7 @@ private immutable(Answer) transaction(PostgresClient client, in Method* method, 
 
 private Bson execPreparedMethod(
     PostgresClient client,
-    in Method* method,
+    in Method method,
     ref RpcRequest rpcRequest
 )
 {
@@ -414,7 +414,7 @@ private Bson execPreparedMethod(
     }
 }
 
-Value[] named2positionalParameters(in Method* method, Bson[string] namedParams)
+Value[] named2positionalParameters(in Method method, Bson[string] namedParams)
 {
     Value[] ret = new Value[method.argsNames.length];
 
@@ -604,11 +604,11 @@ struct RpcRequest
                 if(!ret.isNotify)
                 {
                     ret.responseBody = Bson(["id": id]);
-                    ret.responseBody["result"] = client.execPreparedMethod(method, this);
+                    ret.responseBody["result"] = client.execPreparedMethod(*method, this);
                 }
                 else // JSON-RPC 2.0 Notification
                 {
-                    client.execPreparedMethod(method, this);
+                    client.execPreparedMethod(*method, this);
                     ret.responseBody = Bson.emptyObject;
                 }
 
