@@ -711,13 +711,15 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
 
     string[] failedMethods;
 
-    foreach(const m; args.methods.byValue)
+    foreach(ref m; args.methods.byValue)
     {
-        logDebugV("try to prepare method ", m.name);
+        logDebugV("try to prepare method "~m.name);
 
         try
         {
             conn.prepareMethod(m);
+
+            m.argsOids = conn.retrieveArgsTypes(m);
 
             logDebugV("method ", m.name, " prepared");
         }
@@ -733,6 +735,27 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
     }
 
     return failedMethods;
+}
+
+private OidType[] retrieveArgsTypes(PostgresClient.Connection conn, ref Method m)
+{
+    QueryParams q;
+    q.sqlCommand = "SELECT parameter_types::Int4[] FROM pg_prepared_statements WHERE name = $1";
+    q.argsFromArray = [m.name];
+
+    auto a = conn.execStatement(q);
+    enforce(a.length == 1);
+    enforce(a[0].length == 1);
+
+    auto arr = a[0][0].asArray;
+    enforce(arr.dimsSize.length == 1);
+
+    OidType[] ret = new OidType[arr.length];
+
+    foreach(i; 0 .. ret.length)
+        ret[i] = arr[i].as!Oid.oid2oidType;
+
+    return ret;
 }
 
 private void prepareMethod(PostgresClient.Connection conn, in Method method)

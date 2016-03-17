@@ -9,6 +9,7 @@ struct Method
     string name; // TODO: remove it, AA already contains name of method
     string statement;
     string[] argsNames;
+    OidType[] argsOids;
 
     // Optional parameters:
     ResultFormat resultFormat = ResultFormat.TABLE;
