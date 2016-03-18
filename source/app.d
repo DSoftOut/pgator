@@ -656,7 +656,7 @@ struct RpcRequest
             ret.responseBody = err;
             ret.exception = e;
 
-            logWarn(err.toString);
+            logWarn(methodName~": "~err.toString);
 
             return ret;
         }
