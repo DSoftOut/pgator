@@ -130,12 +130,12 @@ Method[string] readMethods(immutable Answer answer)
         }
         catch(Exception e)
         {
-            logWarn(e.msg, ", skipping reading of method ", m.name);
+            logWarn(e.msg~", skipping reading of method "~m.name);
             continue;
         }
 
         methods[m.name] = m;
-        logInfo("Method ", m.name, " loaded. Content: ", m);
+        logDebugV("Method "~m.name~" loaded");
     }
 
     return methods;

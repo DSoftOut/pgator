@@ -746,7 +746,7 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
 
             m.argsOids = conn.retrieveArgsTypes(m);
 
-            logDebugV("method ", m.name, " prepared");
+            logDebugV("method "~m.name~" prepared");
         }
         catch(ConnectionException e)
         {
@@ -754,7 +754,7 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
         }
         catch(Exception e)
         {
-            logWarn(e.msg, ", skipping preparing of method ", m.name);
+            logWarn(e.msg~", skipping preparing of method "~m.name);
             failedMethods ~= m.name;
         }
     }
