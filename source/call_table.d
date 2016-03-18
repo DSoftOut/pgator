@@ -130,7 +130,7 @@ Method[string] readMethods(immutable Answer answer)
         }
         catch(Exception e)
         {
-            logWarn(e.msg~", skipping reading of method "~m.name);
+            logWarn("Skipping "~m.name~": "~e.msg);
             continue;
         }
 

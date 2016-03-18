@@ -754,7 +754,7 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
         }
         catch(Exception e)
         {
-            logWarn(e.msg~", skipping preparing of method "~m.name);
+            logWarn("Skipping "~m.name~": "~e.msg);
             failedMethods ~= m.name;
         }
     }
