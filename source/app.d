@@ -456,7 +456,7 @@ private struct AuthorizationCredentials
     string password;
 }
 
-RpcRequestResults performRpcRequests(in Method[string] methods, shared PostgresClient client, scope HTTPServerRequest req)
+RpcRequestResults performRpcRequests(immutable Method[string] methods, shared PostgresClient client, scope HTTPServerRequest req)
 {
     if(req.contentType != "application/json")
         throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
@@ -590,7 +590,7 @@ struct RpcRequest
         return r;
     }
 
-    RpcRequestResult performRpcRequest(in Method[string] methods, shared PostgresClient client)
+    RpcRequestResult performRpcRequest(immutable Method[string] methods, shared PostgresClient client)
     {
         try
         {
