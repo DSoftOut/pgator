@@ -4,9 +4,7 @@ authors "Denis Feklushkin <denis.feklushkin@gmail.com>"
 license "MIT"
 copyright "Copyright © 2016"
 dependency "vibe-d-postgresql" version="~master"
-#dependency "vibe-d:http" version="~>0.7.27"
-# FIXME: temporary dep:
-dependency "vibe-d" version="~master"
+dependency "vibe-d:http" version="~>0.7.27"
 targetType "executable"
 
 #FIXME: used by vibe.stream.zlib
