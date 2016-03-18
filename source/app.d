@@ -128,7 +128,7 @@ int main(string[] args)
 
         if(!checkMethods)
         {
-            loop(cfg, client, prepArgs.methods);
+            loop(cfg, client, cast(immutable) prepArgs.methods);
         }
 
         return prepArgs.failedCount ? 2 : 0;
@@ -141,7 +141,7 @@ int main(string[] args)
     }
 }
 
-void loop(in Bson cfg, shared PostgresClient client, in Method[string] methods)
+void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] methods)
 {
     // http-server
     import vibe.core.core;
