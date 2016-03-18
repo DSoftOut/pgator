@@ -424,7 +424,6 @@ Value[] named2positionalParameters(in Method method, Bson[string] namedParams)
 
         if(b)
         {
-            // check params types
             const oid = method.argsOids[i];
             Value v = bsonToValue(*b, oid);
 
