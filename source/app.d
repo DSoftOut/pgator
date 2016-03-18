@@ -83,7 +83,7 @@ int main(string[] args)
         };
 
         // delegate
-        void afterConnectOrReconnect(PostgresClient.Connection conn) @safe
+        void afterConnectOrReconnect(Connection conn) @safe
         {
             if(prepArgs.methodsLoadedFlag)
             {
@@ -100,7 +100,7 @@ int main(string[] args)
         }
 
         // connect to db
-        auto client = new PostgresClient(connString, maxConn, &afterConnectOrReconnect);
+        auto client = new shared PostgresClient(connString, maxConn, &afterConnectOrReconnect);
 
         {
             auto conn = client.lockConnection();
@@ -141,7 +141,7 @@ int main(string[] args)
     }
 }
 
-void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
+void loop(in Bson cfg, shared PostgresClient client, in Method[string] methods)
 {
     // http-server
     import vibe.core.core;
@@ -239,11 +239,11 @@ private struct TransactionQueryParams
     alias queryParams this;
 }
 
-private immutable(Answer) transaction(PostgresClient client, in Method method, ref TransactionQueryParams qp)
+private immutable(Answer) transaction(shared PostgresClient client, in Method method, ref TransactionQueryParams qp)
 {
     logDebugV("Try to exec transaction with prepared method "~qp.preparedStatementName);
 
-    PostgresClient.Connection conn = client.lockConnection();
+    Connection conn = client.lockConnection();
 
     if(method.needAuthVariablesFlag && !qp.auth.authVariablesSet)
         throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic HTTP authentication need", __FILE__, __LINE__);
@@ -296,7 +296,7 @@ private immutable(Answer) transaction(PostgresClient client, in Method method, r
 }
 
 private Bson execPreparedMethod(
-    PostgresClient client,
+    shared PostgresClient client,
     in Method method,
     ref RpcRequest rpcRequest
 )
@@ -456,7 +456,7 @@ private struct AuthorizationCredentials
     string password;
 }
 
-RpcRequestResults performRpcRequests(in Method[string] methods, PostgresClient client, scope HTTPServerRequest req)
+RpcRequestResults performRpcRequests(in Method[string] methods, shared PostgresClient client, scope HTTPServerRequest req)
 {
     if(req.contentType != "application/json")
         throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
@@ -590,7 +590,7 @@ struct RpcRequest
         return r;
     }
 
-    RpcRequestResult performRpcRequest(in Method[string] methods, PostgresClient client)
+    RpcRequestResult performRpcRequest(in Method[string] methods, shared PostgresClient client)
     {
         try
         {
@@ -718,7 +718,7 @@ immutable string rollbackPreparedName = "#R#";
 immutable string authVariablesSetPreparedName = "#a#";
 
 /// returns names of unprepared methods
-private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMethodsArgs args)
+private string[] prepareMethods(Connection conn, ref PrepareMethodsArgs args)
 {
     {
         logDebugV("try to prepare internal statements");
@@ -762,7 +762,7 @@ private string[] prepareMethods(PostgresClient.Connection conn, ref PrepareMetho
     return failedMethods;
 }
 
-private OidType[] retrieveArgsTypes(PostgresClient.Connection conn, ref Method m)
+private OidType[] retrieveArgsTypes(Connection conn, ref Method m)
 {
     QueryParams q;
     q.sqlCommand = "SELECT parameter_types::Int4[] FROM pg_prepared_statements WHERE name = $1";
@@ -783,7 +783,7 @@ private OidType[] retrieveArgsTypes(PostgresClient.Connection conn, ref Method m
     return ret;
 }
 
-private void prepareMethod(PostgresClient.Connection conn, in Method method)
+private void prepareMethod(Connection conn, in Method method)
 {
     conn.prepareStatement(method.name, method.statement);
 }
