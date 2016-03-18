@@ -622,10 +622,12 @@ struct RpcRequest
             }
             catch(ConnectionException e)
             {
+                // TODO: restart connection
                 throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
             catch(PostgresClientTimeoutException e)
             {
+                // TODO: restart connection
                 throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
             catch(AnswerConvException e)
@@ -676,8 +678,10 @@ private struct RpcRequestResult
     {
         synchronized
         {
-            // cast because Bson don't have shared opAssign
-            (cast() this.responseBody) = s.responseBody;
+            // TODO: This need because Bson don't have shared opAssign
+            Bson copy = s.responseBody;
+            (cast() this.responseBody) = copy;
+
             this.exception = s.exception;
             this.isNotify = s.isNotify;
         }
@@ -686,7 +690,7 @@ private struct RpcRequestResult
 
 private struct RpcRequestResults
 {
-    RpcRequestResult[] results;
+    Future!RpcRequestResult[] results;
     bool isBatchMode;
 }
 
