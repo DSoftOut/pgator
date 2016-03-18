@@ -1,10 +1,11 @@
 #!/bin/bash
 set -ve
 
+dub build --build=release
+dub build --build=unittest
+
 CONNINFO=`jq '.sqlServer.connString' ${1}`
 CONNINFO_UNQUOTED=`echo $CONNINFO | xargs`
-
-dub build --build=unittest
 
 # Setup Postgres test scheme
 psql -v ON_ERROR_STOP=ON -f .test_pgator_rpc_table.sql "$CONNINFO_UNQUOTED"
