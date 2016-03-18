@@ -639,7 +639,7 @@ struct RpcRequest
         {
             Bson err = Bson.emptyObject;
 
-            err["id"] = cast() id; // FIXME: remove cast!
+            err["id"] = id;
             err["message"] = e.msg;
             err["code"] = e.jsonCode;
 
@@ -678,7 +678,7 @@ private struct RpcRequestResult
     {
         synchronized
         {
-            // TODO: This need because Bson don't have shared opAssign
+            // This need because Bson don't have shared opAssign
             Bson copy = s.responseBody;
             (cast() this.responseBody) = copy;
 
