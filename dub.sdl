@@ -7,6 +7,9 @@ dependency "vibe-d-postgresql" version="~master"
 dependency "vibe-d:http" version="~>0.7.27"
 targetType "executable"
 
+#FIXME: used by vibe.stream.zlib
+libs "zlib"
+
 subPackage {
     name "test"
     sourcePaths "source/test"
