@@ -209,6 +209,10 @@ void loop(in Bson cfg, PostgresClient client, in Method[string] methods)
 
             logWarn(e.msg);
         }
+        catch(Exception e)
+        {
+            logFatal(e.toString);
+        }
     }
 
     auto settings = new HTTPServerSettings;
