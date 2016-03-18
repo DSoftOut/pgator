@@ -2,6 +2,7 @@ import pgator.rpc_table;
 import std.getopt;
 import std.typecons: Tuple;
 import vibe.http.server;
+import vibe.core.concurrency;
 import vibe.core.log;
 import vibe.data.json;
 import vibe.data.bson;
@@ -154,7 +155,7 @@ void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] me
 
             if(!results.isBatchMode) // normal mode response
             {
-                const result = &results.results[0];
+                auto result = &results.results[0];
 
                 if(result.exception is null)
                 {
@@ -502,7 +503,9 @@ RpcRequestResults performRpcRequests(immutable Method[string] methods, shared Po
 
     foreach(i, ref request; requests)
     {
-        ret.results[i] = request.performRpcRequest(methods, client); // TODO: async exec
+        ret.results[i] = async({
+            return request.performRpcRequest(methods, client);
+        });
     }
 
     return ret;
@@ -668,6 +671,17 @@ private struct RpcRequestResult
     Bson responseBody;
     LoopException exception;
     bool isNotify;
+
+    void opAssign(shared RpcRequestResult s) shared
+    {
+        synchronized
+        {
+            // cast because Bson don't have shared opAssign
+            (cast() this.responseBody) = s.responseBody;
+            this.exception = s.exception;
+            this.isNotify = s.isNotify;
+        }
+    }
 }
 
 private struct RpcRequestResults
