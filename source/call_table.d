@@ -3,7 +3,15 @@ module pgator.rpc_table;
 import dpq2.result;
 import vibe.core.log;
 
-struct Method
+struct TransactionStatements
+{
+    string methodName;
+    Statement[] statements;
+    bool readOnlyFlag = false;
+    bool needAuthVariablesFlag = false; /// pass username and password from HTTP session to SQL session
+}
+
+struct Statement // TODO: rename to statement
 {
     // Required parameters:
     string name; // TODO: remove it, AA already contains name of method
@@ -12,7 +20,7 @@ struct Method
     OidType[] argsOids;
 
     // Optional parameters:
-    short statementNum = -1;
+    short statementNum = -1; // TODO: isn't need
     string resultName;
     ResultFormat resultFormat = ResultFormat.TABLE;
     bool readOnlyFlag = false;
@@ -28,9 +36,9 @@ enum ResultFormat
     VOID /// Run without result (only for multi-statement methods)
 }
 
-Method[string] readMethods(immutable Answer answer)
+Statement[string] readStatements(immutable Answer answer)
 {
-    Method[string] methods;
+    Statement[string] methods;
 
     foreach(ref r; rangify(answer))
     {
@@ -54,18 +62,18 @@ Method[string] readMethods(immutable Answer answer)
             }
         }
 
-        Method m;
+        Statement m;
 
         // Reading of required parameters
         try
         {
             if(r["method"].isNull)
-                throw new Exception("Method name is NULL", __FILE__, __LINE__);
+                throw new Exception("Statement name is NULL", __FILE__, __LINE__);
 
             m.name = r["method"].as!string;
 
             if(m.name.length == 0)
-                throw new Exception("Method name is empty string", __FILE__, __LINE__);
+                throw new Exception("Statement name is empty string", __FILE__, __LINE__);
 
             if(r["sql_query"].isNull)
                 throw new Exception("sql_query is NULL", __FILE__, __LINE__);
@@ -164,7 +172,7 @@ Method[string] readMethods(immutable Answer answer)
         }
 
         methods[m.name] = m;
-        logDebugV("Method "~m.name~" loaded");
+        logDebugV("Statement "~m.name~" loaded");
     }
 
     return methods;

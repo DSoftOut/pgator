@@ -12,7 +12,7 @@ import vibe.db.postgresql;
 
 string configFileName = "/wrong/path/to/file.json";
 bool debugEnabled = false;
-bool checkMethods = false;
+bool checkStatements = false;
 
 void readOpts(string[] args)
 {
@@ -21,7 +21,7 @@ void readOpts(string[] args)
         auto helpInformation = getopt(
                 args,
                 "debug", &debugEnabled,
-                "check", &checkMethods,
+                "check", &checkStatements,
                 "config", &configFileName
             );
     }
@@ -55,11 +55,11 @@ Bson readConfig()
     return cfg;
 }
 
-private struct PrepareMethodsArgs
+private struct PrepareStatementsArgs
 {
     const SQLVariablesNames varNames;
     bool methodsLoadedFlag = false; // need for bootstrap
-    Method[string] methods;
+    Statement[string] methods;
     size_t rpcTableLength;
     size_t failedCount;
     string tableName;
@@ -76,7 +76,7 @@ int main(string[] args)
         const connString = server["connString"].get!string;
         auto maxConn = to!uint(server["maxConn"].get!long);
 
-        PrepareMethodsArgs prepArgs = {
+        PrepareStatementsArgs prepArgs = {
             varNames: SQLVariablesNames(
                 cfg["sqlAuthVariables"]["username"].get!string,
                 cfg["sqlAuthVariables"]["password"].get!string
@@ -89,10 +89,10 @@ int main(string[] args)
             if(prepArgs.methodsLoadedFlag)
             {
                 logDebugV("Preparing");
-                auto failedMethodsNames = prepareMethods(conn, prepArgs);
-                prepArgs.failedCount += failedMethodsNames.length;
+                auto failedStatementsNames = prepareStatements(conn, prepArgs);
+                prepArgs.failedCount += failedStatementsNames.length;
 
-                foreach(n; failedMethodsNames)
+                foreach(n; failedStatementsNames)
                     prepArgs.methods.remove(n);
 
                 logInfo("Number of methods in the table "~prepArgs.tableName~": "~
@@ -115,7 +115,7 @@ int main(string[] args)
             auto answer = conn.execStatement(p);
 
             prepArgs.rpcTableLength = answer.length;
-            prepArgs.methods = readMethods(answer);
+            prepArgs.methods = readStatements(answer);
             prepArgs.methodsLoadedFlag = true;
 
             {
@@ -127,7 +127,7 @@ int main(string[] args)
             afterConnectOrReconnect(conn);
         }
 
-        if(!checkMethods)
+        if(!checkStatements)
         {
             loop(cfg, client, cast(immutable) prepArgs.methods);
         }
@@ -142,7 +142,7 @@ int main(string[] args)
     }
 }
 
-void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] methods)
+void loop(in Bson cfg, shared PostgresClient client, immutable Statement[string] methods)
 {
     // http-server
     import vibe.core.core;
@@ -240,7 +240,7 @@ private struct TransactionQueryParams
     alias queryParams this;
 }
 
-private immutable(Answer) transaction(shared PostgresClient client, in Method method, ref TransactionQueryParams qp)
+private immutable(Answer) transaction(shared PostgresClient client, in Statement method, ref TransactionQueryParams qp)
 {
     logDebugV("Try to exec transaction with prepared method "~qp.preparedStatementName);
 
@@ -296,9 +296,9 @@ private immutable(Answer) transaction(shared PostgresClient client, in Method me
     return conn.execPreparedStatement(qp);
 }
 
-private Bson execPreparedMethod(
+private Bson execPreparedStatement(
     shared PostgresClient client,
-    in Method method,
+    in Statement method,
     ref RpcRequest rpcRequest
 )
 {
@@ -424,7 +424,7 @@ private Bson execPreparedMethod(
     }
 }
 
-Value[] named2positionalParameters(in Method method, Bson[string] namedParams)
+Value[] named2positionalParameters(in Statement method, Bson[string] namedParams)
 {
     Value[] ret = new Value[method.argsNames.length];
 
@@ -462,7 +462,7 @@ private struct AuthorizationCredentials
     string password;
 }
 
-RpcRequestResults performRpcRequests(immutable Method[string] methods, shared PostgresClient client, scope HTTPServerRequest req)
+RpcRequestResults performRpcRequests(immutable Statement[string] methods, shared PostgresClient client, scope HTTPServerRequest req)
 {
     if(req.contentType != "application/json")
         throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
@@ -598,7 +598,7 @@ struct RpcRequest
         return r;
     }
 
-    RpcRequestResult performRpcRequest(immutable Method[string] methods, shared PostgresClient client)
+    RpcRequestResult performRpcRequest(immutable Statement[string] methods, shared PostgresClient client)
     {
         try
         {
@@ -607,7 +607,7 @@ struct RpcRequest
                 const method = (methodName in methods);
 
                 if(method is null)
-                    throw new LoopException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~methodName~" not found", __FILE__, __LINE__);
+                    throw new LoopException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Statement "~methodName~" not found", __FILE__, __LINE__);
 
                 RpcRequestResult ret;
                 ret.isNotify = isNotify;
@@ -615,11 +615,11 @@ struct RpcRequest
                 if(!ret.isNotify)
                 {
                     ret.responseBody = Bson(["id": id]);
-                    ret.responseBody["result"] = client.execPreparedMethod(*method, this);
+                    ret.responseBody["result"] = client.execPreparedStatement(*method, this);
                 }
                 else // JSON-RPC 2.0 Notification
                 {
-                    client.execPreparedMethod(*method, this);
+                    client.execPreparedStatement(*method, this);
                     ret.responseBody = Bson.emptyObject;
                 }
 
@@ -709,7 +709,7 @@ enum JsonRpcErrorCode : short
     /// The JSON sent is not a valid Request object.
     invalidRequest = -32600,
 
-    /// Method not found
+    /// Statement not found
     methodNotFound = -32601,
 
     /// Invalid params
@@ -742,7 +742,7 @@ immutable string rollbackPreparedName = "#R#";
 immutable string authVariablesSetPreparedName = "#a#";
 
 /// returns names of unprepared methods
-private string[] prepareMethods(Connection conn, ref PrepareMethodsArgs args)
+private string[] prepareStatements(Connection conn, ref PrepareStatementsArgs args)
 {
     {
         logDebugV("try to prepare internal statements");
@@ -758,7 +758,7 @@ private string[] prepareMethods(Connection conn, ref PrepareMethodsArgs args)
         logDebugV("internal statements prepared");
     }
 
-    string[] failedMethods;
+    string[] failedStatements;
 
     foreach(ref m; args.methods.byValue)
     {
@@ -766,7 +766,7 @@ private string[] prepareMethods(Connection conn, ref PrepareMethodsArgs args)
 
         try
         {
-            conn.prepareMethod(m);
+            prepareStatement(conn, m);
 
             m.argsOids = conn.retrieveArgsTypes(m);
 
@@ -779,14 +779,14 @@ private string[] prepareMethods(Connection conn, ref PrepareMethodsArgs args)
         catch(Exception e)
         {
             logWarn("Skipping "~m.name~": "~e.msg);
-            failedMethods ~= m.name;
+            failedStatements ~= m.name;
         }
     }
 
-    return failedMethods;
+    return failedStatements;
 }
 
-private OidType[] retrieveArgsTypes(Connection conn, ref Method m)
+private OidType[] retrieveArgsTypes(Connection conn, ref Statement m)
 {
     QueryParams q;
     q.sqlCommand = "SELECT parameter_types::Int4[] FROM pg_prepared_statements WHERE name = $1";
@@ -807,7 +807,7 @@ private OidType[] retrieveArgsTypes(Connection conn, ref Method m)
     return ret;
 }
 
-private void prepareMethod(Connection conn, in Method method)
+private void prepareStatement(Connection conn, in Statement method)
 {
     conn.prepareStatement(method.name, method.statement);
 }
