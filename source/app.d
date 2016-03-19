@@ -856,8 +856,11 @@ private OidType[] retrieveArgsTypes(Connection conn, string preparedStatementNam
 
     OidType[] ret = new OidType[arr.length];
 
-    foreach(i; 0 .. ret.length)
-        ret[i] = arr[i].as!Oid.oid2oidType;
+    foreach(i, ref r; ret)
+    {
+        r = arr[i].as!Oid.oid2oidType;
+        // TODO: check for Bson supported type
+    }
 
     return ret;
 }
