@@ -244,12 +244,12 @@ private immutable(Answer) transaction(shared PostgresClient client, in Method me
 {
     logDebugV("Try to exec transaction with prepared method "~qp.preparedStatementName);
 
-    Connection conn = client.lockConnection();
-
     if(method.needAuthVariablesFlag && !qp.auth.authVariablesSet)
         throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic HTTP authentication need", __FILE__, __LINE__);
 
     bool transactionStarted = false;
+
+    Connection conn = client.lockConnection();
 
     if(method.readOnlyFlag) // BEGIN READ ONLY
     {
@@ -690,7 +690,8 @@ private struct RpcRequestResult
 
 private struct RpcRequestResults
 {
-    Future!RpcRequestResult[] results;
+    //Future!RpcRequestResult[] results; // FIXME: disabled due to async transaction error
+    RpcRequestResult[] results;
     bool isBatchMode;
 }
 
@@ -746,7 +747,7 @@ private string[] prepareMethods(Connection conn, ref PrepareMethodsArgs args)
         conn.prepareStatement(commitPreparedName, "COMMIT");
         conn.prepareStatement(rollbackPreparedName, "ROLLBACK");
         conn.prepareStatement(authVariablesSetPreparedName,
-            "SELECT set_config("~conn.escapeLiteral(args.varNames.username)~", $1, true),"~
+            "SELECT set_config("~conn.escapeLiteral(args.varNames.username)~", $1, true), "~
             "set_config("~conn.escapeLiteral(args.varNames.password)~", $2, true)");
 
         logDebugV("internal statements prepared");
