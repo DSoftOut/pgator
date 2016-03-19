@@ -11,9 +11,11 @@ CREATE TABLE pgator_tests
   result_format text DEFAULT 'TABLE', -- NOT NULL skipped for testing purposes
   read_only boolean NOT NULL DEFAULT FALSE,
   set_auth_variables boolean NOT NULL DEFAULT FALSE,
-
-  CONSTRAINT pgator_tests_pkey PRIMARY KEY (method)
+  statement_num smallint,
+  statement_name text
 );
+
+CREATE UNIQUE INDEX ON pgator_tests (method, coalesce(statement_num, -1));
 
 CREATE OR REPLACE FUNCTION show_error(message text, internal boolean default false, error_code text default 'P0001'::text)
 RETURNS void LANGUAGE plpgsql AS $_$
@@ -56,3 +58,10 @@ VALUES ('echo_auth_variables', 'SELECT current_setting(''pgator.username'') as u
 
 INSERT INTO pgator_tests (method, sql_query, args, result_format)
 VALUES ('echo_array', 'SELECT $1::bigint[] as echoed', '{"arr_value"}', 'ROW');
+
+-- Multi-statement transactions test
+INSERT INTO pgator_tests (method, statement_name, statement_num, sql_query, args, result_format) VALUES
+('multi_tran', 'first_result',  0, 'VALUES (1,3,5), (2,4,6)', '{}', 'TABLE'),
+('multi_tran', 'second_result', 1, 'SELECT $1::text', '{"value_1"}', 'CELL'),
+('multi_tran', 'third_result',  2, 'SELECT $1::text', '{"value_2"}', 'CELL'),
+('multi_tran', 'void_result',   3, 'VALUES (9,9,9), (9,9,9)', '{}', 'VOID');
