@@ -14,15 +14,31 @@ struct Method
 
 struct Statement // TODO: rename to statement
 {
+    Method* method;
+    short statementNum = -1;
+
     // Required parameters:
-    string preparedStatementName;
     string sqlCommand;
     string[] argsNames;
     OidType[] argsOids;
-
-    // Optional parameters:
     string resultName;
     ResultFormat resultFormat = ResultFormat.TABLE;
+
+    string preparedStatementName() const
+    {
+        assert(method !is null);
+
+        if(statementNum < 0)
+        {
+            return method.name;
+        }
+        else
+        {
+            import std.conv: to;
+
+            return method.name~"_"~statementNum.to!string;
+        }
+    }
 }
 
 enum ResultFormat
@@ -48,8 +64,7 @@ ReadMethodsResult readMethods(immutable Answer answer)
     {
         debug logDebugV("found row: "~r.toString);
 
-        // optional params handler
-        void getOptional(T)(string sqlName, ref T result)
+        void getOptionalField(T)(string sqlName, ref T result)
         {
             try
             {
@@ -68,7 +83,6 @@ ReadMethodsResult readMethods(immutable Answer answer)
 
         Statement s;
         Method m;
-        short statementNum = -1;
 
         // Reading of required parameters
         try
@@ -115,37 +129,29 @@ ReadMethodsResult readMethods(immutable Answer answer)
         // Reading of optional parameters
         try
         {
-            getOptional("read_only", m.readOnlyFlag);
-            getOptional("set_auth_variables", m.needAuthVariablesFlag);
+            getOptionalField("read_only", m.readOnlyFlag);
+            getOptionalField("set_auth_variables", m.needAuthVariablesFlag);
 
             {
                 try
                 {
-                    if(!r["statement_num"].isNull) statementNum = r["statement_num"].as!short;
+                    if(!r["statement_num"].isNull) s.statementNum = r["statement_num"].as!short;
                 }
                 catch(AnswerException e)
                 {
                     if(e.type != ExceptionType.COLUMN_NOT_FOUND) throw e;
                 }
 
-                if(statementNum < 0)
+                if(s.statementNum >= 0)
                 {
-                    s.preparedStatementName = m.name;
-                }
-                else
-                {
-                    getOptional("result_name", s.resultName);
-
-                    import std.conv: to;
-                    s.preparedStatementName = m.name~"_"~statementNum.to!string;
-
                     m.isMultiStatement = true;
+                    getOptionalField("result_name", s.resultName);
                 }
             }
 
             {
                 string resultFormatStr;
-                getOptional("result_format", resultFormatStr);
+                getOptionalField("result_format", resultFormatStr);
 
                 switch(resultFormatStr)
                 {
@@ -166,7 +172,7 @@ ReadMethodsResult readMethods(immutable Answer answer)
                         break;
 
                     case "VOID":
-                        if(statementNum >= 0)
+                        if(s.statementNum >= 0)
                         {
                             s.resultFormat = ResultFormat.VOID;
                         }
@@ -194,10 +200,14 @@ ReadMethodsResult readMethods(immutable Answer answer)
             {
                 m.statements ~= s;
                 ret.methods[m.name] = m;
+
+                auto mptr = &ret.methods[m.name];
+                mptr.statements[0].method = mptr;
             }
             else
             {
                 method.statements ~= s;
+                method.statements[$-1].method = method;
             }
         }
 
