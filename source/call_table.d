@@ -3,9 +3,9 @@ module pgator.rpc_table;
 import dpq2.result;
 import vibe.core.log;
 
-struct TransactionStatements
+struct Method
 {
-    string methodName;
+    string name; // TODO: remove it, AA already contains name of method
     Statement[] statements;
     bool readOnlyFlag = false;
     bool needAuthVariablesFlag = false; /// pass username and password from HTTP session to SQL session
@@ -14,17 +14,14 @@ struct TransactionStatements
 struct Statement // TODO: rename to statement
 {
     // Required parameters:
-    string name; // TODO: remove it, AA already contains name of method
-    string statement;
+    string preparedStatementName;
+    string statement; // TODO: rename to sqlCommand
     string[] argsNames;
     OidType[] argsOids;
 
     // Optional parameters:
-    short statementNum = -1; // TODO: isn't need
     string resultName;
     ResultFormat resultFormat = ResultFormat.TABLE;
-    bool readOnlyFlag = false;
-    bool needAuthVariablesFlag = false; /// pass username and password from HTTP session to SQL session
 }
 
 enum ResultFormat
@@ -36,9 +33,9 @@ enum ResultFormat
     VOID /// Run without result (only for multi-statement methods)
 }
 
-Statement[string] readStatements(immutable Answer answer)
+Method[string] readStatements(immutable Answer answer)
 {
-    Statement[string] methods;
+    Method[string] methods;
 
     foreach(ref r; rangify(answer))
     {
@@ -62,23 +59,25 @@ Statement[string] readStatements(immutable Answer answer)
             }
         }
 
-        Statement m;
+        Statement s;
+        string methodName;
+        short statementNum = -1;
 
         // Reading of required parameters
         try
         {
             if(r["method"].isNull)
-                throw new Exception("Statement name is NULL", __FILE__, __LINE__);
+                throw new Exception("Method name is NULL", __FILE__, __LINE__);
 
-            m.name = r["method"].as!string;
+            methodName = r["method"].as!string;
 
-            if(m.name.length == 0)
-                throw new Exception("Statement name is empty string", __FILE__, __LINE__);
+            if(methodName.length == 0)
+                throw new Exception("Method name is empty", __FILE__, __LINE__);
 
             if(r["sql_query"].isNull)
                 throw new Exception("sql_query is NULL", __FILE__, __LINE__);
 
-            m.statement = r["sql_query"].as!string;
+            s.statement = r["sql_query"].as!string;
 
             if(r["args"].isNull)
             {
@@ -96,15 +95,17 @@ Statement[string] readStatements(immutable Answer answer)
                     if(v.isNull || v.as!string.length == 0)
                         throw new Exception("args[] contains NULL or empty string", __FILE__, __LINE__);
 
-                    m.argsNames ~= v.as!string;
+                    s.argsNames ~= v.as!string;
                 }
             }
         }
         catch(Exception e)
         {
-            logFatal(e.msg, ", failed on method ", m.name);
+            logFatal(e.msg, ", failed on method ", methodName);
             break;
         }
+
+        Method m;
 
         // Reading of optional parameters
         try
@@ -115,53 +116,63 @@ Statement[string] readStatements(immutable Answer answer)
             {
                 try
                 {
-                    if(!r["statement_num"].isNull) m.statementNum = r["statement_num"].as!short;
-                    if(!r["result_name"].isNull) m.resultName = r["result_name"].as!string;
+                    if(!r["statement_num"].isNull) statementNum = r["statement_num"].as!short;
+                    if(!r["result_name"].isNull) s.resultName = r["result_name"].as!string;
                 }
                 catch(AnswerException e)
                 {
                     if(e.type != ExceptionType.COLUMN_NOT_FOUND) throw e;
                 }
 
-                if(m.statementNum != -1 && m.resultName.length == 0)
-                    throw new Exception("forgotten result_name value", __FILE__, __LINE__);
+                if(statementNum < 0)
+                {
+                    s.preparedStatementName = methodName;
+                }
+                else
+                {
+                    if(s.resultName.length == 0)
+                        throw new Exception("forgotten result_name value", __FILE__, __LINE__);
+
+                    import std.conv: to;
+                    s.preparedStatementName = methodName~"_"~statementNum.to!string;
+                }
             }
 
             {
-                string s;
-                getOptional("result_format", s);
+                string resultFormatStr;
+                getOptional("result_format", resultFormatStr);
 
-                switch(s)
+                switch(resultFormatStr)
                 {
                     case "TABLE":
-                        m.resultFormat = ResultFormat.TABLE;
+                        s.resultFormat = ResultFormat.TABLE;
                         break;
 
                     case "ROTATED":
-                        m.resultFormat = ResultFormat.ROTATED;
+                        s.resultFormat = ResultFormat.ROTATED;
                         break;
 
                     case "ROW":
-                        m.resultFormat = ResultFormat.ROW;
+                        s.resultFormat = ResultFormat.ROW;
                         break;
 
                     case "CELL":
-                        m.resultFormat = ResultFormat.CELL;
+                        s.resultFormat = ResultFormat.CELL;
                         break;
 
                     case "VOID":
-                        if(m.statementNum != -1)
+                        if(statementNum >= 0)
                         {
-                            m.resultFormat = ResultFormat.VOID;
+                            s.resultFormat = ResultFormat.VOID;
                         }
                         else
                         {
-                            throw new Exception("result_format=VOID only for multi-statement transactions"~s, __FILE__, __LINE__);
+                            throw new Exception("result_format=VOID only for multi-statement transactions", __FILE__, __LINE__);
                         }
                         break;
 
                     default:
-                        throw new Exception("Unknown result format type "~s, __FILE__, __LINE__);
+                        throw new Exception("Unknown result format type "~resultFormatStr, __FILE__, __LINE__);
                 }
             }
         }
@@ -171,8 +182,21 @@ Statement[string] readStatements(immutable Answer answer)
             continue;
         }
 
-        methods[m.name] = m;
-        logDebugV("Statement "~m.name~" loaded");
+        {
+            auto method = m.name in methods;
+
+            if(method is null)
+            {
+                m.statements ~= s;
+                methods[m.name] = m;
+            }
+            else
+            {
+                method.statements ~= s;
+            }
+        }
+
+        logDebugV("Method "~m.name~" loaded");
     }
 
     return methods;

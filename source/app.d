@@ -59,7 +59,7 @@ private struct PrepareStatementsArgs
 {
     const SQLVariablesNames varNames;
     bool methodsLoadedFlag = false; // need for bootstrap
-    Statement[string] methods;
+    Method[string] methods;
     size_t rpcTableLength;
     size_t failedCount;
     string tableName;
@@ -142,7 +142,7 @@ int main(string[] args)
     }
 }
 
-void loop(in Bson cfg, shared PostgresClient client, immutable Statement[string] methods)
+void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] methods)
 {
     // http-server
     import vibe.core.core;
@@ -234,15 +234,13 @@ struct SQLVariablesNames
 
 private struct TransactionQueryParams
 {
-    QueryParams queryParams;
+    QueryParams[] queryParams;
     AuthorizationCredentials auth;
-
-    alias queryParams this;
 }
 
-private immutable(Answer) transaction(shared PostgresClient client, in Statement method, ref TransactionQueryParams qp)
+private immutable(Answer)[] transaction(shared PostgresClient client, in Method method, ref TransactionQueryParams qp)
 {
-    logDebugV("Try to exec transaction with prepared method "~qp.preparedStatementName);
+    logDebugV("Try to exec transaction with prepared method "~method.name);
 
     if(method.needAuthVariablesFlag && !qp.auth.authVariablesSet)
         throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic HTTP authentication need", __FILE__, __LINE__);
@@ -293,36 +291,47 @@ private immutable(Answer) transaction(shared PostgresClient client, in Statement
         conn.execPreparedStatement(q);
     }
 
-    return conn.execPreparedStatement(qp);
+    immutable(Answer)[] ret;
+
+    foreach(i, s; method.statements)
+    {
+        ret ~= conn.execPreparedStatement(qp.queryParams[i]);
+    }
+
+    return ret;
 }
 
-private Bson execPreparedStatement(
+private Bson execMethod(
     shared PostgresClient client,
-    in Statement method,
+    in Method method,
     ref RpcRequest rpcRequest
 )
 {
     TransactionQueryParams qp;
-    qp.preparedStatementName = rpcRequest.methodName;
     qp.auth = rpcRequest.auth;
+    qp.queryParams.length = method.statements.length;
+    size_t paramCounter;
 
+    foreach(i, statement; method.statements)
     {
+        qp.queryParams[i].preparedStatementName = statement.preparedStatementName;
+
         if(rpcRequest.positionParams.length == 0) // named parameters
         {
-            qp.args = named2positionalParameters(method, rpcRequest.namedParams);
+            qp.queryParams[i].args = named2positionalParameters(statement, rpcRequest.namedParams);
         }
         else // positional parameters
         {
-            if(rpcRequest.positionParams.length != method.argsNames.length)
+            if(rpcRequest.positionParams.length - paramCounter < statement.argsNames.length)
                 throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number mismatch", __FILE__, __LINE__);
 
-            qp.args = new Value[rpcRequest.positionParams.length];
+            qp.queryParams[i].args = new Value[statement.argsNames.length];
 
-            foreach(i, ref b; rpcRequest.positionParams)
+            foreach(n, ref b; rpcRequest.positionParams[paramCounter .. statement.argsNames.length])
             {
-                auto v = &qp.args[i];
+                auto v = &qp.queryParams[i].args[n];
+                const oid = statement.argsOids[n];
 
-                const oid = method.argsOids[i];
                 *v = bsonToValue(b, oid);
 
                 if(v.oidType != oid)
@@ -332,95 +341,110 @@ private Bson execPreparedStatement(
                         "Parameter #"~i.to!string~" type is "~v.oidType.to!string~", but expected "~oid.to!string,
                         __FILE__, __LINE__);
             }
+
+            paramCounter += statement.argsNames.length;
         }
     }
 
     try
     {
         immutable answer = client.transaction(method, qp);
+        assert(answer.length == method.statements.length);
 
-        Bson getValue(size_t rowNum, size_t colNum)
+        Bson ret;
+
+        foreach(i, statement; method.statements)
         {
-            string columnName = answer.columnName(colNum);
-
-            try
-            {
-                return answer[rowNum][colNum].as!Bson;
-            }
-            catch(AnswerConvException e)
-            {
-                e.msg = "Column "~columnName~" ("~rowNum.to!string~" row): "~e.msg;
-                throw e;
-            }
+            ret[statement.resultName] = formatResult(answer[i], statement.resultFormat);
         }
 
-        with(ResultFormat)
-        final switch(method.resultFormat)
-        {
-            case CELL:
-            {
-                if(answer.length != 1 || answer.columnCount != 1)
-                    throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One cell flag constraint failed", __FILE__, __LINE__);
-
-                return getValue(0, 0);
-            }
-
-            case ROW:
-            {
-                if(answer.length != 1)
-                    throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One row flag constraint failed", __FILE__, __LINE__);
-
-                Bson ret = Bson.emptyObject;
-
-                foreach(colNum; 0 .. answer.columnCount)
-                    ret[answer.columnName(colNum)] = getValue(0, colNum);
-
-                return ret;
-            }
-
-            case TABLE:
-            {
-                Bson ret = Bson.emptyObject;
-
-                foreach(colNum; 0 .. answer.columnCount)
-                {
-                    Bson[] col = new Bson[answer.length];
-
-                    foreach(rowNum; 0 .. answer.length)
-                        col[rowNum] = getValue(rowNum, colNum);
-
-                    ret[answer.columnName(colNum)] = col;
-                }
-
-                return ret;
-            }
-
-            case ROTATED:
-            {
-                Bson[] ret = new Bson[answer.length];
-
-                foreach(rowNum; 0 .. answer.length)
-                {
-                    Bson row = Bson.emptyObject;
-
-                    foreach(colNum; 0 .. answer.columnCount)
-                        row[answer.columnName(colNum)] = getValue(rowNum, colNum);
-
-                    ret[rowNum] = row;
-                }
-
-                return Bson(ret);
-            }
-
-            case VOID:
-            {
-                return Bson.emptyObject; // FIXME
-            }
-        }
+        return ret;
     }
     catch(AnswerCreationException e)
     {
         throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__, e);
+    }
+}
+
+private Bson formatResult(immutable Answer answer, ResultFormat format)
+{
+    Bson getValue(size_t rowNum, size_t colNum)
+    {
+        string columnName = answer.columnName(colNum);
+
+        try
+        {
+            return answer[rowNum][colNum].as!Bson;
+        }
+        catch(AnswerConvException e)
+        {
+            e.msg = "Column "~columnName~" ("~rowNum.to!string~" row): "~e.msg;
+            throw e;
+        }
+    }
+
+    with(ResultFormat)
+    final switch(format)
+    {
+        case CELL:
+        {
+            if(answer.length != 1 || answer.columnCount != 1)
+                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One cell flag constraint failed", __FILE__, __LINE__);
+
+            return getValue(0, 0);
+        }
+
+        case ROW:
+        {
+            if(answer.length != 1)
+                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, "One row flag constraint failed", __FILE__, __LINE__);
+
+            Bson ret = Bson.emptyObject;
+
+            foreach(colNum; 0 .. answer.columnCount)
+                ret[answer.columnName(colNum)] = getValue(0, colNum);
+
+            return ret;
+        }
+
+        case TABLE:
+        {
+            Bson ret = Bson.emptyObject;
+
+            foreach(colNum; 0 .. answer.columnCount)
+            {
+                Bson[] col = new Bson[answer.length];
+
+                foreach(rowNum; 0 .. answer.length)
+                    col[rowNum] = getValue(rowNum, colNum);
+
+                ret[answer.columnName(colNum)] = col;
+            }
+
+            return ret;
+        }
+
+        case ROTATED:
+        {
+            Bson[] ret = new Bson[answer.length];
+
+            foreach(rowNum; 0 .. answer.length)
+            {
+                Bson row = Bson.emptyObject;
+
+                foreach(colNum; 0 .. answer.columnCount)
+                    row[answer.columnName(colNum)] = getValue(rowNum, colNum);
+
+                ret[rowNum] = row;
+            }
+
+            return Bson(ret);
+        }
+
+        case VOID:
+        {
+            return Bson.emptyObject; // FIXME
+        }
     }
 }
 
@@ -462,7 +486,7 @@ private struct AuthorizationCredentials
     string password;
 }
 
-RpcRequestResults performRpcRequests(immutable Statement[string] methods, shared PostgresClient client, scope HTTPServerRequest req)
+RpcRequestResults performRpcRequests(immutable Method[string] methods, shared PostgresClient client, scope HTTPServerRequest req)
 {
     if(req.contentType != "application/json")
         throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
@@ -598,7 +622,7 @@ struct RpcRequest
         return r;
     }
 
-    RpcRequestResult performRpcRequest(immutable Statement[string] methods, shared PostgresClient client)
+    RpcRequestResult performRpcRequest(immutable Method[string] methods, shared PostgresClient client)
     {
         try
         {
@@ -615,11 +639,11 @@ struct RpcRequest
                 if(!ret.isNotify)
                 {
                     ret.responseBody = Bson(["id": id]);
-                    ret.responseBody["result"] = client.execPreparedStatement(*method, this);
+                    ret.responseBody["result"] = client.execMethod(*method, this);
                 }
                 else // JSON-RPC 2.0 Notification
                 {
-                    client.execPreparedStatement(*method, this);
+                    client.execMethod(*method, this);
                     ret.responseBody = Bson.emptyObject;
                 }
 
@@ -760,37 +784,39 @@ private string[] prepareStatements(Connection conn, ref PrepareStatementsArgs ar
 
     string[] failedStatements;
 
-    foreach(ref m; args.methods.byValue)
+    foreach(ref method; args.methods.byValue)
     {
-        logDebugV("try to prepare method "~m.name);
-
-        try
+        foreach(ref statement; method.statements)
         {
-            prepareStatement(conn, m);
+            logDebugV("try to prepare statement "~statement.preparedStatementName);
 
-            m.argsOids = conn.retrieveArgsTypes(m);
+            try
+            {
+                prepareStatement(conn, statement);
+                statement.argsOids = conn.retrieveArgsTypes(statement);
 
-            logDebugV("method "~m.name~" prepared");
-        }
-        catch(ConnectionException e)
-        {
-            throw e;
-        }
-        catch(Exception e)
-        {
-            logWarn("Skipping "~m.name~": "~e.msg);
-            failedStatements ~= m.name;
+                logDebugV("statement "~statement.preparedStatementName~" prepared");
+            }
+            catch(ConnectionException e)
+            {
+                throw e;
+            }
+            catch(Exception e)
+            {
+                logWarn("Skipping "~statement.preparedStatementName~": "~e.msg);
+                failedStatements ~= statement.preparedStatementName;
+            }
         }
     }
 
     return failedStatements;
 }
 
-private OidType[] retrieveArgsTypes(Connection conn, ref Statement m)
+private OidType[] retrieveArgsTypes(Connection conn, ref Statement s)
 {
     QueryParams q;
     q.sqlCommand = "SELECT parameter_types::Int4[] FROM pg_prepared_statements WHERE name = $1";
-    q.argsFromArray = [m.name];
+    q.argsFromArray = [s.preparedStatementName];
 
     auto a = conn.execStatement(q);
     enforce(a.length == 1);
@@ -807,7 +833,7 @@ private OidType[] retrieveArgsTypes(Connection conn, ref Statement m)
     return ret;
 }
 
-private void prepareStatement(Connection conn, in Statement method)
+private void prepareStatement(Connection conn, in Statement s)
 {
-    conn.prepareStatement(method.name, method.statement);
+    conn.prepareStatement(s.preparedStatementName, s.statement);
 }
