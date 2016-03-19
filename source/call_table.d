@@ -12,6 +12,8 @@ struct Method
     OidType[] argsOids;
 
     // Optional parameters:
+    short statementNum = -1;
+    string resultName;
     ResultFormat resultFormat = ResultFormat.TABLE;
     bool readOnlyFlag = false;
     bool needAuthVariablesFlag = false; /// pass username and password from HTTP session to SQL session
@@ -22,7 +24,8 @@ enum ResultFormat
     TABLE,
     ROTATED, /// rotate result "counterclockwise"
     ROW,
-    CELL /// one cell result
+    CELL, /// one cell result
+    VOID /// Run without result (only for multi-statement methods)
 }
 
 Method[string] readMethods(immutable Answer answer)
@@ -102,6 +105,21 @@ Method[string] readMethods(immutable Answer answer)
             getOptional("set_auth_variables", m.needAuthVariablesFlag);
 
             {
+                try
+                {
+                    if(!r["statement_num"].isNull) m.statementNum = r["statement_num"].as!short;
+                    if(!r["result_name"].isNull) m.resultName = r["result_name"].as!string;
+                }
+                catch(AnswerException e)
+                {
+                    if(e.type != ExceptionType.COLUMN_NOT_FOUND) throw e;
+                }
+
+                if(m.statementNum != -1 && m.resultName.length == 0)
+                    throw new Exception("forgotten result_name value", __FILE__, __LINE__);
+            }
+
+            {
                 string s;
                 getOptional("result_format", s);
 
@@ -121,6 +139,17 @@ Method[string] readMethods(immutable Answer answer)
 
                     case "CELL":
                         m.resultFormat = ResultFormat.CELL;
+                        break;
+
+                    case "VOID":
+                        if(m.statementNum != -1)
+                        {
+                            m.resultFormat = ResultFormat.VOID;
+                        }
+                        else
+                        {
+                            throw new Exception("result_format=VOID only for multi-statement transactions"~s, __FILE__, __LINE__);
+                        }
                         break;
 
                     default:

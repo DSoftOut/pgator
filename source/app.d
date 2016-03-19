@@ -411,6 +411,11 @@ private Bson execPreparedMethod(
 
                 return Bson(ret);
             }
+
+            case VOID:
+            {
+                return Bson.emptyObject; // FIXME
+            }
         }
     }
     catch(AnswerCreationException e)

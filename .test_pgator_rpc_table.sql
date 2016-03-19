@@ -12,7 +12,7 @@ CREATE TABLE pgator_tests
   read_only boolean NOT NULL DEFAULT FALSE,
   set_auth_variables boolean NOT NULL DEFAULT FALSE,
   statement_num smallint,
-  statement_name text
+  result_name text
 );
 
 CREATE UNIQUE INDEX ON pgator_tests (method, coalesce(statement_num, -1));
@@ -60,7 +60,7 @@ INSERT INTO pgator_tests (method, sql_query, args, result_format)
 VALUES ('echo_array', 'SELECT $1::bigint[] as echoed', '{"arr_value"}', 'ROW');
 
 -- Multi-statement transactions test
-INSERT INTO pgator_tests (method, statement_name, statement_num, sql_query, args, result_format) VALUES
+INSERT INTO pgator_tests (method, result_name, statement_num, sql_query, args, result_format) VALUES
 ('multi_tran', 'first_result',  0, 'VALUES (1,3,5), (2,4,6)', '{}', 'TABLE'),
 ('multi_tran', 'second_result', 1, 'SELECT $1::text', '{"value_1"}', 'CELL'),
 ('multi_tran', 'third_result',  2, 'SELECT $1::text', '{"value_2"}', 'CELL'),
