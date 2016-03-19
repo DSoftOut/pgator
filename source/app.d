@@ -315,7 +315,7 @@ private Bson execMethod(
 
     foreach(i, statement; method.statements)
     {
-        qp.queryParams[i].preparedStatementName = statement.preparedStatementName;
+        qp.queryParams[i].preparedStatementName = preparedName(method, statement);
 
         if(rpcRequest.positionParams.length == 0) // named parameters
         {
@@ -796,14 +796,16 @@ private string[] prepareStatements(Connection conn, ref PrepareStatementsArgs ar
     {
         foreach(ref statement; method.statements)
         {
-            logDebugV("try to prepare statement "~statement.preparedStatementName);
+            const prepName = preparedName(method, statement);
+
+            logDebugV("try to prepare statement "~prepName);
 
             try
             {
-                prepareStatement(conn, statement);
-                statement.argsOids = conn.retrieveArgsTypes(statement);
+                conn.prepareStatement(prepName, statement.sqlCommand);
+                statement.argsOids = conn.retrieveArgsTypes(prepName);
 
-                logDebugV("statement "~statement.preparedStatementName~" prepared");
+                logDebugV("statement "~prepName~" prepared");
             }
             catch(ConnectionException e)
             {
@@ -811,8 +813,8 @@ private string[] prepareStatements(Connection conn, ref PrepareStatementsArgs ar
             }
             catch(Exception e)
             {
-                logWarn("Skipping "~statement.preparedStatementName~": "~e.msg);
-                failedStatements ~= statement.preparedStatementName;
+                logWarn("Skipping "~prepName~": "~e.msg);
+                failedStatements ~= prepName;
             }
         }
     }
@@ -820,11 +822,25 @@ private string[] prepareStatements(Connection conn, ref PrepareStatementsArgs ar
     return failedStatements;
 }
 
-private OidType[] retrieveArgsTypes(Connection conn, ref Statement s)
+string preparedName(in Method method, in Statement statement)
+{
+    if(statement.statementNum < 0)
+    {
+        return method.name;
+    }
+    else
+    {
+        import std.conv: to;
+
+        return method.name~"_"~statement.statementNum.to!string;
+    }
+}
+
+private OidType[] retrieveArgsTypes(Connection conn, string preparedStatementName)
 {
     QueryParams q;
     q.sqlCommand = "SELECT parameter_types::Int4[] FROM pg_prepared_statements WHERE name = $1";
-    q.argsFromArray = [s.preparedStatementName];
+    q.argsFromArray = [preparedStatementName];
 
     auto a = conn.execStatement(q);
     enforce(a.length == 1);
@@ -839,9 +855,4 @@ private OidType[] retrieveArgsTypes(Connection conn, ref Statement s)
         ret[i] = arr[i].as!Oid.oid2oidType;
 
     return ret;
-}
-
-private void prepareStatement(Connection conn, in Statement s)
-{
-    conn.prepareStatement(s.preparedStatementName, s.sqlCommand);
 }

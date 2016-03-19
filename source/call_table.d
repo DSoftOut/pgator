@@ -12,9 +12,8 @@ struct Method
     bool needAuthVariablesFlag = false; /// pass username and password from HTTP session to SQL session
 }
 
-struct Statement // TODO: rename to statement
+struct Statement
 {
-    Method* method;
     short statementNum = -1;
 
     // Required parameters:
@@ -23,22 +22,6 @@ struct Statement // TODO: rename to statement
     OidType[] argsOids;
     string resultName;
     ResultFormat resultFormat = ResultFormat.TABLE;
-
-    string preparedStatementName() const
-    {
-        assert(method !is null);
-
-        if(statementNum < 0)
-        {
-            return method.name;
-        }
-        else
-        {
-            import std.conv: to;
-
-            return method.name~"_"~statementNum.to!string;
-        }
-    }
 }
 
 enum ResultFormat
@@ -200,14 +183,10 @@ ReadMethodsResult readMethods(immutable Answer answer)
             {
                 m.statements ~= s;
                 ret.methods[m.name] = m;
-
-                auto mptr = &ret.methods[m.name];
-                mptr.statements[0].method = mptr;
             }
             else
             {
                 method.statements ~= s;
-                method.statements[$-1].method = method;
             }
         }
 
