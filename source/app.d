@@ -251,39 +251,36 @@ private immutable(Answer)[] transaction(shared PostgresClient client, in Method 
 
     Connection conn = client.lockConnection();
 
-    if(method.readOnlyFlag) // BEGIN READ ONLY
+    void execPrepared(string preparedName)
     {
         QueryParams q;
-        q.preparedStatementName = beginROPreparedName;
+        q.preparedStatementName = preparedName;
         conn.execPreparedStatement(q);
+    }
 
+    if(method.readOnlyFlag) // BEGIN READ ONLY
+    {
+        execPrepared(beginROPreparedName);
         transactionStarted = true;
     }
 
     scope(success)
     if(transactionStarted) // COMMIT
     {
-        QueryParams q;
-        q.preparedStatementName = commitPreparedName;
-        conn.execPreparedStatement(q);
+        execPrepared(commitPreparedName);
     }
 
     scope(failure)
     if(transactionStarted) // ROLLBACK
     {
-        QueryParams q;
-        q.preparedStatementName = rollbackPreparedName;
-        conn.execPreparedStatement(q);
+        execPrepared(rollbackPreparedName);
     }
 
     if(method.needAuthVariablesFlag)
     {
         if(!transactionStarted)
         {
-            QueryParams q;
-            q.preparedStatementName = beginPreparedName;
-            conn.execPreparedStatement(q);
-
+            execPrepared(beginPreparedName);
             transactionStarted = true;
         }
 
@@ -294,6 +291,12 @@ private immutable(Answer)[] transaction(shared PostgresClient client, in Method 
     }
 
     immutable(Answer)[] ret;
+
+    if(method.isMultiStatement && !transactionStarted)
+    {
+        execPrepared(beginPreparedName);
+        transactionStarted = true;
+    }
 
     foreach(i, s; method.statements)
     {
