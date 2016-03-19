@@ -7,6 +7,7 @@ struct Method
 {
     string name; // TODO: remove it, AA already contains name of method
     Statement[] statements;
+    bool isMultiStatement = false;
     bool readOnlyFlag = false;
     bool needAuthVariablesFlag = false; /// pass username and password from HTTP session to SQL session
 }
@@ -137,6 +138,8 @@ ReadMethodsResult readMethods(immutable Answer answer)
 
                     import std.conv: to;
                     s.preparedStatementName = m.name~"_"~statementNum.to!string;
+
+                    m.isMultiStatement = true;
                 }
             }
 

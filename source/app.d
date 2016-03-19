@@ -350,13 +350,20 @@ private Bson execMethod(
     try
     {
         immutable answer = client.transaction(method, qp);
-        assert(answer.length == method.statements.length);
+        enforce(answer.length == method.statements.length);
 
-        Bson ret;
+        Bson ret = Bson.emptyObject;
 
-        foreach(i, statement; method.statements)
+        if(!method.isMultiStatement)
         {
-            ret[statement.resultName] = formatResult(answer[i], statement.resultFormat);
+            ret = formatResult(answer[0], method.statements[0].resultFormat);
+        }
+        else
+        {
+            foreach(i, statement; method.statements)
+            {
+                ret[statement.resultName] = formatResult(answer[i], statement.resultFormat);
+            }
         }
 
         return ret;
