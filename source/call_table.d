@@ -15,7 +15,7 @@ struct Statement // TODO: rename to statement
 {
     // Required parameters:
     string preparedStatementName;
-    string statement; // TODO: rename to sqlCommand
+    string sqlCommand;
     string[] argsNames;
     OidType[] argsOids;
 
@@ -33,9 +33,15 @@ enum ResultFormat
     VOID /// Run without result (only for multi-statement methods)
 }
 
-Method[string] readStatements(immutable Answer answer)
+struct ReadMethodsResult
 {
     Method[string] methods;
+    size_t loaded;
+}
+
+ReadMethodsResult readMethods(immutable Answer answer)
+{
+    ReadMethodsResult ret;
 
     foreach(ref r; rangify(answer))
     {
@@ -60,7 +66,7 @@ Method[string] readStatements(immutable Answer answer)
         }
 
         Statement s;
-        string methodName;
+        Method m;
         short statementNum = -1;
 
         // Reading of required parameters
@@ -69,15 +75,15 @@ Method[string] readStatements(immutable Answer answer)
             if(r["method"].isNull)
                 throw new Exception("Method name is NULL", __FILE__, __LINE__);
 
-            methodName = r["method"].as!string;
+            m.name = r["method"].as!string;
 
-            if(methodName.length == 0)
+            if(m.name.length == 0)
                 throw new Exception("Method name is empty", __FILE__, __LINE__);
 
             if(r["sql_query"].isNull)
                 throw new Exception("sql_query is NULL", __FILE__, __LINE__);
 
-            s.statement = r["sql_query"].as!string;
+            s.sqlCommand = r["sql_query"].as!string;
 
             if(r["args"].isNull)
             {
@@ -101,11 +107,9 @@ Method[string] readStatements(immutable Answer answer)
         }
         catch(Exception e)
         {
-            logFatal(e.msg, ", failed on method ", methodName);
+            logFatal(e.msg, ", failed on method ", m.name);
             break;
         }
-
-        Method m;
 
         // Reading of optional parameters
         try
@@ -117,7 +121,6 @@ Method[string] readStatements(immutable Answer answer)
                 try
                 {
                     if(!r["statement_num"].isNull) statementNum = r["statement_num"].as!short;
-                    if(!r["result_name"].isNull) s.resultName = r["result_name"].as!string;
                 }
                 catch(AnswerException e)
                 {
@@ -126,15 +129,14 @@ Method[string] readStatements(immutable Answer answer)
 
                 if(statementNum < 0)
                 {
-                    s.preparedStatementName = methodName;
+                    s.preparedStatementName = m.name;
                 }
                 else
                 {
-                    if(s.resultName.length == 0)
-                        throw new Exception("forgotten result_name value", __FILE__, __LINE__);
+                    getOptional("result_name", s.resultName);
 
                     import std.conv: to;
-                    s.preparedStatementName = methodName~"_"~statementNum.to!string;
+                    s.preparedStatementName = m.name~"_"~statementNum.to!string;
                 }
             }
 
@@ -183,12 +185,12 @@ Method[string] readStatements(immutable Answer answer)
         }
 
         {
-            auto method = m.name in methods;
+            auto method = m.name in ret.methods;
 
             if(method is null)
             {
                 m.statements ~= s;
-                methods[m.name] = m;
+                ret.methods[m.name] = m;
             }
             else
             {
@@ -196,8 +198,10 @@ Method[string] readStatements(immutable Answer answer)
             }
         }
 
+        ret.loaded++;
+
         logDebugV("Method "~m.name~" loaded");
     }
 
-    return methods;
+    return ret;
 }

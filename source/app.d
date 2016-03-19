@@ -115,11 +115,12 @@ int main(string[] args)
             auto answer = conn.execStatement(p);
 
             prepArgs.rpcTableLength = answer.length;
-            prepArgs.methods = readStatements(answer);
+            auto readMethodsResult = readMethods(answer);
+            prepArgs.methods = readMethodsResult.methods;
             prepArgs.methodsLoadedFlag = true;
 
             {
-                prepArgs.failedCount = prepArgs.rpcTableLength - prepArgs.methods.length;
+                prepArgs.failedCount = prepArgs.rpcTableLength - readMethodsResult.loaded;
                 logDebugV("Number of methods in the table "~prepArgs.tableName~": "~prepArgs.rpcTableLength.to!string~", failed to load into pgator: "~prepArgs.failedCount.to!string);
             }
 
@@ -835,5 +836,5 @@ private OidType[] retrieveArgsTypes(Connection conn, ref Statement s)
 
 private void prepareStatement(Connection conn, in Statement s)
 {
-    conn.prepareStatement(s.preparedStatementName, s.statement);
+    conn.prepareStatement(s.preparedStatementName, s.sqlCommand);
 }
