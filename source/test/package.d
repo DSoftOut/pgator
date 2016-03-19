@@ -474,12 +474,36 @@ null,
 400
 ),
 
-QA(__LINE__, // multi-statement method
+QA(__LINE__, // multi-statement named args method
 q"EOS
 {
     "jsonrpc": "2.0",
     "method": "multi_tran",
     "params": { "value_1": "abc", "value_2": 777 },
+    "id": 1
+}
+EOS",
+
+q"EOS
+{
+    "result":
+    {
+        "first_result": { "column1":[1,2], "column2":[3,4], "column3":[5,6] },
+        "second_result": "abc",
+        "third_result": 777
+    },
+    "id": 1
+}
+EOS"
+),
+
+
+QA(__LINE__, // multi-statement positional args method
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "multi_tran",
+    "params": [ "abc", 777 ],
     "id": 1
 }
 EOS",
