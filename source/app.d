@@ -130,7 +130,8 @@ int main(string[] args)
 
         if(!checkStatements)
         {
-            loop(cfg, client, cast(immutable) prepArgs.methods);
+            immutable methods = cast(immutable) prepArgs.methods.dup;
+            loop(cfg, client, methods);
         }
 
         return prepArgs.failedCount ? 2 : 0;
@@ -305,7 +306,7 @@ private immutable(Answer)[] transaction(shared PostgresClient client, in Method 
 private Bson execMethod(
     shared PostgresClient client,
     in Method method,
-    ref RpcRequest rpcRequest
+    RpcRequest rpcRequest
 )
 {
     TransactionQueryParams qp;
@@ -328,7 +329,7 @@ private Bson execMethod(
 
             qp.queryParams[i].args = new Value[statement.argsNames.length];
 
-            foreach(n, ref b; rpcRequest.positionParams[paramCounter .. statement.argsNames.length])
+            foreach(n, ref b; rpcRequest.positionParams[paramCounter .. paramCounter + statement.argsNames.length])
             {
                 auto v = &qp.queryParams[i].args[n];
                 const oid = statement.argsOids[n];
@@ -362,7 +363,8 @@ private Bson execMethod(
         {
             foreach(i, statement; method.statements)
             {
-                ret[statement.resultName] = formatResult(answer[i], statement.resultFormat);
+                if(statement.resultFormat != ResultFormat.VOID)
+                    ret[statement.resultName] = formatResult(answer[i], statement.resultFormat);
             }
         }
 
@@ -451,7 +453,7 @@ private Bson formatResult(immutable Answer answer, ResultFormat format)
 
         case VOID:
         {
-            return Bson.emptyObject; // FIXME
+            return Bson.emptyObject;
         }
     }
 }
@@ -639,7 +641,7 @@ struct RpcRequest
                 const method = (methodName in methods);
 
                 if(method is null)
-                    throw new LoopException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Statement "~methodName~" not found", __FILE__, __LINE__);
+                    throw new LoopException(JsonRpcErrorCode.methodNotFound, HTTPStatus.badRequest, "Method "~methodName~" not found", __FILE__, __LINE__);
 
                 RpcRequestResult ret;
                 ret.isNotify = isNotify;
@@ -798,7 +800,7 @@ private string[] prepareStatements(Connection conn, ref PrepareStatementsArgs ar
         {
             const prepName = preparedName(method, statement);
 
-            logDebugV("try to prepare statement "~prepName);
+            logDebugV("try to prepare statement "~prepName~": "~statement.sqlCommand);
 
             try
             {

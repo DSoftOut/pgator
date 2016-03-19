@@ -105,7 +105,7 @@ ReadMethodsResult readMethods(immutable Answer answer)
         }
         catch(Exception e)
         {
-            logFatal(e.msg, ", failed on method ", m.name);
+            logFatal(e.msg~", failed on method "~m.name);
             break;
         }
 
