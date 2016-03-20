@@ -38,6 +38,8 @@ struct SQLTransaction
 
     immutable(Answer)[] execMethod(in Method method, TransactionQueryParams qp)
     {
+        assert(!isCommitDone);
+
         if(method.needAuthVariablesFlag)
         {
             QueryParams q;
