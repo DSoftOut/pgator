@@ -1,4 +1,7 @@
+module pgator.app;
+
 import pgator.rpc_table;
+import pgator.sql_transaction;
 import std.getopt;
 import std.typecons: Tuple;
 import vibe.http.server;
@@ -234,78 +237,6 @@ struct SQLVariablesNames
     string password;
 }
 
-private struct TransactionQueryParams
-{
-    QueryParams[] queryParams;
-    AuthorizationCredentials auth;
-}
-
-private immutable(Answer)[] transaction(shared PostgresClient client, in Method method, ref TransactionQueryParams qp)
-{
-    logDebugV("Try to exec transaction with prepared method "~method.name);
-
-    if(method.needAuthVariablesFlag && !qp.auth.authVariablesSet)
-        throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic HTTP authentication need", __FILE__, __LINE__);
-
-    bool transactionStarted = false;
-
-    Connection conn = client.lockConnection();
-
-    void execPrepared(string preparedName)
-    {
-        QueryParams q;
-        q.preparedStatementName = preparedName;
-        conn.execPreparedStatement(q);
-    }
-
-    if(method.readOnlyFlag) // BEGIN READ ONLY
-    {
-        execPrepared(beginROPreparedName);
-        transactionStarted = true;
-    }
-
-    scope(success)
-    if(transactionStarted) // COMMIT
-    {
-        execPrepared(commitPreparedName);
-    }
-
-    scope(failure)
-    if(transactionStarted) // ROLLBACK
-    {
-        execPrepared(rollbackPreparedName);
-    }
-
-    if(method.needAuthVariablesFlag)
-    {
-        if(!transactionStarted)
-        {
-            execPrepared(beginPreparedName);
-            transactionStarted = true;
-        }
-
-        QueryParams q;
-        q.preparedStatementName = authVariablesSetPreparedName;
-        q.args = [qp.auth.username.toValue, qp.auth.password.toValue];
-        conn.execPreparedStatement(q);
-    }
-
-    immutable(Answer)[] ret;
-
-    if(method.isMultiStatement && !transactionStarted)
-    {
-        execPrepared(beginPreparedName);
-        transactionStarted = true;
-    }
-
-    foreach(i, s; method.statements)
-    {
-        ret ~= conn.execPreparedStatement(qp.queryParams[i]);
-    }
-
-    return ret;
-}
-
 private Bson execMethod(
     shared PostgresClient client,
     in Method method,
@@ -353,7 +284,12 @@ private Bson execMethod(
 
     try
     {
-        immutable answer = client.transaction(method, qp);
+        if(method.needAuthVariablesFlag && !qp.auth.authVariablesSet)
+            throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic HTTP authentication need", __FILE__, __LINE__);
+
+        auto trans = SQLTransaction(client, method.readOnlyFlag);
+        immutable answer = trans.execMethod(method, qp);
+
         enforce(answer.length == method.statements.length);
 
         Bson ret = Bson.emptyObject;

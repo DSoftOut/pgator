@@ -1,13 +1,23 @@
-module pgator.sqltransaction;
+module pgator.sql_transaction;
 
+import pgator.rpc_table;
+import pgator.app;
 import vibe.db.postgresql;
 
-class SQLTransaction
+struct TransactionQueryParams
+{
+    QueryParams[] queryParams;
+    AuthorizationCredentials auth;
+}
+
+struct SQLTransaction
 {
     private Connection conn;
     private bool isCommitDone = false;
 
-    this(PostgresClient client, bool isReadOnly)
+    @disable this(this){}
+
+    this(shared PostgresClient client, bool isReadOnly)
     {
         conn = client.lockConnection();
 
@@ -22,8 +32,29 @@ class SQLTransaction
 
     ~this()
     {
-        if(!isCommitDone)
+        if(!isCommitDone) // TODO: also need check connection status
             execPrepared(BuiltInPrep.ROLLBACK);
+    }
+
+    immutable(Answer)[] execMethod(in Method method, TransactionQueryParams qp)
+    {
+        if(method.needAuthVariablesFlag)
+        {
+            QueryParams q;
+            q.preparedStatementName = authVariablesSetPreparedName;
+            q.args = [qp.auth.username.toValue, qp.auth.password.toValue];
+
+            conn.execPreparedStatement(q);
+        }
+
+        immutable(Answer)[] ret;
+
+        foreach(i, s; method.statements)
+        {
+            ret ~= conn.execPreparedStatement(qp.queryParams[i]);
+        }
+
+        return ret;
     }
 
     private void execPrepared(BuiltInPrep prepared)
