@@ -707,23 +707,17 @@ class LoopException : Exception
     }
 }
 
-immutable string beginPreparedName = "#b#";
-immutable string beginROPreparedName = "#r#";
-immutable string commitPreparedName = "#C#";
-immutable string rollbackPreparedName = "#R#";
-immutable string authVariablesSetPreparedName = "#a#";
-
 /// returns names of unprepared methods
 private string[] prepareStatements(Connection conn, ref PrepareStatementsArgs args)
 {
     {
         logDebugV("try to prepare internal statements");
 
-        conn.prepareStatement(beginPreparedName, "BEGIN");
-        conn.prepareStatement(beginROPreparedName, "BEGIN READ ONLY");
-        conn.prepareStatement(commitPreparedName, "COMMIT");
-        conn.prepareStatement(rollbackPreparedName, "ROLLBACK");
-        conn.prepareStatement(authVariablesSetPreparedName,
+        conn.prepareStatement(BuiltInPrep.BEGIN, "BEGIN");
+        conn.prepareStatement(BuiltInPrep.BEGIN_RO, "BEGIN READ ONLY");
+        conn.prepareStatement(BuiltInPrep.COMMIT, "COMMIT");
+        conn.prepareStatement(BuiltInPrep.ROLLBACK, "ROLLBACK");
+        conn.prepareStatement(BuiltInPrep.SET_AUTH_VARS,
             "SELECT set_config("~conn.escapeLiteral(args.varNames.username)~", $1, true), "~
             "set_config("~conn.escapeLiteral(args.varNames.password)~", $2, true)");
 

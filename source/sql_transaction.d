@@ -43,7 +43,7 @@ struct SQLTransaction
         if(method.needAuthVariablesFlag)
         {
             QueryParams q;
-            q.preparedStatementName = authVariablesSetPreparedName;
+            q.preparedStatementName = BuiltInPrep.SET_AUTH_VARS;
             q.args = [qp.auth.username.toValue, qp.auth.password.toValue];
 
             conn.execPreparedStatement(q);
