@@ -186,7 +186,32 @@ ReadMethodsResult readMethods(immutable Answer answer)
             }
             else
             {
-                method.statements ~= s;
+                if(s.statementNum < 0)
+                {
+                    logFatal("Duplicate method "~m.name);
+                }
+                else // Insert sorted by statementNum
+                {
+                    import std.array: insertInPlace;
+                    import std.conv: to;
+
+                    foreach(const i; 0 .. method.statements.length)
+                    {
+                        const storedSNum = method.statements[i].statementNum;
+
+                        if(storedSNum == s.statementNum)
+                            logFatal("Duplicate statement nums "~s.statementNum.to!string~" for method "~m.name);
+
+                        if(i == method.statements.length - 1)
+                            method.statements ~= s;
+
+                        if(storedSNum > s.statementNum)
+                        {
+                            method.statements.insertInPlace(i, s);
+                            break;
+                        }
+                    }
+                }
             }
         }
 
