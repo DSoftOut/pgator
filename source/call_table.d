@@ -188,7 +188,7 @@ ReadMethodsResult readMethods(immutable Answer answer)
             {
                 if(s.statementNum < 0)
                 {
-                    logFatal("Duplicate method "~m.name);
+                    throw new Exception("Duplicate method "~m.name, __FILE__, __LINE__);
                 }
                 else // Insert sorted by statementNum
                 {
@@ -200,7 +200,7 @@ ReadMethodsResult readMethods(immutable Answer answer)
                         const storedSNum = method.statements[i].statementNum;
 
                         if(storedSNum == s.statementNum)
-                            logFatal("Duplicate statement nums "~s.statementNum.to!string~" for method "~m.name);
+                            throw new Exception("Duplicate statement nums "~s.statementNum.to!string~" for method "~m.name, __FILE__, __LINE__);
 
                         if(i == method.statements.length - 1)
                             method.statements ~= s;

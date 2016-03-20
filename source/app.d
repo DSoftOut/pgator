@@ -29,6 +29,7 @@ void readOpts(string[] args)
     catch(Exception e)
     {
         logFatal(e.msg);
+        throw e;
     }
 
     if(debugEnabled) setLogLevel = LogLevel.debugV;
