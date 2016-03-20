@@ -11,8 +11,6 @@ import vibe.data.json;
 import vibe.data.bson;
 import vibe.db.postgresql;
 
-@trusted: // TODO: try to change to @safe or remove it
-
 string configFileName = "/wrong/path/to/file.json";
 bool debugEnabled = false;
 bool checkStatements = false;
@@ -87,7 +85,7 @@ int main(string[] args)
         };
 
         // delegate
-        void afterConnectOrReconnect(Connection conn) @safe
+        void afterConnectOrReconnect(Connection conn)
         {
             if(prepArgs.methodsLoadedFlag)
             {
