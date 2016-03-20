@@ -790,11 +790,28 @@ private OidType[] retrieveArgsTypes(Connection conn, string preparedStatementNam
 
     OidType[] ret = new OidType[arr.length];
 
+    oidsLoop:
     foreach(i, ref r; ret)
     {
         r = arr[i].as!Oid.oid2oidType;
-        // TODO: check for Bson supported type
+
+        foreach(sup; supportedOutputTypes)
+        {
+            if(r == sup || r == oidConvTo!"array"(sup))
+                continue oidsLoop;
+        }
+
+        throw new Exception("Unsupported output type "~r.to!string, __FILE__, __LINE__);
     }
 
     return ret;
 }
+
+private immutable OidType[] supportedOutputTypes =
+[
+    OidType.Bool,
+    OidType.Int4,
+    OidType.Int8,
+    OidType.Float8,
+    OidType.Text
+];
