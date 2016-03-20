@@ -21,19 +21,19 @@ struct SQLTransaction
     {
         conn = client.lockConnection();
 
-        execPrepared(isReadOnly ? BuiltInPrep.BEGIN_RO : BuiltInPrep.BEGIN);
+        execBuiltIn(isReadOnly ? BuiltInPrep.BEGIN_RO : BuiltInPrep.BEGIN);
     }
 
     void commit()
     {
-        execPrepared(BuiltInPrep.COMMIT);
+        execBuiltIn(BuiltInPrep.COMMIT);
         isCommitDone = true;
     }
 
     ~this()
     {
         if(!isCommitDone) // TODO: also need check connection status
-            execPrepared(BuiltInPrep.ROLLBACK);
+            execBuiltIn(BuiltInPrep.ROLLBACK);
     }
 
     immutable(Answer)[] execMethod(in Method method, TransactionQueryParams qp)
@@ -59,7 +59,7 @@ struct SQLTransaction
         return ret;
     }
 
-    private void execPrepared(BuiltInPrep prepared)
+    private void execBuiltIn(BuiltInPrep prepared)
     {
         QueryParams q;
         q.preparedStatementName = prepared;
