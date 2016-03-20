@@ -8,7 +8,7 @@ import vibe.data.json;
 import vibe.data.bson;
 import vibe.db.postgresql;
 
-@trusted:
+@trusted: // TODO: try to change to @safe or remove it
 
 string configFileName = "/wrong/path/to/file.json";
 bool debugEnabled = false;
