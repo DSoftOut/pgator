@@ -306,6 +306,8 @@ private Bson execMethod(
             }
         }
 
+        trans.commit();
+
         return ret;
     }
     catch(AnswerCreationException e)
