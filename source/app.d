@@ -239,7 +239,7 @@ struct SQLVariablesNames
 private Bson execMethod(
     shared PostgresClient client,
     in Method method,
-    RpcRequest rpcRequest
+    in RpcRequest rpcRequest
 )
 {
     TransactionQueryParams qp;
@@ -398,7 +398,7 @@ private Bson formatResult(immutable Answer answer, ResultFormat format)
     }
 }
 
-Value[] named2positionalParameters(in Statement method, Bson[string] namedParams)
+Value[] named2positionalParameters(in Statement method, in Bson[string] namedParams)
 {
     Value[] ret = new Value[method.argsNames.length];
 
@@ -480,7 +480,7 @@ RpcRequestResults performRpcRequests(immutable Method[string] methods, shared Po
 
     ret.results.length = requests.length;
 
-    foreach(i, ref request; requests)
+    foreach(i, const ref request; requests)
     {
         ret.results[i] = async({
             return request.performRpcRequest(methods, client);
@@ -572,7 +572,7 @@ struct RpcRequest
         return r;
     }
 
-    RpcRequestResult performRpcRequest(immutable Method[string] methods, shared PostgresClient client)
+    RpcRequestResult performRpcRequest(immutable Method[string] methods, shared PostgresClient client) const
     {
         try
         {
