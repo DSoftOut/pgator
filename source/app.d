@@ -669,8 +669,7 @@ private struct RpcRequestResult
 
 private struct RpcRequestResults
 {
-    //Future!RpcRequestResult[] results; // FIXME: disabled due to async transaction error
-    RpcRequestResult[] results;
+    Future!RpcRequestResult[] results; // FIXME: disabled due to async transaction error
     bool isBatchMode;
 }
 

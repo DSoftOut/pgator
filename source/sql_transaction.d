@@ -12,7 +12,7 @@ struct TransactionQueryParams
 
 struct SQLTransaction
 {
-    private Connection conn;
+    private LockedConnection!Connection conn;
     private bool isCommitDone = false;
 
     @disable this(this){}
