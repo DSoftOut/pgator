@@ -86,7 +86,7 @@ int main(string[] args)
         };
 
         // delegate
-        void afterConnectOrReconnect(Connection conn)
+        void afterConnectOrReconnect(__Conn conn)
         {
             if(prepArgs.methodsLoadedFlag)
             {
@@ -709,7 +709,7 @@ class LoopException : Exception
 }
 
 /// returns names of unprepared methods
-private string[] prepareStatements(Connection conn, ref PrepareStatementsArgs args)
+private string[] prepareStatements(__Conn conn, ref PrepareStatementsArgs args)
 {
     {
         logDebugV("try to prepare internal statements");
@@ -771,7 +771,7 @@ string preparedName(in Method method, in Statement statement)
     }
 }
 
-private OidType[] retrieveArgsTypes(Connection conn, string preparedStatementName)
+private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
 {
     QueryParams q;
     q.sqlCommand = "SELECT parameter_types::Int4[] FROM pg_prepared_statements WHERE name = $1";
