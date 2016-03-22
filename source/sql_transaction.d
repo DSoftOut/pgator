@@ -12,17 +12,17 @@ struct TransactionQueryParams
 
 struct SQLTransaction
 {
-    private Connection conn;
+    private LockedConnection!__Conn conn;
     private bool isCommitDone = false;
 
     @disable this(this){}
 
     this(shared PostgresClient client, bool isReadOnly)
     {
+        conn = client.lockConnection();
+
         try
         {
-            conn = client.lockConnection();
-
             execBuiltIn(isReadOnly ? BuiltInPrep.BEGIN_RO : BuiltInPrep.BEGIN);
         }
         catch(ConnectionException e)
