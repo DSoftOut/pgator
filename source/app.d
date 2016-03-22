@@ -220,10 +220,10 @@ void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] me
         }
     }
 
-    setupWorkerThreads(); // TODO: read number of threads from config
+    //setupWorkerThreads(); // TODO: read number of threads from config
 
     auto settings = new HTTPServerSettings;
-    settings.options |= HTTPServerOption.distribute;
+    // settings.options |= HTTPServerOption.distribute; // causes stuck on epoll_wait () from /lib/x86_64-linux-gnu/libc.so.6
     settings.options |= HTTPServerOption.parseJsonBody;
     settings.bindAddresses = cfg["listenAddresses"].deserializeBson!(string[]);
     settings.port = to!ushort(cfg["listenPort"].get!long);
