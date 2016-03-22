@@ -290,6 +290,7 @@ private Bson execMethod(
             throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic HTTP authentication need", __FILE__, __LINE__);
 
         auto trans = SQLTransaction(client, method.readOnlyFlag);
+
         immutable answer = trans.execMethod(method, qp);
 
         enforce(answer.length == method.statements.length);
@@ -312,6 +313,11 @@ private Bson execMethod(
         trans.commit();
 
         return ret;
+    }
+    catch(ConnectionException e)
+    {
+        // TODO: restart connection
+        throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
     }
     catch(AnswerCreationException e)
     {
@@ -602,11 +608,6 @@ struct RpcRequest
 
                 return ret;
             }
-            catch(ConnectionException e)
-            {
-                // TODO: restart connection
-                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
-            }
             catch(PostgresClientTimeoutException e)
             {
                 // TODO: restart connection
@@ -672,7 +673,7 @@ private struct RpcRequestResult
 
 private struct RpcRequestResults
 {
-    Future!RpcRequestResult[] results; // FIXME: disabled due to async transaction error
+    Future!RpcRequestResult[] results;
     bool isBatchMode;
 }
 

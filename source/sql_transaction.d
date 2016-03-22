@@ -12,7 +12,7 @@ struct TransactionQueryParams
 
 struct SQLTransaction
 {
-    private Connection conn;
+    package Connection conn;
     private bool isCommitDone = false;
 
     @disable this(this){}
@@ -32,7 +32,7 @@ struct SQLTransaction
 
     ~this()
     {
-        if(!isCommitDone) // TODO: also need check connection status
+        if(!isCommitDone)
             execBuiltIn(BuiltInPrep.ROLLBACK);
     }
 
