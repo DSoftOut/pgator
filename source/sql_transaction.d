@@ -19,9 +19,17 @@ struct SQLTransaction
 
     this(shared PostgresClient client, bool isReadOnly)
     {
-        conn = client.lockConnection();
+        try
+        {
+            conn = client.lockConnection();
 
-        execBuiltIn(isReadOnly ? BuiltInPrep.BEGIN_RO : BuiltInPrep.BEGIN);
+            execBuiltIn(isReadOnly ? BuiltInPrep.BEGIN_RO : BuiltInPrep.BEGIN);
+        }
+        catch(ConnectionException e)
+        {
+            if(conn) conn.dropConnection();
+            throw e;
+        }
     }
 
     void commit()
