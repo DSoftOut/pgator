@@ -12,7 +12,7 @@ struct TransactionQueryParams
 
 struct SQLTransaction
 {
-    package Connection conn;
+    private Connection conn;
     private bool isCommitDone = false;
 
     @disable this(this){}
@@ -32,8 +32,15 @@ struct SQLTransaction
 
     ~this()
     {
-        if(!isCommitDone)
-            execBuiltIn(BuiltInPrep.ROLLBACK);
+        if(conn.status == CONNECTION_BAD)
+        {
+            conn.dropConnection();
+        }
+        else
+        {
+            if(!isCommitDone)
+                execBuiltIn(BuiltInPrep.ROLLBACK);
+        }
     }
 
     immutable(Answer)[] execMethod(in Method method, TransactionQueryParams qp)
