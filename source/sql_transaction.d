@@ -21,13 +21,17 @@ struct SQLTransaction
     {
         conn = client.lockConnection();
 
+        import vibe.core.log;
+        logDebugV("after lock connection");
+
         try
         {
             execBuiltIn(isReadOnly ? BuiltInPrep.BEGIN_RO : BuiltInPrep.BEGIN);
         }
         catch(ConnectionException e)
         {
-            if(conn) conn.dropConnection();
+            conn.dropConnection();
+            delete conn;
             throw e;
         }
     }
@@ -49,6 +53,8 @@ struct SQLTransaction
             if(!isCommitDone)
                 execBuiltIn(BuiltInPrep.ROLLBACK);
         }
+
+        delete conn;
     }
 
     immutable(Answer)[] execMethod(in Method method, TransactionQueryParams qp)
