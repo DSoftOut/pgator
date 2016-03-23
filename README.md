@@ -15,27 +15,21 @@ Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 
 ####Dlang stuff installation (Debian example)
 
-Since pgator written in the Dlang you will need to install the DMD compiler and the DUB builder packages:
+Since pgator written in the Dlang you will need to install the DMD or LDC2 compiler and the DUB package builder:
 
 ```bash
 $ cat /etc/apt/sources.list.d/d-apt.list 
 deb http://netcologne.dl.sourceforge.net/project/d-apt dmd main #APT repository for D
 $ sudo aptitude update
-$ sudo aptitude install -t unstable dub dmd
+$ sudo aptitude install -t unstable ldc dub
 ```
 
 ####pgator downloading and building
 
 ```bash
-$ git clone https://github.com/DSoftOut/pgator.git
-Cloning into 'pgator'...
-remote: Counting objects: 2946, done.
-remote: Total 2946 (delta 0), reused 0 (delta 0)
-Receiving objects: 100% (2946/2946), 1.53 MiB | 271.00 KiB/s, done.
-Resolving deltas: 100% (2087/2087), done.
-Checking connectivity... done.
+$ git clone --depth=1 https://github.com/DSoftOut/pgator.git
 $ cd pgator
-$ dub build
+$ dub build --build=release --compiler=ldc2
 ```
 
 ####Example config
@@ -115,5 +109,5 @@ $ curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json'
 
 Response:
 ```json
-{"result":"Hello, world!","id":1}
+{"jsonrpc":"2.0","result":"Hello, world!","id":1}
 ```
