@@ -51,28 +51,6 @@ $ dub build --build=release --compiler=ldc2
 }
 ```
 
-####How to run pgator as daemon
-
-Please use systemd or somethig like that.
-
-supervisor script example:
-
-```ini
-$ cat /etc/supervisor.d/pgator.ini
-[program:pgator]
-command=/opt/pgator/bin/pgator
-directory=/opt/pgator
-user=pgator
-redirect_stderr=true
-stdout_logfile=/var/log/supervisor/pgator.log
-stdout_logfile_maxbytes=1MB
-stdout_logfile_backups=3
-autorestart=true
-exitcodes=2
-stopasgroup=true
-
-```
-
 ####RPC calls table example
 
 Simple method code that just returns one passed argument:
@@ -111,3 +89,7 @@ Response:
 ```json
 {"jsonrpc":"2.0","result":"Hello, world!","id":1}
 ```
+
+####How to run pgator as daemon
+
+Please use systemd, supervisor or somethig like that.
