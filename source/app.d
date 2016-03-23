@@ -128,6 +128,8 @@ int main(string[] args)
 
             // prepare statements for previously used connection
             afterConnectOrReconnect(conn);
+
+            delete conn;
         }
 
         if(!checkStatements)
