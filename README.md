@@ -73,6 +73,7 @@ Listening for requests on http://127.0.0.1:8083/
 Listening for requests on http://[::1]:8083/
 
 ```
+(Option --check=true allows to check methods from table without server start.)
 
 Calling a test method described in the previous table:
 ```json
