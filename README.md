@@ -41,34 +41,25 @@ $ dub build
 ####Example config
 
 ```json
-# cat /opt/pgator/etc/pgator.conf 
 {
-	"sqlServers": [
-		{
-			"maxConn": 5,
-			"connString": "dbname=exampledb user=worker"
-		}
-	],
-	"sqlAuth": [
-		"pgator.username",
-		"pgator.password"
-	],
-	"maxConn": 10,
-	"port": 8080,
-	"sqlTimeout": 1000,
-	"logname": "/var/log/pgator/pgator.txt",
-	"vibelog": "/var/log/pgator/http.log",
-	"logSqlTransactions": true,
-	"logJsonQueries": true,
-	"sqlJsonTable": "public.json_rpc",
-
-	"userid_disabled": 105,
-	"groupid_disabled": 108
+	"sqlServer":
+	{
+		"maxConn": 3,
+		"connString": "host=192.68.0.1 dbname=exampledb user=worker"
+	},
+	"sqlAuthVariables": {
+		"username": "pgator.username",
+		"password": "pgator.password"
+	},
+	"listenAddresses": ["127.0.0.1", "::1"],
+	"listenPort": 8080,
+	"sqlPgatorTable": "pgator_calls"
 }
-
 ```
 
 ####How to run pgator as daemon
+
+Please use systemd or somethig like that.
 
 supervisor script example:
 
@@ -93,20 +84,23 @@ stopasgroup=true
 Simple method code that just returns one passed argument:
 
 ```sql
-=> SELECT * FROM json_rpc WHERE method = 'test.echo';
-  method   |             sql_queries             | arg_nums | one_row_flags | set_username | need_cache | read_only | reset_caches | reset_by |  commentary   
------------+-------------------------------------+----------+---------------+--------------+------------+-----------+--------------+----------+---------------
- test.echo | {"select $1::text as passed_value"} | {1}      | {t}           | f            | f          | f         | {}           | {}       | Echo testing +
-           |                                     |          |               |              |            |           |              |          |              +
-           |                                     |          |               |              |            |           |              |          | @Params:     +
-           |                                     |          |               |              |            |           |              |          | $1 - value   +
-           |                                     |          |               |              |            |           |              |          |              +
-           |                                     |          |               |              |            |           |              |          | @Returns:    +
-           |                                     |          |               |              |            |           |              |          | value
+SELECT method, sql_query, args, result_format FROM pgator_calls WHERE method = 'test.echo';
+  method   |            sql_query            |       args       | result_format 
+-----------+---------------------------------+------------------+---------------
+ test.echo | select $1::text as passed_value | {value_for_echo} | CELL
 (1 row)
 ```
 
 #### JSON-RPC 2.0 methods calling:
+
+At first, it is need to start pgator:
+```
+$ ./pgator --config=my_pgator.conf 
+Number of methods in the table "pgator_calls": 1, failed to prepare: 0
+Listening for requests on http://127.0.0.1:8083/
+Listening for requests on http://[::1]:8083/
+
+```
 
 Calling a test method described in the previous table:
 ```json
@@ -114,18 +108,12 @@ $ curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json'
 {
     "jsonrpc": "2.0",
     "method": "test.echo",
-    "params": [ "Hello, world!" ],
+    "params": { "value_for_echo": "Hello, world!" },
     "id": 1
 }' http://pgator-test-server.com:8080/
 ```
 
 Response:
 ```json
-{
-	"id": 1,
-	"result": {
-		"passed_value": "Hello, world!"
-	},
-	"jsonrpc": "2.0"
-}
+{"result":"Hello, world!","id":1}
 ```

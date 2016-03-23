@@ -133,7 +133,7 @@ ReadMethodsResult readMethods(immutable Answer answer)
             }
 
             {
-                string resultFormatStr;
+                string resultFormatStr = "TABLE";
                 getOptionalField("result_format", resultFormatStr);
 
                 switch(resultFormatStr)
