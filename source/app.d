@@ -600,6 +600,7 @@ struct RpcRequest
                 if(!ret.isNotify)
                 {
                     ret.responseBody = Bson(["id": id]);
+                    ret.responseBody["jsonrpc"] = "2.0";
                     ret.responseBody["result"] = client.execMethod(*method, this);
                 }
                 else // JSON-RPC 2.0 Notification
@@ -627,6 +628,7 @@ struct RpcRequest
             err["id"] = id;
             err["message"] = e.msg;
             err["code"] = e.jsonCode;
+            err["jsonrpc"] = "2.0";
 
             if(e.answerException !is null)
             {

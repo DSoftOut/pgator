@@ -83,7 +83,8 @@ EOS",
 
 q"EOS
 {
-    "result": { "echoed":[123] },
+    "result": { "echoed":[ 123 ] },
+    "jsonrpc": "2.0",
     "id": 1
 }
 EOS"
@@ -102,7 +103,8 @@ EOS",
 q"EOS
 {
     "result": { "echoed": [null] },
-    "id": 1
+    "id": 1,
+    "jsonrpc": "2.0"
 }
 EOS"
 ),
@@ -120,6 +122,7 @@ EOS",
 q"EOS
 {
     "id":1,
+    "jsonrpc": "2.0",
     "result":
     {
         "col1":["val1"],
@@ -141,6 +144,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "id":1,
     "result":
     {
@@ -162,6 +166,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "id":1,
     "result":
     {
@@ -184,6 +189,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "id":1,
     "result":
     {
@@ -205,6 +211,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "id":1,
     "result": 123
 }
@@ -222,6 +229,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "id":1,
     "result":
     [
@@ -282,6 +290,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "result": { "echoed":[123] },
     "id": 1
 }
@@ -299,6 +308,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "result":
     {
         "user":"test user",
@@ -354,9 +364,9 @@ EOS",
 
 q"EOS
 [
-    {"result":123, "id":1},
-    {"message":"Missing required parameter value_for_echo","id":2,"code":-32602},
-    {"result":{"echoed":[123]},"id":3}
+    {"result":123, "id":1, "jsonrpc": "2.0"},
+    {"message":"Missing required parameter value_for_echo", "id":2, "code":-32602, "jsonrpc": "2.0"},
+    {"result":{"echoed":[123]},"id":3, "jsonrpc": "2.0"}
 ]
 EOS"
 ),
@@ -386,6 +396,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "result": { "echoed": [[123, 456], [null, 789]] },
     "id": 1
 }
@@ -404,6 +415,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "result": { "echoed": [] },
     "id": 1
 }
@@ -422,6 +434,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "result": { "echoed": [null, null] },
     "id": 1
 }
@@ -440,6 +453,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "result": { "echoed": null },
     "id": 1
 }
@@ -486,6 +500,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "result":
     {
         "first_result": { "column1":[1,2], "column2":[3,4], "column3":[5,6] },
@@ -510,6 +525,7 @@ EOS",
 
 q"EOS
 {
+    "jsonrpc": "2.0",
     "result":
     {
         "first_result": { "column1":[1,2], "column2":[3,4], "column3":[5,6] },
