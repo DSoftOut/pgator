@@ -65,7 +65,7 @@ SELECT method, sql_query, args, result_format FROM pgator_calls WHERE method = '
 
 #### JSON-RPC 2.0 methods calling:
 
-At first, it is need to start pgator:
+At first, here is need to start pgator:
 ```
 $ ./pgator --config=my_pgator.conf 
 Number of methods in the table "pgator_calls": 1, failed to prepare: 0
