@@ -781,37 +781,43 @@ string preparedName(in Method method, in Statement statement)
 
 private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
 {
-    QueryParams q;
-    q.sqlCommand = "SELECT parameter_types::Int4[] FROM pg_prepared_statements WHERE name = $1";
-    q.argsFromArray = [preparedStatementName];
+    auto desc = conn.describePrepared(preparedStatementName); // FIXME: write and use non-blocking version of describePrepared
 
-    auto a = conn.execStatement(q);
-    enforce(a.length == 1);
-    enforce(a[0].length == 1);
+    OidType[] ret = new OidType[desc.nParams];
 
-    auto arr = a[0][0].asArray;
-    enforce(arr.dimsSize.length == 1);
-
-    OidType[] ret = new OidType[arr.length];
-
-    oidsLoop:
-    foreach(i, ref r; ret)
+    argsLoop:
+    foreach(i, ref t; ret)
     {
-        r = arr[i].as!Oid.oid2oidType;
+        t = desc.paramType(i);
 
-        foreach(sup; supportedOutputTypes)
+        foreach(sup; supportedTypes)
         {
-            if(r == sup || r == oidConvTo!"array"(sup))
-                continue oidsLoop;
+            if(t == sup || t == oidConvTo!"array"(sup))
+                continue argsLoop;
         }
 
-        throw new Exception("Unsupported output type "~r.to!string, __FILE__, __LINE__);
+        throw new Exception("unsupported parameter $"~(i+1).to!string~" type: "~t.to!string, __FILE__, __LINE__);
+    }
+
+    // Result fields type check
+    resultTypesLoop:
+    foreach(i; 0 .. desc.columnCount)
+    {
+        auto t = desc.OID(i);
+
+        foreach(sup; supportedTypes)
+        {
+            if(t == sup || t == oidConvTo!"array"(sup))
+                continue resultTypesLoop;
+        }
+
+        throw new Exception("unsupported result field "~desc.columnName(i)~" ("~i.to!string~") type: "~t.to!string, __FILE__, __LINE__);
     }
 
     return ret;
 }
 
-private immutable OidType[] supportedOutputTypes =
+private immutable OidType[] supportedTypes =
 [
     OidType.Bool,
     OidType.Int4,
