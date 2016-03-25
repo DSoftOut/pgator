@@ -790,7 +790,7 @@ private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
     {
         t = desc.paramType(i);
 
-        foreach(sup; supportedTypes)
+        foreach(sup; argsSupportedTypes)
         {
             try
                 if(t == sup || t == oidConvTo!"array"(sup)) continue argsLoop;
@@ -807,7 +807,7 @@ private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
     {
         auto t = desc.OID(i);
 
-        foreach(sup; supportedTypes)
+        foreach(sup; resultSupportedTypes)
         {
             try
                 if(t == sup || t == oidConvTo!"array"(sup)) continue resultTypesLoop;
@@ -821,7 +821,7 @@ private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
     return ret;
 }
 
-private immutable OidType[] supportedTypes =
+private immutable OidType[] argsSupportedTypes =
 [
     OidType.Bool,
     OidType.Int4,
@@ -829,3 +829,9 @@ private immutable OidType[] supportedTypes =
     OidType.Float8,
     OidType.Text
 ];
+
+private immutable OidType[] resultSupportedTypes = argsSupportedTypes ~
+    [
+        OidType.Numeric,
+        OidType.Json
+    ];
