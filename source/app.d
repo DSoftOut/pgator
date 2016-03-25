@@ -787,7 +787,7 @@ private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
             try
                 if(t == sup || t == oidConvTo!"array"(sup)) continue argsLoop;
             catch(AnswerConvException)
-                continue argsLoop;
+            {}
         }
 
         throw new Exception("unsupported parameter $"~(i+1).to!string~" type: "~t.to!string, __FILE__, __LINE__);
@@ -804,7 +804,7 @@ private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
             try
                 if(t == sup || t == oidConvTo!"array"(sup)) continue resultTypesLoop;
             catch(AnswerConvException)
-                continue resultTypesLoop;
+            {}
         }
 
         throw new Exception("unsupported result field "~desc.columnName(i)~" ("~i.to!string~") type: "~t.to!string, __FILE__, __LINE__);
@@ -826,5 +826,5 @@ private immutable OidType[] argsSupportedTypes =
 private immutable OidType[] resultSupportedTypes = argsSupportedTypes ~
 [
     OidType.Numeric,
-    OidType.UUID
+    //OidType.UUID
 ];
