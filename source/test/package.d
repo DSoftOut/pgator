@@ -557,7 +557,6 @@ null,
 400
 ),
 
-
 QA(__LINE__, // numeric result test
 q"EOS
 {
@@ -572,6 +571,25 @@ q"EOS
 {
     "jsonrpc": "2.0",
     "result": "123.456789",
+    "id": 1
+}
+EOS"
+),
+
+QA(__LINE__, // fixedstring test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo_fixedstring",
+    "params": [ "12345" ],
+    "id": 1
+}
+EOS",
+
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "result": "12345 ",
     "id": 1
 }
 EOS"

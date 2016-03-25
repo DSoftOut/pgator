@@ -826,5 +826,6 @@ private immutable OidType[] argsSupportedTypes =
 private immutable OidType[] resultSupportedTypes = argsSupportedTypes ~
 [
     OidType.Numeric,
+    OidType.FixedString,
     //OidType.UUID
 ];
