@@ -524,5 +524,24 @@ q"EOS
 EOS"
 ),
 
+QA(__LINE__, // JSON test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo_json",
+    "params": { "json_value": { "inner_value": { "sub_value": 123 } } },
+    "id": 1
+}
+EOS",
+
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "result": { "inner_value": { "sub_value": 123 } },
+    "id": 1
+}
+EOS"
+),
+
 ];
 }

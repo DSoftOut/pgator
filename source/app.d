@@ -538,22 +538,14 @@ struct RpcRequest
 
             case Json.Type.object:
                 foreach(string key, value; params)
-                {
-                    if(value.type == Json.Type.object)
-                        throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected named parameter type", __FILE__, __LINE__);
-
                     r.namedParams[key] = value;
-                }
+
                 break;
 
             case Json.Type.array:
                 foreach(value; params)
-                {
-                    if(value.type == Json.Type.object)
-                        throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Unexpected positional parameter type", __FILE__, __LINE__);
-
                     r.positionParams ~= Bson(value);
-                }
+
                 break;
 
             default:
@@ -827,11 +819,12 @@ private immutable OidType[] argsSupportedTypes =
     OidType.Int4,
     OidType.Int8,
     OidType.Float8,
-    OidType.Text
+    OidType.Text,
+    OidType.Json
 ];
 
 private immutable OidType[] resultSupportedTypes = argsSupportedTypes ~
-    [
-        OidType.Numeric,
-        OidType.Json
-    ];
+[
+    OidType.Numeric,
+    OidType.UUID
+];

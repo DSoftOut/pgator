@@ -59,6 +59,9 @@ VALUES ('echo_auth_variables', 'SELECT current_setting(''pgator.username'') as u
 INSERT INTO pgator_tests (method, sql_query, args, result_format)
 VALUES ('echo_array', 'SELECT $1::bigint[] as echoed', '{"arr_value"}', 'ROW');
 
+INSERT INTO pgator_tests (method, sql_query, args, result_format)
+VALUES ('echo_json', 'SELECT $1::json as echoed', '{"json_value"}', 'CELL');
+
 -- Multi-statement transactions test
 INSERT INTO pgator_tests (method, result_name, statement_num, sql_query, args, result_format) VALUES
 ('multi_tran', 'first_result',  0, 'VALUES (1,3,5), (2,4,6)', '{}', 'TABLE'),
