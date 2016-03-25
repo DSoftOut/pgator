@@ -792,7 +792,9 @@ private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
 
         foreach(sup; supportedTypes)
         {
-            if(t == sup || t == oidConvTo!"array"(sup))
+            try
+                if(t == sup || t == oidConvTo!"array"(sup)) continue argsLoop;
+            catch(AnswerConvException)
                 continue argsLoop;
         }
 
@@ -807,7 +809,9 @@ private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
 
         foreach(sup; supportedTypes)
         {
-            if(t == sup || t == oidConvTo!"array"(sup))
+            try
+                if(t == sup || t == oidConvTo!"array"(sup)) continue resultTypesLoop;
+            catch(AnswerConvException)
                 continue resultTypesLoop;
         }
 
