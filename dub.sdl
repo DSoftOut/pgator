@@ -16,5 +16,5 @@ subPackage {
     targetType "executable"
     versions "IntegrationTest"
     libs "curl"
-    dependency "vibe-d:data" version="~>0.7.27"
+    dependency "vibe-d:data" version="*"
 }
