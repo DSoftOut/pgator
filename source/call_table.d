@@ -1,6 +1,7 @@
 module pgator.rpc_table;
 
 import dpq2.result;
+import dpq2.oids: OidType;
 import vibe.core.log;
 
 struct Method

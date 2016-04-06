@@ -2,8 +2,11 @@ module pgator.app;
 
 import pgator.rpc_table;
 import pgator.sql_transaction;
+import dpq2.oids: OidType;
 import std.getopt;
 import std.typecons: Tuple;
+import std.exception: enforce;
+import std.conv: to;
 import vibe.http.server;
 import vibe.core.concurrency;
 import vibe.core.log;

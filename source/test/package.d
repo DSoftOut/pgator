@@ -5,6 +5,7 @@ version(IntegrationTest)
 {
     import std.conv;
     import std.net.curl;
+    import std.exception: enforce;
     import etc.c.curl: CurlAuth;
     import vibe.data.json;
 
