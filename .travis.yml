@@ -2,7 +2,7 @@ language: d
 
 d:
   - dmd
-  - ldc
+  #- ldc disabled, waiting for vibe.d fix
   #- gdc disabled, waiting for std.experimental.logger
 
 addons:
