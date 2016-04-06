@@ -5,7 +5,7 @@ pgator
 [![Stories in Ready](https://badge.waffle.io/dsoftout/pgator.png?label=ready&title=Ready)](https://waffle.io/dsoftout/pgator)
 [![Gitter Chat](https://badges.gitter.im/DSoftOut/pgator.png)](https://gitter.im/DSoftOut/pgator)
 
-Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
+Application server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 
 [Technical documentation (ongoing)](http://dsoftout.github.io/pgator/app.html)
 
@@ -15,77 +15,40 @@ Server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 
 ####Dlang stuff installation (Debian example)
 
-Since pgator written in the Dlang you will need to install the DMD compiler and the DUB builder packages:
+Since pgator written in the Dlang you will need to install the DMD or LDC2 compiler and the DUB package builder:
 
 ```bash
 $ cat /etc/apt/sources.list.d/d-apt.list 
 deb http://netcologne.dl.sourceforge.net/project/d-apt dmd main #APT repository for D
 $ sudo aptitude update
-$ sudo aptitude install -t unstable dub dmd
+$ sudo aptitude install -t unstable ldc dub
 ```
 
 ####pgator downloading and building
 
 ```bash
-$ git clone https://github.com/DSoftOut/pgator.git
-Cloning into 'pgator'...
-remote: Counting objects: 2946, done.
-remote: Total 2946 (delta 0), reused 0 (delta 0)
-Receiving objects: 100% (2946/2946), 1.53 MiB | 271.00 KiB/s, done.
-Resolving deltas: 100% (2087/2087), done.
-Checking connectivity... done.
+$ git clone --depth=1 https://github.com/DSoftOut/pgator.git
 $ cd pgator
-$ dub build
+$ dub build --build=release --compiler=ldc2
 ```
 
 ####Example config
 
 ```json
-# cat /opt/pgator/etc/pgator.conf 
 {
-	"sqlServers": [
-		{
-			"maxConn": 5,
-			"connString": "dbname=exampledb user=worker"
-		}
-	],
-	"sqlAuth": [
-		"pgator.username",
-		"pgator.password"
-	],
-	"maxConn": 10,
-	"port": 8080,
-	"sqlTimeout": 1000,
-	"logname": "/var/log/pgator/pgator.txt",
-	"vibelog": "/var/log/pgator/http.log",
-	"logSqlTransactions": true,
-	"logJsonQueries": true,
-	"sqlJsonTable": "public.json_rpc",
-
-	"userid_disabled": 105,
-	"groupid_disabled": 108
+	"sqlServer":
+	{
+		"maxConn": 3,
+		"connString": "host=192.68.0.1 dbname=exampledb user=worker"
+	},
+	"sqlAuthVariables": {
+		"username": "pgator.username",
+		"password": "pgator.password"
+	},
+	"listenAddresses": ["127.0.0.1", "::1"],
+	"listenPort": 8080,
+	"sqlPgatorTable": "pgator_calls"
 }
-
-```
-
-####How to run pgator as daemon
-
-supervisor script example:
-
-```ini
-$ cat /etc/supervisor.d/pgator.ini
-[program:pgator]
-command=/opt/pgator/bin/pgator
-directory=/opt/pgator
-user=pgator
-redirect_stderr=true
-stdout_logfile=/var/log/supervisor/pgator.log
-stdout_logfile_maxbytes=1MB
-stdout_logfile_backups=3
-autorestart=true
-exitcodes=2
-stopasgroup=true
-
 ```
 
 ####RPC calls table example
@@ -93,20 +56,24 @@ stopasgroup=true
 Simple method code that just returns one passed argument:
 
 ```sql
-=> SELECT * FROM json_rpc WHERE method = 'test.echo';
-  method   |             sql_queries             | arg_nums | one_row_flags | set_username | need_cache | read_only | reset_caches | reset_by |  commentary   
------------+-------------------------------------+----------+---------------+--------------+------------+-----------+--------------+----------+---------------
- test.echo | {"select $1::text as passed_value"} | {1}      | {t}           | f            | f          | f         | {}           | {}       | Echo testing +
-           |                                     |          |               |              |            |           |              |          |              +
-           |                                     |          |               |              |            |           |              |          | @Params:     +
-           |                                     |          |               |              |            |           |              |          | $1 - value   +
-           |                                     |          |               |              |            |           |              |          |              +
-           |                                     |          |               |              |            |           |              |          | @Returns:    +
-           |                                     |          |               |              |            |           |              |          | value
+SELECT method, sql_query, args, result_format FROM pgator_calls WHERE method = 'test.echo';
+  method   |            sql_query            |       args       | result_format 
+-----------+---------------------------------+------------------+---------------
+ test.echo | select $1::text as passed_value | {value_for_echo} | CELL
 (1 row)
 ```
 
 #### JSON-RPC 2.0 methods calling:
+
+At first, it is need to start pgator:
+```
+$ ./pgator --config=my_pgator.conf 
+Number of methods in the table "pgator_calls": 1, failed to prepare: 0
+Listening for requests on http://127.0.0.1:8083/
+Listening for requests on http://[::1]:8083/
+
+```
+(Option --check=true allows to check methods from table without server start.)
 
 Calling a test method described in the previous table:
 ```json
@@ -114,18 +81,16 @@ $ curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json'
 {
     "jsonrpc": "2.0",
     "method": "test.echo",
-    "params": [ "Hello, world!" ],
+    "params": { "value_for_echo": "Hello, world!" },
     "id": 1
 }' http://pgator-test-server.com:8080/
 ```
 
 Response:
 ```json
-{
-	"id": 1,
-	"result": {
-		"passed_value": "Hello, world!"
-	},
-	"jsonrpc": "2.0"
-}
+{"jsonrpc":"2.0","result":"Hello, world!","id":1}
 ```
+
+####How to run pgator as daemon
+
+Please use systemd, supervisor or somethig like that.
