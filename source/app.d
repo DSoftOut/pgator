@@ -253,7 +253,7 @@ private Bson execMethod(
     TransactionQueryParams qp;
     qp.auth = rpcRequest.auth;
     qp.queryParams.length = method.statements.length;
-    size_t paramCounter;
+    size_t paramCounter = 0;
 
     foreach(i, statement; method.statements)
     {
@@ -266,7 +266,7 @@ private Bson execMethod(
         else // positional parameters
         {
             if(rpcRequest.positionParams.length - paramCounter < statement.argsNames.length)
-                throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number mismatch", __FILE__, __LINE__);
+                throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number is too few", __FILE__, __LINE__);
 
             qp.queryParams[i].args = new Value[statement.argsNames.length];
 
@@ -287,6 +287,12 @@ private Bson execMethod(
 
             paramCounter += statement.argsNames.length;
         }
+    }
+
+    if(rpcRequest.positionParams.length != 0 && paramCounter != rpcRequest.positionParams.length)
+    {
+        assert(paramCounter < rpcRequest.positionParams.length);
+        throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number is too big", __FILE__, __LINE__);
     }
 
     try
