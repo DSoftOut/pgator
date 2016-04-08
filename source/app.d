@@ -724,7 +724,7 @@ class LoopException : Exception
     }
 }
 
-/// returns names of unprepared methods
+/// returns names of unprepared methods, but length is number of unprepared statements
 private string[] prepareStatements(__Conn conn, ref PrepareStatementsArgs args)
 {
     {
@@ -765,7 +765,7 @@ private string[] prepareStatements(__Conn conn, ref PrepareStatementsArgs args)
             catch(Exception e)
             {
                 logWarn("Skipping "~prepName~": "~e.msg);
-                failedStatements ~= prepName;
+                failedStatements ~= method.name;
             }
         }
     }
