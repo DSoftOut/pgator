@@ -100,7 +100,7 @@ int main(string[] args)
                 foreach(n; failedStatementsNames)
                     prepArgs.methods.remove(n);
 
-                logInfo("Number of methods in the table "~prepArgs.tableName~": "~
+                logInfo("Number of statements in the table "~prepArgs.tableName~": "~
                     prepArgs.rpcTableLength.to!string~", failed to prepare: "~prepArgs.failedCount.to!string);
             }
         }
@@ -126,7 +126,7 @@ int main(string[] args)
 
             {
                 prepArgs.failedCount = prepArgs.rpcTableLength - readMethodsResult.loaded;
-                logDebugV("Number of methods in the table "~prepArgs.tableName~": "~prepArgs.rpcTableLength.to!string~", failed to load into pgator: "~prepArgs.failedCount.to!string);
+                logDebugV("Number of statements in the table "~prepArgs.tableName~": "~prepArgs.rpcTableLength.to!string~", failed to load into pgator: "~prepArgs.failedCount.to!string);
             }
 
             // prepare statements for previously used connection
