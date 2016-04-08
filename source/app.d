@@ -621,20 +621,27 @@ struct RpcRequest
             Bson err = Bson.emptyObject;
 
             err["id"] = id;
-            err["message"] = e.msg;
-            err["code"] = e.jsonCode;
             err["jsonrpc"] = "2.0";
 
-            if(e.answerException !is null)
+            if(e.answerException is null)
             {
-                Bson hint =    Bson(e.answerException.resultErrorField(PG_DIAG_MESSAGE_HINT));
-                Bson detail =  Bson(e.answerException.resultErrorField(PG_DIAG_MESSAGE_DETAIL));
-                Bson errcode = Bson(e.answerException.resultErrorField(PG_DIAG_SQLSTATE));
+                err["error"] = Bson([
+                    "message": Bson(e.msg),
+                    "code": Bson(e.jsonCode)
+                ]);
+            }
+            else
+            {
+                Bson data = Bson([
+                    "hint":    Bson(e.answerException.resultErrorField(PG_DIAG_MESSAGE_HINT)),
+                    "detail":  Bson(e.answerException.resultErrorField(PG_DIAG_MESSAGE_DETAIL)),
+                    "errcode": Bson(e.answerException.resultErrorField(PG_DIAG_SQLSTATE))
+                ]);
 
-                err["data"] = Bson([
-                    "hint": hint,
-                    "detail": detail,
-                    "errcode": errcode
+                err["error"] = Bson([
+                    "message": Bson(e.msg),
+                    "code": Bson(e.jsonCode),
+                    "data": data
                 ]);
             }
 

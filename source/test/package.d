@@ -110,6 +110,29 @@ q"EOS
 EOS"
 ),
 
+QA(__LINE__, // error test
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "method": "echo",
+    "id": 1
+}
+EOS",
+
+q"EOS
+{
+    "jsonrpc": "2.0",
+    "error":
+    {
+        "message": "Missing required parameter value_for_echo",
+        "code": -32602
+    },
+    "id": 1
+}
+EOS",
+400
+),
+
 QA(__LINE__,
 q"EOS
 {
@@ -366,7 +389,7 @@ EOS",
 q"EOS
 [
     {"result":123, "id":1, "jsonrpc": "2.0"},
-    {"message":"Missing required parameter value_for_echo", "id":2, "code":-32602, "jsonrpc": "2.0"},
+    {"error": {"message": "Missing required parameter value_for_echo", "code": -32602}, "jsonrpc": "2.0", "id": 2},
     {"result":{"echoed":[123]},"id":3, "jsonrpc": "2.0"}
 ]
 EOS"
