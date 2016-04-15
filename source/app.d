@@ -789,7 +789,7 @@ string preparedName(in Method method, in Statement statement)
 
 private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
 {
-    auto desc = conn.describePrepared(preparedStatementName); // FIXME: write and use non-blocking version of describePrepared
+    auto desc = conn.describePreparedStatement(preparedStatementName);
 
     OidType[] ret = new OidType[desc.nParams];
 
