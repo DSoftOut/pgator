@@ -91,7 +91,7 @@ Response:
 
 ####More methods options
 
-You can find more methods options in .test_pgator_rpc_table.sql file comments
+You can find more methods options in the .test_pgator_rpc_table.sql file comments
 
 ####How to run pgator as daemon
 
