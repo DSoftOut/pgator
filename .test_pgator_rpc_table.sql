@@ -3,16 +3,23 @@ DROP TABLE IF EXISTS pgator_tests;
 CREATE TABLE pgator_tests
 (
   -- Required parameters
-  method text NOT NULL,
-  sql_query text NOT NULL,
-  args text[] NOT NULL,
+  method text NOT NULL, -- Method name
+  sql_query text NOT NULL, -- SQL code snippet for this method
+  args text[] NOT NULL, -- Array of arguments names
 
   -- Optional parameters
-  result_format text DEFAULT 'TABLE', -- NOT NULL skipped for testing purposes
-  read_only boolean NOT NULL DEFAULT FALSE,
-  set_auth_variables boolean NOT NULL DEFAULT FALSE,
-  statement_num smallint,
-  result_name text
+  --
+  -- Call result format can be one of theese types:
+  -- 'TABLE' (default) - just SQL table returned by SQL query specified in sql_query
+  -- 'ROTATED' - similar as 'TABLE' but returns field names specified for each value
+  -- 'ROW' - specifies that the query returns strictly one row
+  -- 'CELL' - specifies that the query returns strictly one row with one field
+  -- 'VOID' - specifies that the SQL statement result will be omitted (only for multi-statement methods)
+  result_format text DEFAULT 'TABLE', -- (NOT NULL skipped for testing purposes)
+  read_only boolean NOT NULL DEFAULT FALSE, -- read-only SQL query constraint
+  set_auth_variables boolean NOT NULL DEFAULT FALSE, -- place HTTP basic auth username and password into sqlAuthVariables variables
+  statement_num smallint, -- statement number of multi-statement method
+  result_name text -- statement result name of multi-statement method
 );
 
 CREATE UNIQUE INDEX ON pgator_tests (method, coalesce(statement_num, -1));

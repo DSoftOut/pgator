@@ -7,8 +7,6 @@ pgator
 
 Application server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
 
-[Technical documentation (ongoing)](http://dsoftout.github.io/pgator/app.html)
-
 [Overview-(ru)](https://github.com/DSoftOut/pgator/wiki/Overview-(ru))
 
 ###Quick start guide
@@ -90,6 +88,10 @@ Response:
 ```json
 {"jsonrpc":"2.0","result":"Hello, world!","id":1}
 ```
+
+####More methods options
+
+You can find more methods options in the .test_pgator_rpc_table.sql file comments
 
 ####How to run pgator as daemon
 

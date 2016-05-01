@@ -2,7 +2,7 @@ language: d
 
 d:
   - dmd
-  #- ldc disabled, waiting for vibe.d fix
+  #- ldc disabled due to "std.net.curl.CurlException@/build/src/ldc/runtime/phobos/std/net/curl.d(3810): Test line 75: Couldn't connect to server on handle 238F4C0"
   #- gdc disabled, waiting for std.experimental.logger
 
 addons:
