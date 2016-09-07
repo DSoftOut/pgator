@@ -9,9 +9,9 @@ Application server that transforms JSON-RPC calls into SQL queries for PostgreSQ
 
 [Overview-(ru)](https://github.com/DSoftOut/pgator/wiki/Overview-(ru))
 
-###Quick start guide
+### Quick start guide
 
-####Dlang stuff installation (Debian example)
+#### Dlang stuff installation (Debian example)
 
 Since pgator written in the Dlang you will need to install the DMD or LDC2 compiler and the DUB package builder:
 
@@ -22,7 +22,7 @@ $ sudo aptitude update
 $ sudo aptitude install -t unstable ldc dub
 ```
 
-####pgator downloading and building
+#### pgator downloading and building
 
 ```bash
 $ git clone --depth=1 https://github.com/DSoftOut/pgator.git
@@ -30,7 +30,7 @@ $ cd pgator
 $ dub build --build=release --compiler=ldc2
 ```
 
-####Example config
+#### Example pgator config
 
 ```json
 {
@@ -49,7 +49,7 @@ $ dub build --build=release --compiler=ldc2
 }
 ```
 
-####RPC calls table example
+#### pgator RPC calls table example
 
 Simple method code that just returns one passed argument:
 
@@ -89,10 +89,10 @@ Response:
 {"jsonrpc":"2.0","result":"Hello, world!","id":1}
 ```
 
-####More methods options
+#### More methods options
 
 You can find more methods options in the .test_pgator_rpc_table.sql file comments
 
-####How to run pgator as daemon
+#### How to run pgator as daemon
 
 Please use systemd, supervisor or somethig like that.
