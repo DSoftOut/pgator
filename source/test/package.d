@@ -684,7 +684,6 @@ void vibedRESTEmulationTests(string httpUrl)
     }
 
     auto m = new RestInterfaceClient!ITest(httpUrl);
-    //~ auto m = new RestInterfaceClient!ITest("http://127.0.0.1:8382/");
 
     assert(m.getEchoText("abc") == "abc");
 }
