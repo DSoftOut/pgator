@@ -528,10 +528,15 @@ struct RpcRequest
         return id.type == Bson.Type.undefined;
     }
 
+    private static bool isValidJsonRpcRequest(scope Json j)
+    {
+        return j["jsonrpc"] == "2.0";
+    }
+
     private static RpcRequest jsonToRpcRequest(scope Json j, in HTTPServerRequest req)
     {
-        if(j["jsonrpc"] != "2.0")
-            throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Protocol version should be \"2.0\"", __FILE__, __LINE__);
+        if(!isValidJsonRpcRequest(j))
+            throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Isn't JSON-RPC 2.0 protocol", __FILE__, __LINE__);
 
         RpcRequest r;
 
