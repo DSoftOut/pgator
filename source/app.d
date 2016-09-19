@@ -162,7 +162,7 @@ void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] me
         {
             RpcRequestResults results = performRpcRequests(methods, client, req);
 
-            if(results.type != RpcType.jsonRpcBatchMode) // normal mode response
+            if(results.type == RpcType.jsonRpc)
             {
                 auto result = &results.results[0];
 
@@ -485,12 +485,17 @@ RpcRequestResults performRpcRequests(immutable Method[string] methods, shared Po
 
         case Json.Type.object:
             dbRequests.length = 1;
-            dbRequests[0] = RpcRequest.jsonToRpcRequest(j, req);
 
             if(RpcRequest.isValidJsonRpcRequest(j))
+            {
                 ret.type = RpcType.jsonRpc;
+                dbRequests[0] = RpcRequest.jsonToRpcRequest(j, req);
+            }
             else
+            {
                 ret.type = RpcType.vibedREST;
+                dbRequests[0] = RpcRequest.vibeRestToRpcRequest(j, req);
+            }
 
             break;
 
@@ -585,6 +590,22 @@ struct RpcRequest
                 r.auth.password = user_pw[idx+1 .. $];
             }
         }
+
+        return r;
+    }
+
+    /// Converts Vibe.d REST client request to RpcRequest
+    private static RpcRequest vibeRestToRpcRequest(scope Json j, in HTTPServerRequest req)
+    {
+        RpcRequest r;
+
+        enforce(req.path.length > 0);
+        r.methodName = req.path[1..$]; // strips first '/'
+
+        foreach(string key, ref value; req.query)
+            r.namedParams[key] = value;
+
+        r.id = Bson("REST request"); // Means what it isn't JSON-RPC "notify"
 
         return r;
     }
@@ -694,7 +715,7 @@ private struct RpcRequestResults
     RpcType type;
 }
 
-enum RpcType
+private enum RpcType
 {
     jsonRpc, /// Normal JSON mode response
     jsonRpcBatchMode, /// Batch JSON mode response
