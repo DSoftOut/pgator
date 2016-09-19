@@ -680,10 +680,11 @@ void vibedRESTEmulationTests(string httpUrl)
 
     interface ITest
     {
-        double getEchoNumericResult(double parameter);
+        string getEchoText(string value_for_echo);
     }
 
     auto m = new RestInterfaceClient!ITest(httpUrl);
+    //~ auto m = new RestInterfaceClient!ITest("http://127.0.0.1:8382/");
 
-    //~ assert(m.getEchoNumericResult(123.456) == 123.456);
+    assert(m.getEchoText("abc") == "abc");
 }

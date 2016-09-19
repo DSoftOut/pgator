@@ -169,12 +169,12 @@ void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] me
 
                     if(result.exception is null)
                     {
-                        res.writeJsonBody(result.responseBody["result"]); //FIXME
+                        res.writeJsonBody(result.responseBody["result"]);
                     }
                     else
                     {
                         res.writeJsonBody(result.responseBody, result.exception.httpCode);
-                    }                    
+                    }
 
                     break;
 
@@ -490,7 +490,7 @@ RpcRequestResults performRpcRequests(immutable Method[string] methods, shared Po
         case Json.Type.array:
         {
             if(!j.length)
-                throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Empty batch array", __FILE__, __LINE__);
+                throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Empty JSON-RPC 2.0 batch array", __FILE__, __LINE__);
 
             ret.type = RpcType.jsonRpcBatchMode;
             dbRequests.length = j.length;

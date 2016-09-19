@@ -37,6 +37,7 @@ $_$;
 
 INSERT INTO pgator_tests VALUES
 ('echo', 'SELECT $1::bigint as echoed', '{"value_for_echo"}', 'TABLE'),
+('echo_text', 'SELECT $1::text as echoed', '{"value_for_echo"}', 'CELL'),
 ('null_flag_test', 'SELECT $1::text', '{"value_for_echo"}', NULL),
 ('record_returning', 'select val from (values (1,2),(3,4)) val', '{}', 'TABLE'),
 ('wrong_sql_statement', 'wrong SQL statement', '{}', 'TABLE');
