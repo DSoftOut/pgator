@@ -1,7 +1,7 @@
 // integration tests
 module pgator.test;
 
-version(IntegrationTest) // JSON-RPC tests
+version(IntegrationTest)
 {
     import std.conv;
     import std.net.curl;
@@ -12,7 +12,8 @@ version(IntegrationTest) // JSON-RPC tests
     void main(string[] args)
     {
         const string httpHost = args[1];
-        const string port = args[2];
+        const string httpPort = args[2];
+        const string httpUrl = "http://"~httpHost~":"~httpPort~"/";
 
         foreach(t; tests)
         {
@@ -20,7 +21,7 @@ version(IntegrationTest) // JSON-RPC tests
             {
                 HTTP http = HTTP();
                 http.method = HTTP.Method.post;
-                http.url = "http://"~httpHost~":"~port~"/";
+                http.url = httpUrl;
                 http.addRequestHeader("Content-Type", "application/json");
 
                 http.postData = parseJsonString(t.query).toString;
@@ -56,6 +57,8 @@ version(IntegrationTest) // JSON-RPC tests
                 throw e;
             }
         }
+
+        vibedRESTEmulationTests(httpUrl);
     }
 
     struct QueryAnswer
@@ -670,7 +673,15 @@ EOS"
 ];
 }
 
-version(IntegrationTest) // Vibe.d REST interface emulation tests
+version(IntegrationTest)
+void vibedRESTEmulationTests(string httpUrl)
 {
     import vibe.web.rest;
+
+    interface ITest
+    {
+        double getEchoNumericResult(double parameter);
+    }
+
+    auto m = new RestInterfaceClient!ITest(httpUrl);
 }
