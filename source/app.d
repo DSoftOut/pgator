@@ -162,7 +162,7 @@ void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] me
         {
             RpcRequestResults results = performRpcRequests(methods, client, req);
 
-            if(!results.isBatchMode) // normal mode response
+            if(results.type != RpcType.jsonRpcBatchMode) // normal mode response
             {
                 auto result = &results.results[0];
 
@@ -470,11 +470,11 @@ RpcRequestResults performRpcRequests(immutable Method[string] methods, shared Po
             if(!j.length)
                 throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Empty batch array", __FILE__, __LINE__);
 
-            ret.isBatchMode = true;
+            ret.type = RpcType.jsonRpcBatchMode;
             break;
 
         case Json.Type.object:
-            ret.isBatchMode = false;
+            ret.type = RpcType.jsonRpc;
             break;
 
         default:
@@ -483,7 +483,7 @@ RpcRequestResults performRpcRequests(immutable Method[string] methods, shared Po
 
     RpcRequest[] requests;
 
-    if(!ret.isBatchMode)
+    if(ret.type != RpcType.jsonRpcBatchMode)
     {
         requests.length = 1;
         requests[0] = RpcRequest.jsonToRpcRequest(j, req);
@@ -686,7 +686,14 @@ private struct RpcRequestResult
 private struct RpcRequestResults
 {
     Future!RpcRequestResult[] results;
-    bool isBatchMode;
+    RpcType type;
+}
+
+enum RpcType
+{
+    jsonRpc, /// Normal JSON mode response
+    jsonRpcBatchMode, /// Batch JSON mode response
+    vibedREST /// Vibe.d REST client mode response
 }
 
 enum JsonRpcErrorCode : short
