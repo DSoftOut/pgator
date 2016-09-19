@@ -1,7 +1,7 @@
 // integration tests
 module pgator.test;
 
-version(IntegrationTest)
+version(IntegrationTest) // JSON-RPC tests
 {
     import std.conv;
     import std.net.curl;
@@ -668,4 +668,9 @@ EOS"
 ),
 
 ];
+}
+
+version(IntegrationTest) // Vibe.d REST interface emulation tests
+{
+    import vibe.web.rest;
 }

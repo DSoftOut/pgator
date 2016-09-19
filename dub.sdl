@@ -17,4 +17,5 @@ subPackage {
     versions "IntegrationTest"
     libs "curl"
     dependency "vibe-d:data" version="*"
+    dependency "vibe-d:web" version="*"
 }
