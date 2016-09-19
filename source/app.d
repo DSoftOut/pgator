@@ -462,45 +462,45 @@ RpcRequestResults performRpcRequests(immutable Method[string] methods, shared Po
         throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
 
     RpcRequestResults ret;
+
+    // Recognition of request type
     Json j = req.json;
+    RpcRequest[] dbRequests;
 
     switch(j.type)
     {
         case Json.Type.array:
+        {
             if(!j.length)
                 throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Empty batch array", __FILE__, __LINE__);
 
             ret.type = RpcType.jsonRpcBatchMode;
+            dbRequests.length = j.length;
+
+            foreach(i, ref request; dbRequests)
+                request = RpcRequest.jsonToRpcRequest(j[i], req);
+
             break;
+        }
 
         case Json.Type.object:
-            ret.type = RpcType.jsonRpc;
+            dbRequests.length = 1;
+            dbRequests[0] = RpcRequest.jsonToRpcRequest(j, req);
+
+            if(RpcRequest.isValidJsonRpcRequest(j))
+                ret.type = RpcType.jsonRpc;
+            else
+                ret.type = RpcType.vibedREST;
+
             break;
 
         default:
             throw new LoopException(JsonRpcErrorCode.parseError, HTTPStatus.badRequest, "Parse error", __FILE__, __LINE__);
     }
 
-    RpcRequest[] requests;
+    ret.results.length = dbRequests.length;
 
-    if(ret.type != RpcType.jsonRpcBatchMode)
-    {
-        requests.length = 1;
-        requests[0] = RpcRequest.jsonToRpcRequest(j, req);
-    }
-    else
-    {
-        requests.length = j.length;
-
-        foreach(i, ref request; requests)
-        {
-            request = RpcRequest.jsonToRpcRequest(j[i], req);
-        }
-    }
-
-    ret.results.length = requests.length;
-
-    foreach(i, const ref request; requests)
+    foreach(i, const ref request; dbRequests)
     {
         ret.results[i] = async({
             return request.performRpcRequest(methods, client);

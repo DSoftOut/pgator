@@ -684,4 +684,6 @@ void vibedRESTEmulationTests(string httpUrl)
     }
 
     auto m = new RestInterfaceClient!ITest(httpUrl);
+
+    //~ assert(m.getEchoNumericResult(123.456) == 123.456);
 }
