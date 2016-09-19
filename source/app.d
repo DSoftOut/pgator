@@ -162,55 +162,73 @@ void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] me
         {
             RpcRequestResults results = performRpcRequests(methods, client, req);
 
-            if(results.type == RpcType.jsonRpc)
+            final switch(results.type)
             {
-                auto result = &results.results[0];
+                case RpcType.vibedREST:
+                    auto result = &results.results[0];
 
-                if(result.exception is null)
-                {
-                    if(result.isNotify)
+                    if(result.exception is null)
                     {
-                        res.statusCode = HTTPStatus.noContent;
-                        res.writeVoidBody();
-                    }
-                    else
-                    {
-                        res.writeJsonBody(result.responseBody);
-                    }
-                }
-                else // error handling
-                {
-                    if(result.isNotify)
-                    {
-                        res.statusCode = HTTPStatus.noContent;
-                        res.statusPhrase = result.exception.msg;
-                        res.writeVoidBody();
+                        res.writeJsonBody(result.responseBody["result"]); //FIXME
                     }
                     else
                     {
                         res.writeJsonBody(result.responseBody, result.exception.httpCode);
+                    }                    
+
+                    break;
+
+                case RpcType.jsonRpc:
+                    auto result = &results.results[0];
+
+                    if(result.exception is null)
+                    {
+                        if(result.isNotify)
+                        {
+                            res.statusCode = HTTPStatus.noContent;
+                            res.writeVoidBody();
+                        }
+                        else
+                        {
+                            res.writeJsonBody(result.responseBody);
+                        }
                     }
-                }
-            }
-            else // batch mode response
-            {
-                Bson[] ret;
+                    else // error handling
+                    {
+                        if(result.isNotify)
+                        {
+                            res.statusCode = HTTPStatus.noContent;
+                            res.statusPhrase = result.exception.msg;
+                            res.writeVoidBody();
+                        }
+                        else
+                        {
+                            res.writeJsonBody(result.responseBody, result.exception.httpCode);
+                        }
+                    }
 
-                foreach(ref r; results.results) // fill response array
-                {
-                    if(!r.isNotify) // skip notify responses
-                        ret ~= r.responseBody;
-                }
+                    break;
 
-                if(ret.length)
-                {
-                    res.writeJsonBody(Bson(ret)); // normal batch response
-                }
-                else
-                {
-                    res.statusCode = HTTPStatus.noContent;
-                    res.writeVoidBody(); // empty response for batch with notifies only
-                }
+                case RpcType.jsonRpcBatchMode:
+                    Bson[] ret;
+
+                    foreach(ref r; results.results) // fill response array
+                    {
+                        if(!r.isNotify) // skip notify responses
+                            ret ~= r.responseBody;
+                    }
+
+                    if(ret.length)
+                    {
+                        res.writeJsonBody(Bson(ret)); // normal batch response
+                    }
+                    else
+                    {
+                        res.statusCode = HTTPStatus.noContent;
+                        res.writeVoidBody(); // empty response for batch with notifies only
+                    }
+
+                    break;
             }
         }
         catch(LoopException e)
