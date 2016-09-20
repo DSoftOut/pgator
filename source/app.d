@@ -277,9 +277,16 @@ private Bson execMethod(
     {
         qp.queryParams[i].preparedStatementName = preparedName(method, statement);
 
-        if(rpcRequest.positionParams.length == 0) // named parameters
+        if(rpcRequest.positionParams.length == 0)
         {
-            qp.queryParams[i].args = named2positionalParameters(statement, rpcRequest.namedParams);
+            if(rpcRequest.namedParams !is null) // named parameters with types
+            {
+                qp.queryParams[i].args = named2positionalParameters(statement, rpcRequest.namedParams);
+            }
+            else // named parameters without types
+            {
+                qp.queryParams[i].args = named2positionalParameters(statement, rpcRequest.namedParamsStringValues);
+            }
         }
         else // positional parameters
         {
@@ -436,25 +443,54 @@ private Bson formatResult(immutable Answer answer, ResultFormat format)
     }
 }
 
-Value[] named2positionalParameters(in Statement method, in Bson[string] namedParams)
+Value[] named2positionalParameters(T)(in Statement method, in T[string] namedParams)
+if(is(T == Bson) || is(T == string))
 {
     Value[] ret = new Value[method.argsNames.length];
 
     foreach(i, argName; method.argsNames)
     {
-        auto b = argName in namedParams;
+        auto argValue = argName in namedParams;
 
-        if(b)
+        if(argValue)
         {
             const oid = method.argsOids[i];
-            Value v = bsonToValue(*b, oid);
+            Value v;
 
-            if(v.oidType != oid)
-                throw new LoopException(
-                    JsonRpcErrorCode.invalidParams,
-                    HTTPStatus.badRequest,
-                    argName~" parameter type is "~v.oidType.to!string~", but expected "~oid.to!string,
-                    __FILE__, __LINE__);
+            static if(is(T == Bson))
+            {
+                v = bsonToValue(*argValue, oid);
+
+                if(v.oidType != oid)
+                    throw new LoopException(
+                        JsonRpcErrorCode.invalidParams,
+                        HTTPStatus.badRequest,
+                        argName~" parameter type is "~v.oidType.to!string~", but expected "~oid.to!string,
+                        __FILE__, __LINE__);
+            }
+            else // T == string, unknown parameter type
+            {
+                switch(oid)
+                {
+                    case OidType.Text:
+                        v = toValue!string(*argValue);
+                        break;
+
+                    default:
+                        if(isNativeInteger(oid))
+                        {
+                            v = toValue!long((*argValue).to!long);
+                        }
+                        else
+                        {
+                            throw new LoopException(
+                                JsonRpcErrorCode.invalidParams,
+                                HTTPStatus.badRequest,
+                                argName~" parameter type "~v.oidType.to!string~" isn't supported ",
+                                __FILE__, __LINE__);
+                        }
+                }
+            }
 
             ret[i] = v;
         }
@@ -465,6 +501,40 @@ Value[] named2positionalParameters(in Statement method, in Bson[string] namedPar
     }
 
     return ret;
+}
+
+private // FIXME: use dpq2 instead
+{
+    bool isNativeInteger(OidType t) pure
+    {
+        with(OidType)
+        switch(t)
+        {
+            case Int8:
+            case Int2:
+            case Int4:
+                return true;
+            default:
+                break;
+        }
+
+        return false;
+    }
+
+    bool isNativeFloat(OidType t) pure
+    {
+        with(OidType)
+        switch(t)
+        {
+            case Float4:
+            case Float8:
+                return true;
+            default:
+                break;
+        }
+
+        return false;
+    }
 }
 
 private struct AuthorizationCredentials
@@ -538,12 +608,19 @@ struct RpcRequest
     Bson id;
     string methodName;
     Bson[string] namedParams = null;
+    string[string] namedParamsStringValues = null; /// used if types of parameters is unknown
     Bson[] positionParams = null;
     AuthorizationCredentials auth;
 
     invariant()
     {
-        assert(namedParams is null || positionParams is null);
+        size_t count = 0;
+
+        if(namedParams !is null) count++;
+        if(namedParamsStringValues !is null) count++;
+        if(positionParams !is null) count++;
+
+        assert(count <= 1);
     }
 
     bool isNotify() const
@@ -621,7 +698,7 @@ struct RpcRequest
         r.methodName = req.path[1..$]; // strips first '/'
 
         foreach(string key, ref value; req.query)
-            r.namedParams[key] = value;
+            r.namedParamsStringValues[key] = value;
 
         r.id = Bson("REST request"); // Means what it isn't JSON-RPC "notify"
 

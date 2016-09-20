@@ -681,6 +681,7 @@ void vibedRESTEmulationTests(string httpUrl)
     interface ITest
     {
         string getEchoText(string value_for_echo);
+        double getEcho(double value_for_echo);
     }
 
     auto m = new RestInterfaceClient!ITest(httpUrl);
