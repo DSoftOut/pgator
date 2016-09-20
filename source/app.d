@@ -470,25 +470,36 @@ if(is(T == Bson) || is(T == string))
             }
             else // T == string, unknown parameter type
             {
-                switch(oid)
+                try
                 {
-                    case OidType.Text:
-                        v = toValue!string(*argValue);
-                        break;
+                    switch(oid)
+                    {
+                        case OidType.Text:
+                            v = toValue!string(*argValue);
+                            break;
 
-                    default:
-                        if(isNativeInteger(oid))
-                        {
-                            v = toValue!long((*argValue).to!long);
-                        }
-                        else
-                        {
-                            throw new LoopException(
-                                JsonRpcErrorCode.invalidParams,
-                                HTTPStatus.badRequest,
-                                argName~" parameter type "~v.oidType.to!string~" isn't supported ",
-                                __FILE__, __LINE__);
-                        }
+                        default:
+                            if(isNativeInteger(oid))
+                            {
+                                v = toValue!long((*argValue).to!long);
+                            }
+                            else
+                            {
+                                throw new LoopException(
+                                    JsonRpcErrorCode.invalidParams,
+                                    HTTPStatus.badRequest,
+                                    argName~" parameter type "~v.oidType.to!string~" isn't supported ",
+                                    __FILE__, __LINE__);
+                            }
+                    }
+                }
+                catch(ConvException e)
+                {
+                    throw new LoopException(
+                        JsonRpcErrorCode.internalError,
+                        HTTPStatus.internalServerError,
+                        argName~": "~e.msg,
+                        __FILE__, __LINE__);
                 }
             }
 
