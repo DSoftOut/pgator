@@ -483,12 +483,16 @@ if(is(T == Bson) || is(T == string))
                             {
                                 v = toValue!long((*argValue).to!long);
                             }
+                            else if(isNativeFloat(oid))
+                            {
+                                v = toValue!double((*argValue).to!double);
+                            }
                             else
                             {
                                 throw new LoopException(
                                     JsonRpcErrorCode.invalidParams,
                                     HTTPStatus.badRequest,
-                                    argName~" parameter type "~v.oidType.to!string~" isn't supported ",
+                                    argName~" parameter type isn't supported ",
                                     __FILE__, __LINE__);
                             }
                     }

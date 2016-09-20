@@ -74,6 +74,7 @@ INSERT INTO pgator_tests (method, sql_query, args, result_format) VALUES
 ('echo_numeric_result', 'SELECT $1::text::numeric', '{"value_for_echo"}', 'CELL'),
 ('echo_fixedstring', 'SELECT $1::text::char(6)', '{"value_for_echo"}', 'CELL'),
 ('echo_bigint', 'SELECT $1::bigint', '{"value_for_echo"}', 'CELL'),
+('echo_float8', 'SELECT $1::float8', '{"value_for_echo"}', 'CELL'),
 ('echo_text', 'SELECT $1::text', '{"value_for_echo"}', 'CELL');
 
 -- Multi-statement transactions test
