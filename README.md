@@ -5,7 +5,7 @@ pgator
 [![Stories in Ready](https://badge.waffle.io/dsoftout/pgator.png?label=ready&title=Ready)](https://waffle.io/dsoftout/pgator)
 [![Gitter Chat](https://badges.gitter.im/DSoftOut/pgator.png)](https://gitter.im/DSoftOut/pgator)
 
-Application server that transforms JSON-RPC calls into SQL queries for PostgreSQL.
+Application server that transforms JSON-RPC and Web REST calls into SQL queries for PostgreSQL.
 
 [Overview-(ru)](https://github.com/DSoftOut/pgator/wiki/Overview-(ru))
 
@@ -57,11 +57,11 @@ Simple method code that just returns one passed argument:
 SELECT method, sql_query, args, result_format FROM pgator_calls WHERE method = 'test.echo';
   method   |            sql_query            |       args       | result_format 
 -----------+---------------------------------+------------------+---------------
- test.echo | select $1::text as passed_value | {value_for_echo} | CELL
+ test_echo | select $1::text as passed_value | {value_for_echo} | CELL
 (1 row)
 ```
 
-#### JSON-RPC 2.0 methods calling:
+#### Methods calling:
 
 At first, it is need to start pgator:
 ```
@@ -73,12 +73,12 @@ Listening for requests on http://[::1]:8083/
 ```
 (Option --check=true allows to check methods from table without server start.)
 
-Calling a test method described in the previous table:
+Calling a test method described in the previous table in manner JSON-RPC 2.0:
 ```json
 $ curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' --data '
 {
     "jsonrpc": "2.0",
-    "method": "test.echo",
+    "method": "test_echo",
     "params": { "value_for_echo": "Hello, world!" },
     "id": 1
 }' http://pgator-test-server.com:8080/
@@ -87,6 +87,24 @@ $ curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json'
 Response:
 ```json
 {"jsonrpc":"2.0","result":"Hello, world!","id":1}
+```
+
+Same method calling using Vibe.d REST client:
+
+```D
+import vibe.web.rest;
+
+interface ITest
+{
+    string getTextEcho(string value_for_echo);
+}
+
+void main()
+{
+    auto m = new RestInterfaceClient!ITest("http://pgator-test-server.com:8080/");
+
+    assert(m.getTextEcho("Hello, world!") == "Hello, world!");
+}
 ```
 
 #### More methods options
