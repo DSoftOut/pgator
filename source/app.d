@@ -2,7 +2,7 @@ module pgator.app;
 
 import pgator.rpc_table;
 import pgator.sql_transaction;
-import dpq2.oids: OidType, isNativeInteger, isNativeFloat;
+import dpq2.oids: OidType;
 import std.getopt;
 import std.typecons: Tuple;
 import std.exception: enforce;
@@ -470,41 +470,8 @@ if(is(T == Bson) || is(T == string))
             }
             else // T == string, unknown parameter type
             {
-                try
-                {
-                    switch(oid)
-                    {
-                        case OidType.Text:
-                            v = toValue!string(*argValue);
-                            break;
-
-                        default:
-                            if(isNativeInteger(oid))
-                            {
-                                v = toValue!long((*argValue).to!long);
-                            }
-                            else if(isNativeFloat(oid))
-                            {
-                                v = toValue!double((*argValue).to!double);
-                            }
-                            else
-                            {
-                                throw new LoopException(
-                                    JsonRpcErrorCode.invalidParams,
-                                    HTTPStatus.badRequest,
-                                    argName~" parameter type isn't supported ",
-                                    __FILE__, __LINE__);
-                            }
-                    }
-                }
-                catch(ConvException e)
-                {
-                    throw new LoopException(
-                        JsonRpcErrorCode.internalError,
-                        HTTPStatus.internalServerError,
-                        argName~": "~e.msg,
-                        __FILE__, __LINE__);
-                }
+                // Using Postgres ability to determine argument type
+                v = toValue(*argValue, ValueFormat.TEXT);
             }
 
             ret[i] = v;
