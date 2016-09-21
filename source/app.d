@@ -173,7 +173,7 @@ void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] me
                     }
                     else
                     {
-                        res.writeJsonBody(result.responseBody, result.exception.httpCode);
+                        res.writeJsonBody(result.responseBody["error"], result.exception.httpCode);
                     }
 
                     break;

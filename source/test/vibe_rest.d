@@ -20,6 +20,8 @@ void vibedRESTEmulationTests(string httpUrl)
         double postEchoFloat8(double value_for_echo);
 
         S1 postRest1(string value1, long value2);
+
+        void getUndefinedMethod(); // always returns error
     }
 
     auto m = new RestInterfaceClient!ITest(httpUrl);
@@ -32,4 +34,17 @@ void vibedRESTEmulationTests(string httpUrl)
 
     S1 s1 = {v1: "abc", v2: 123};
     assert(m.postRest1(s1.v1, s1.v2) == s1);
+
+    // REST exception check
+    {
+        bool catched = false;
+
+        try m.getUndefinedMethod();
+        catch(Exception e)
+        {
+            catched = true;
+        }
+
+        assert(catched);
+    }
 }
