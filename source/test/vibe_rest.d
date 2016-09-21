@@ -20,6 +20,7 @@ void vibedRESTEmulationTests(string httpUrl)
     assert(m.getEchoBigint(123456) == 123456);
     assert(m.postEchoBigint(123456) == 123456);
     assert(m.getEchoFloat8(123.45) == 123.45);
+    assert(m.postEchoFloat8(123.456789) == 123.456789);
 
     //assert(m.getEchoBigint(123.456) == 123.456); //TODO: causes error, need to check this case
     //assert(m.postEchoFloat8(123.45) == 123.45); //TODO: POST support
