@@ -173,7 +173,7 @@ void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] me
                     }
                     else
                     {
-                        res.writeJsonBody(result.responseBody["error"], result.exception.httpCode);
+                        res.writeJsonBody(result.responseBody, result.exception.httpCode);
                     }
 
                     break;
@@ -581,7 +581,10 @@ RpcRequestResults performRpcRequests(immutable Method[string] methods, shared Po
             dbRequests.length = j.length;
 
             foreach(i, ref request; dbRequests)
+            {
                 request = RpcRequest.jsonToRpcRequest(j[i], req);
+                request.type = RpcType.jsonRpcBatchMode;
+            }
 
             break;
         }
@@ -591,13 +594,15 @@ RpcRequestResults performRpcRequests(immutable Method[string] methods, shared Po
 
             if(RpcRequest.isValidJsonRpcRequest(j))
             {
-                ret.type = RpcType.jsonRpc;
                 dbRequests[0] = RpcRequest.jsonToRpcRequest(j, req);
+                dbRequests[0].type = RpcType.jsonRpc;
+                ret.type = RpcType.jsonRpc;
             }
             else
             {
-                ret.type = RpcType.vibedREST;
                 dbRequests[0] = RpcRequest.vibeRestToRpcRequest(j, req);
+                dbRequests[0].type = RpcType.vibedREST;
+                ret.type = RpcType.vibedREST;
             }
 
             break;
@@ -626,6 +631,7 @@ struct RpcRequest
     string[string] namedParamsStringValues = null; /// used if types of parameters is unknown
     Bson[] positionParams = null;
     AuthorizationCredentials auth;
+    RpcType type; // used only for pretty error formatting
 
     invariant()
     {
@@ -770,8 +776,11 @@ struct RpcRequest
         {
             Bson err = Bson.emptyObject;
 
-            err["id"] = id;
-            err["jsonrpc"] = "2.0";
+            if(type != RpcType.vibedREST)
+            {
+                err["id"] = id;
+                err["jsonrpc"] = "2.0";
+            }
 
             if(e.answerException is null)
             {
