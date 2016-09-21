@@ -2,7 +2,7 @@ module pgator.app;
 
 import pgator.rpc_table;
 import pgator.sql_transaction;
-import dpq2.oids: OidType;
+import dpq2.oids: OidType, isNativeInteger, isNativeFloat;
 import std.getopt;
 import std.typecons: Tuple;
 import std.exception: enforce;
@@ -516,40 +516,6 @@ if(is(T == Bson) || is(T == string))
     }
 
     return ret;
-}
-
-private // FIXME: use dpq2 instead
-{
-    bool isNativeInteger(OidType t) pure
-    {
-        with(OidType)
-        switch(t)
-        {
-            case Int8:
-            case Int2:
-            case Int4:
-                return true;
-            default:
-                break;
-        }
-
-        return false;
-    }
-
-    bool isNativeFloat(OidType t) pure
-    {
-        with(OidType)
-        switch(t)
-        {
-            case Float4:
-            case Float8:
-                return true;
-            default:
-                break;
-        }
-
-        return false;
-    }
 }
 
 private struct AuthorizationCredentials
