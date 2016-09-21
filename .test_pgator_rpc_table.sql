@@ -83,3 +83,7 @@ INSERT INTO pgator_tests (method, result_name, statement_num, sql_query, args, r
 ('multi_tran', 'second_result', 1, 'SELECT $1::text', '{"value_1"}', 'CELL'),
 ('multi_tran', 'third_result',  2, 'SELECT $1::int8', '{"value_2"}', 'CELL'),
 ('multi_tran', 'void_result',   3, 'VALUES (9,9,9), (9,9,9)', '{}', 'VOID');
+
+-- Vibe.d REST struct test
+INSERT INTO pgator_tests (method, sql_query, args, result_format)
+VALUES ('rest1', 'SELECT $1::text as v1, $2::bigint as v2', '{"value1", "value2"}', 'ROW');
