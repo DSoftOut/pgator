@@ -32,7 +32,4 @@ void vibedRESTEmulationTests(string httpUrl)
 
     S1 s1 = {v1: "abc", v2: 123};
     assert(m.postRest1(s1.v1, s1.v2) == s1);
-
-    //assert(m.getEchoBigint(123.456) == 123.456); //TODO: causes error, need to check this case
-    //assert(m.postEchoFloat8(123.45) == 123.45); //TODO: POST support
 }
