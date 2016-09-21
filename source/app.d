@@ -6,7 +6,7 @@ import dpq2.oids: OidType;
 import std.getopt;
 import std.typecons: Tuple;
 import std.exception: enforce;
-import std.conv: to;
+import std.conv: to, ConvException;
 import vibe.http.server;
 import vibe.core.concurrency;
 import vibe.core.log;
