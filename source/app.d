@@ -712,8 +712,16 @@ struct RpcRequest
         enforce(req.path.length > 0);
         r.methodName = req.path[1..$]; // strips first '/'
 
-        foreach(string key, ref value; req.query)
-            r.namedParamsStringValues[key] = value;
+        if(req.method == HTTPMethod.GET)
+        {
+            foreach(string key, ref value; req.query)
+                r.namedParamsStringValues[key] = value;
+        }
+        else // POST etc
+        {
+            foreach(string key, ref value; j)
+                r.namedParams[key] = value;
+        }
 
         r.id = Bson("REST request"); // Means what it isn't JSON-RPC "notify"
 
