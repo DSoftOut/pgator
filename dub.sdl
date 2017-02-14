@@ -5,9 +5,10 @@ license "MIT"
 copyright "Copyright © 2016"
 dependency "vibe-d:http" version="~>0.7.29-alpha.3"
 dependency "vibe-d-postgresql" version="~>0.2.19"
+dependency "dpq2" version="~>0.6.20"
 targetType "executable"
 
-#FIXME: used by vibe.stream.zlib
+#FIXME: used by vibe.stream.zlib, please report to its author
 libs "zlib"
 
 subPackage {
