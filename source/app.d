@@ -3,6 +3,7 @@ module pgator.app;
 import pgator.rpc_table;
 import pgator.sql_transaction;
 import dpq2.oids: OidType;
+import dpq2.exception: AnswerConvException;
 import std.getopt;
 import std.typecons: Tuple;
 import std.exception: enforce;
