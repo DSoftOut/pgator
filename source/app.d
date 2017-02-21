@@ -9,6 +9,7 @@ import std.typecons: Tuple;
 import std.exception: enforce;
 import std.conv: to, ConvException;
 import vibe.http.server;
+import vibe.http.auth.basic_auth;
 import vibe.core.concurrency;
 import vibe.core.log;
 import vibe.data.json;
@@ -588,7 +589,7 @@ struct RpcRequest
         return j["jsonrpc"] == "2.0";
     }
 
-    private static RpcRequest jsonToRpcRequest(scope Json j, in HTTPServerRequest req)
+    private static RpcRequest jsonToRpcRequest(scope Json j, scope HTTPServerRequest req)
     {
         if(!isValidJsonRpcRequest(j))
             throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Isn't JSON-RPC 2.0 protocol", __FILE__, __LINE__);
@@ -623,22 +624,15 @@ struct RpcRequest
 
         // pick out name and password from the request
         {
-            import std.string;
-            import std.base64;
-
-            // Copypaste from vibe.d code, see https://github.com/rejectedsoftware/vibe.d/issues/1449
-            auto pauth = "Authorization" in req.headers;
-            if( pauth && (*pauth).startsWith("Basic ") )
+            bool pwcheck(string _username, string _password)
             {
-                string user_pw = cast(string)Base64.decode((*pauth)[6 .. $]);
+                r.auth.username = _username;
+                r.auth.password = _password;
 
-                auto idx = user_pw.indexOf(":");
-                enforceBadRequest(idx >= 0, "Invalid auth string format!");
-
-                r.auth.authVariablesSet = true;
-                r.auth.username = user_pw[0 .. idx];
-                r.auth.password = user_pw[idx+1 .. $];
+                return true;
             }
+
+            r.auth.authVariablesSet = checkBasicAuth(req, &pwcheck);
         }
 
         return r;
