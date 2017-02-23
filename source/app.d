@@ -9,7 +9,7 @@ import std.typecons: Tuple;
 import std.exception: enforce;
 import std.conv: to, ConvException;
 import vibe.http.server;
-import vibe.http.auth.basic_auth;
+import vibe.http.auth.basic_auth: checkBasicAuth;
 import vibe.core.concurrency;
 import vibe.core.log;
 import vibe.data.json;
