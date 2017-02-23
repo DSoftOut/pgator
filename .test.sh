@@ -1,6 +1,7 @@
 #!/bin/bash
 set -ve
 
+dub upgrade
 dub build --build=release
 dub build --build=unittest
 
