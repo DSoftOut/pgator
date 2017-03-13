@@ -3,12 +3,13 @@ module pgator.app;
 import pgator.rpc_table;
 import pgator.sql_transaction;
 import dpq2.oids: OidType;
-import dpq2.exception;
+import dpq2.exception: AnswerConvException;
 import std.getopt;
 import std.typecons: Tuple;
 import std.exception: enforce;
 import std.conv: to, ConvException;
 import vibe.http.server;
+import vibe.http.auth.basic_auth: checkBasicAuth;
 import vibe.core.concurrency;
 import vibe.core.log;
 import vibe.data.json;
@@ -495,54 +496,69 @@ private struct AuthorizationCredentials
 
 RpcRequestResults performRpcRequests(immutable Method[string] methods, shared PostgresClient client, scope HTTPServerRequest req)
 {
-    if(req.contentType != "application/json")
-        throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
-
     RpcRequestResults ret;
 
     // Recognition of request type
-    Json j = req.json;
     RpcRequest[] dbRequests;
 
-    switch(j.type)
+    if(req.method == HTTPMethod.GET)
     {
-        case Json.Type.array:
+        ret.type = RpcType.vibedREST;
+
+        dbRequests.length = 1;
+        dbRequests[0] = RpcRequest.vibeRestGetToRpcRequest(req);
+        dbRequests[0].type = RpcType.vibedREST;
+    }
+    else
+    {
+        if(req.contentType != "application/json")
+            throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
+
+        Json j = req.json;
+
+        switch(j.type)
         {
-            if(!j.length)
-                throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Empty JSON-RPC 2.0 batch array", __FILE__, __LINE__);
-
-            ret.type = RpcType.jsonRpcBatchMode;
-            dbRequests.length = j.length;
-
-            foreach(i, ref request; dbRequests)
+            case Json.Type.array:
             {
-                request = RpcRequest.jsonToRpcRequest(j[i], req);
-                request.type = RpcType.jsonRpcBatchMode;
+                if(!j.length)
+                    throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Empty JSON-RPC 2.0 batch array", __FILE__, __LINE__);
+
+                ret.type = RpcType.jsonRpcBatchMode;
+                dbRequests.length = j.length;
+
+                foreach(i, ref request; dbRequests)
+                {
+                    if(!RpcRequest.isValidJsonRpcRequest(j[i]))
+                        throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Isn't JSON-RPC 2.0 protocol", __FILE__, __LINE__);
+
+                    request = RpcRequest.jsonToRpcRequest(j[i], req);
+                    request.type = RpcType.jsonRpcBatchMode;
+                }
+
+                break;
             }
 
-            break;
+            case Json.Type.object:
+                dbRequests.length = 1;
+
+                if(RpcRequest.isValidJsonRpcRequest(j))
+                {
+                    dbRequests[0] = RpcRequest.jsonToRpcRequest(j, req);
+                    dbRequests[0].type = RpcType.jsonRpc;
+                    ret.type = RpcType.jsonRpc;
+                }
+                else // JSON vibe.d REST POST
+                {
+                    dbRequests[0] = RpcRequest.vibeRestToRpcRequest(j, req);
+                    dbRequests[0].type = RpcType.vibedREST;
+                    ret.type = RpcType.vibedREST;
+                }
+
+                break;
+
+            default:
+                throw new LoopException(JsonRpcErrorCode.parseError, HTTPStatus.badRequest, "Parse error", __FILE__, __LINE__);
         }
-
-        case Json.Type.object:
-            dbRequests.length = 1;
-
-            if(RpcRequest.isValidJsonRpcRequest(j))
-            {
-                dbRequests[0] = RpcRequest.jsonToRpcRequest(j, req);
-                dbRequests[0].type = RpcType.jsonRpc;
-                ret.type = RpcType.jsonRpc;
-            }
-            else
-            {
-                dbRequests[0] = RpcRequest.vibeRestToRpcRequest(j, req);
-                dbRequests[0].type = RpcType.vibedREST;
-                ret.type = RpcType.vibedREST;
-            }
-
-            break;
-
-        default:
-            throw new LoopException(JsonRpcErrorCode.parseError, HTTPStatus.badRequest, "Parse error", __FILE__, __LINE__);
     }
 
     ret.results.length = dbRequests.length;
@@ -588,11 +604,8 @@ struct RpcRequest
         return j["jsonrpc"] == "2.0";
     }
 
-    private static RpcRequest jsonToRpcRequest(scope Json j, in HTTPServerRequest req)
+    private static RpcRequest jsonToRpcRequest(scope Json j, scope HTTPServerRequest req)
     {
-        if(!isValidJsonRpcRequest(j))
-            throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Isn't JSON-RPC 2.0 protocol", __FILE__, __LINE__);
-
         RpcRequest r;
 
         r.id = j["id"];
@@ -623,26 +636,36 @@ struct RpcRequest
 
         // pick out name and password from the request
         {
-            import std.string;
-            import std.base64;
-
-            // Copypaste from vibe.d code, see https://github.com/rejectedsoftware/vibe.d/issues/1449
-            auto pauth = "Authorization" in req.headers;
-            if( pauth && (*pauth).startsWith("Basic ") )
+            bool pwcheck(string _username, string _password)
             {
-                string user_pw = cast(string)Base64.decode((*pauth)[6 .. $]);
+                r.auth.username = _username;
+                r.auth.password = _password;
 
-                auto idx = user_pw.indexOf(":");
-                enforceBadRequest(idx >= 0, "Invalid auth string format!");
-
-                r.auth.authVariablesSet = true;
-                r.auth.username = user_pw[0 .. idx];
-                r.auth.password = user_pw[idx+1 .. $];
+                return true;
             }
+
+            r.auth.authVariablesSet = checkBasicAuth(req, &pwcheck);
         }
 
         return r;
     }
+
+    /// Converts Vibe.d REST client GET request to RpcRequest
+    private static RpcRequest vibeRestGetToRpcRequest(in HTTPServerRequest req)
+    {
+        RpcRequest r;
+
+        enforce(req.path.length > 0);
+        r.methodName = req.path[1..$]; // strips first '/'
+
+        foreach(string key, ref value; req.query)
+            r.namedParamsStringValues[key] = value;
+
+        r.id = Bson("REST request"); // Means what it isn't JSON-RPC "notify"
+
+        return r;
+    }
+
 
     /// Converts Vibe.d REST client request to RpcRequest
     private static RpcRequest vibeRestToRpcRequest(scope Json j, in HTTPServerRequest req)
@@ -652,16 +675,8 @@ struct RpcRequest
         enforce(req.path.length > 0);
         r.methodName = req.path[1..$]; // strips first '/'
 
-        if(req.method == HTTPMethod.GET)
-        {
-            foreach(string key, ref value; req.query)
-                r.namedParamsStringValues[key] = value;
-        }
-        else // POST etc
-        {
-            foreach(string key, ref value; j)
-                r.namedParams[key] = value;
-        }
+        foreach(string key, ref value; j)
+            r.namedParams[key] = value;
 
         r.id = Bson("REST request"); // Means what it isn't JSON-RPC "notify"
 
