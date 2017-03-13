@@ -528,6 +528,9 @@ RpcRequestResults performRpcRequests(immutable Method[string] methods, shared Po
 
                 foreach(i, ref request; dbRequests)
                 {
+                    if(!RpcRequest.isValidJsonRpcRequest(j[i]))
+                        throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Isn't JSON-RPC 2.0 protocol", __FILE__, __LINE__);
+
                     request = RpcRequest.jsonToRpcRequest(j[i], req);
                     request.type = RpcType.jsonRpcBatchMode;
                 }
@@ -603,9 +606,6 @@ struct RpcRequest
 
     private static RpcRequest jsonToRpcRequest(scope Json j, scope HTTPServerRequest req)
     {
-        if(!isValidJsonRpcRequest(j))
-            throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Isn't JSON-RPC 2.0 protocol", __FILE__, __LINE__);
-
         RpcRequest r;
 
         r.id = j["id"];
