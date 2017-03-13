@@ -544,7 +544,7 @@ RpcRequestResults performRpcRequests(immutable Method[string] methods, shared Po
                     dbRequests[0].type = RpcType.jsonRpc;
                     ret.type = RpcType.jsonRpc;
                 }
-                else
+                else // JSON vibe.d REST POST
                 {
                     dbRequests[0] = RpcRequest.vibeRestToRpcRequest(j, req);
                     dbRequests[0].type = RpcType.vibedREST;
