@@ -496,54 +496,66 @@ private struct AuthorizationCredentials
 
 RpcRequestResults performRpcRequests(immutable Method[string] methods, shared PostgresClient client, scope HTTPServerRequest req)
 {
-    if(req.contentType != "application/json")
-        throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
-
     RpcRequestResults ret;
 
     // Recognition of request type
-    Json j = req.json;
     RpcRequest[] dbRequests;
 
-    switch(j.type)
+    if(req.method == HTTPMethod.GET)
     {
-        case Json.Type.array:
+        ret.type = RpcType.vibedREST;
+
+        dbRequests.length = 1;
+        dbRequests[0] = RpcRequest.vibeRestGetToRpcRequest(req);
+        dbRequests[0].type = RpcType.vibedREST;
+    }
+    else
+    {
+        if(req.contentType != "application/json")
+            throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.unsupportedMediaType, "Supported only application/json content type", __FILE__, __LINE__);
+
+        Json j = req.json;
+
+        switch(j.type)
         {
-            if(!j.length)
-                throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Empty JSON-RPC 2.0 batch array", __FILE__, __LINE__);
-
-            ret.type = RpcType.jsonRpcBatchMode;
-            dbRequests.length = j.length;
-
-            foreach(i, ref request; dbRequests)
+            case Json.Type.array:
             {
-                request = RpcRequest.jsonToRpcRequest(j[i], req);
-                request.type = RpcType.jsonRpcBatchMode;
+                if(!j.length)
+                    throw new LoopException(JsonRpcErrorCode.invalidRequest, HTTPStatus.badRequest, "Empty JSON-RPC 2.0 batch array", __FILE__, __LINE__);
+
+                ret.type = RpcType.jsonRpcBatchMode;
+                dbRequests.length = j.length;
+
+                foreach(i, ref request; dbRequests)
+                {
+                    request = RpcRequest.jsonToRpcRequest(j[i], req);
+                    request.type = RpcType.jsonRpcBatchMode;
+                }
+
+                break;
             }
 
-            break;
+            case Json.Type.object:
+                dbRequests.length = 1;
+
+                if(RpcRequest.isValidJsonRpcRequest(j))
+                {
+                    dbRequests[0] = RpcRequest.jsonToRpcRequest(j, req);
+                    dbRequests[0].type = RpcType.jsonRpc;
+                    ret.type = RpcType.jsonRpc;
+                }
+                else
+                {
+                    dbRequests[0] = RpcRequest.vibeRestToRpcRequest(j, req);
+                    dbRequests[0].type = RpcType.vibedREST;
+                    ret.type = RpcType.vibedREST;
+                }
+
+                break;
+
+            default:
+                throw new LoopException(JsonRpcErrorCode.parseError, HTTPStatus.badRequest, "Parse error", __FILE__, __LINE__);
         }
-
-        case Json.Type.object:
-            dbRequests.length = 1;
-
-            if(RpcRequest.isValidJsonRpcRequest(j))
-            {
-                dbRequests[0] = RpcRequest.jsonToRpcRequest(j, req);
-                dbRequests[0].type = RpcType.jsonRpc;
-                ret.type = RpcType.jsonRpc;
-            }
-            else
-            {
-                dbRequests[0] = RpcRequest.vibeRestToRpcRequest(j, req);
-                dbRequests[0].type = RpcType.vibedREST;
-                ret.type = RpcType.vibedREST;
-            }
-
-            break;
-
-        default:
-            throw new LoopException(JsonRpcErrorCode.parseError, HTTPStatus.badRequest, "Parse error", __FILE__, __LINE__);
     }
 
     ret.results.length = dbRequests.length;
@@ -638,6 +650,23 @@ struct RpcRequest
         return r;
     }
 
+    /// Converts Vibe.d REST client GET request to RpcRequest
+    private static RpcRequest vibeRestGetToRpcRequest(in HTTPServerRequest req)
+    {
+        RpcRequest r;
+
+        enforce(req.path.length > 0);
+        r.methodName = req.path[1..$]; // strips first '/'
+
+        foreach(string key, ref value; req.query)
+            r.namedParamsStringValues[key] = value;
+
+        r.id = Bson("REST request"); // Means what it isn't JSON-RPC "notify"
+
+        return r;
+    }
+
+
     /// Converts Vibe.d REST client request to RpcRequest
     private static RpcRequest vibeRestToRpcRequest(scope Json j, in HTTPServerRequest req)
     {
@@ -646,16 +675,8 @@ struct RpcRequest
         enforce(req.path.length > 0);
         r.methodName = req.path[1..$]; // strips first '/'
 
-        if(req.method == HTTPMethod.GET)
-        {
-            foreach(string key, ref value; req.query)
-                r.namedParamsStringValues[key] = value;
-        }
-        else // POST etc
-        {
-            foreach(string key, ref value; j)
-                r.namedParams[key] = value;
-        }
+        foreach(string key, ref value; j)
+            r.namedParams[key] = value;
 
         r.id = Bson("REST request"); // Means what it isn't JSON-RPC "notify"
 
