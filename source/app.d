@@ -651,7 +651,7 @@ struct RpcRequest
     }
 
     /// Converts Vibe.d REST client GET request to RpcRequest
-    private static RpcRequest vibeRestGetToRpcRequest(in HTTPServerRequest req)
+    private static RpcRequest vibeRestGetToRpcRequest(ref HTTPServerRequest req)
     {
         RpcRequest r;
 
