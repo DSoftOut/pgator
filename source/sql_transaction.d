@@ -17,7 +17,7 @@ struct SQLTransaction
 
     @disable this(this){}
 
-    this(shared PostgresClient client, bool isReadOnly)
+    this(PostgresClient client, bool isReadOnly)
     {
         conn = client.lockConnection();
 

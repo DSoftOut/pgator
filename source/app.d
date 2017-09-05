@@ -108,7 +108,7 @@ int main(string[] args)
         }
 
         // connect to db
-        auto client = new shared PostgresClient(connString, maxConn, &afterConnectOrReconnect);
+        auto client = new PostgresClient(connString, maxConn, &afterConnectOrReconnect);
 
         {
             auto conn = client.lockConnection();
@@ -153,7 +153,7 @@ int main(string[] args)
     }
 }
 
-void loop(in Bson cfg, shared PostgresClient client, immutable Method[string] methods)
+void loop(in Bson cfg, PostgresClient client, immutable Method[string] methods)
 {
     // http-server
     import vibe.core.core;
@@ -265,7 +265,7 @@ struct SQLVariablesNames
 }
 
 private Bson execMethod(
-    shared PostgresClient client,
+    PostgresClient client,
     in Method method,
     in RpcRequest rpcRequest
 )
@@ -494,7 +494,7 @@ private struct AuthorizationCredentials
     string password;
 }
 
-RpcRequestResults performRpcRequests(immutable Method[string] methods, shared PostgresClient client, scope HTTPServerRequest req)
+RpcRequestResults performRpcRequests(immutable Method[string] methods, PostgresClient client, scope HTTPServerRequest req)
 {
     RpcRequestResults ret;
 
@@ -683,7 +683,7 @@ struct RpcRequest
         return r;
     }
 
-    RpcRequestResult performRpcRequest(immutable Method[string] methods, shared PostgresClient client) const
+    RpcRequestResult performRpcRequest(immutable Method[string] methods, PostgresClient client) const
     {
         try
         {
