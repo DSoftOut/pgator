@@ -30,6 +30,10 @@ struct SQLTransaction
 
     void resetStart()
     {
+        import vibe.core.log;
+
+        logDebugV(__FUNCTION__);
+
         opened = false;
         conn.resetStart();
     }

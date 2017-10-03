@@ -2,7 +2,7 @@
 set -ve
 
 dub build --build=release
-dub build --build=unittest
+dub build --build=unittest --debug=BreakUpSomeConnections
 
 CONNINFO=`jq '.sqlServer.connString' ${1}`
 CONNINFO_UNQUOTED=`echo $CONNINFO | xargs`

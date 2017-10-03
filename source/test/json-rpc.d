@@ -53,8 +53,21 @@ version(IntegrationTest)
             }
             catch(Exception e)
             {
+                static int errCounter;
+                errCounter++;
+
                 e.msg = "Test line "~t.line.to!string~": "~e.msg;
-                throw e;
+
+                // Test reconnection of a bad DB connection
+                if(errCounter > 2) // 2 connections is manually broken in server code
+                    throw e;
+                else
+                {
+                    import core.thread;
+                    import core.time;
+
+                    Thread.sleep(1.seconds);
+                }
             }
         }
 
