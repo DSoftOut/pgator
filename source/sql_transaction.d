@@ -13,53 +13,44 @@ struct TransactionQueryParams
 struct SQLTransaction
 {
     private LockedConnection!__Conn conn;
-    private bool isCommitDone = false;
+    private bool opened = false;
 
     @disable this(this){}
 
-    this(PostgresClient client, bool isReadOnly)
+    this(PostgresClient client)
     {
         conn = client.lockConnection();
+    }
 
-        import vibe.core.log;
-        logDebugV("after lock connection");
+    void begin(bool isReadOnly)
+    {
+        execBuiltIn(isReadOnly ? BuiltInPrep.BEGIN_RO : BuiltInPrep.BEGIN);
+        opened = true;
+    }
 
-        try
-        {
-            execBuiltIn(isReadOnly ? BuiltInPrep.BEGIN_RO : BuiltInPrep.BEGIN);
-        }
-        catch(ConnectionException e)
-        {
-            conn.dropConnection();
-            delete conn;
-            throw e;
-        }
+    void resetStart()
+    {
+        opened = false;
+        conn.resetStart();
     }
 
     void commit()
     {
         execBuiltIn(BuiltInPrep.COMMIT);
-        isCommitDone = true;
+        opened = false;
     }
 
     ~this()
     {
-        if(conn.status == CONNECTION_BAD)
-        {
-            conn.dropConnection();
-        }
-        else
-        {
-            if(!isCommitDone)
-                execBuiltIn(BuiltInPrep.ROLLBACK);
-        }
+        if(opened)
+            execBuiltIn(BuiltInPrep.ROLLBACK);
 
         delete conn;
     }
 
     immutable(Answer)[] execMethod(in Method method, TransactionQueryParams qp)
     {
-        assert(!isCommitDone);
+        assert(opened);
 
         if(method.needAuthVariablesFlag)
         {

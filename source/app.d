@@ -322,12 +322,14 @@ private Bson execMethod(
         throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.badRequest, "Parameters number is too big", __FILE__, __LINE__);
     }
 
+    SQLTransaction trans = SQLTransaction(client);
+
     try
     {
         if(method.needAuthVariablesFlag && !qp.auth.authVariablesSet)
             throw new LoopException(JsonRpcErrorCode.invalidParams, HTTPStatus.unauthorized, "Basic HTTP authentication need", __FILE__, __LINE__);
 
-        auto trans = SQLTransaction(client, method.readOnlyFlag);
+        trans.begin(method.readOnlyFlag);
 
         immutable answer = trans.execMethod(method, qp);
 
@@ -352,14 +354,23 @@ private Bson execMethod(
 
         return ret;
     }
+    catch(PostgresClientTimeoutException e)
+    {
+        trans.resetStart();
+        throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
+    }
     catch(ConnectionException e)
     {
-        // TODO: restart connection
+        trans.resetStart();
         throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
     }
     catch(AnswerCreationException e)
     {
         throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__, e);
+    }
+    finally
+    {
+        destroy(trans);
     }
 }
 
@@ -710,11 +721,6 @@ struct RpcRequest
                 }
 
                 return ret;
-            }
-            catch(PostgresClientTimeoutException e)
-            {
-                // TODO: restart connection
-                throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
             catch(AnswerConvException e)
             {
