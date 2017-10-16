@@ -956,6 +956,7 @@ private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
     return ret;
 }
 
+// Actually this is types what described in BSON specification
 private immutable OidType[] argsSupportedTypes =
 [
     OidType.Bool,
@@ -966,9 +967,11 @@ private immutable OidType[] argsSupportedTypes =
     OidType.Json
 ];
 
+// Types what can be converted to BSON
 private immutable OidType[] resultSupportedTypes = argsSupportedTypes ~
 [
     OidType.Numeric,
     OidType.FixedString,
+    OidType.Jsonb,
     //OidType.UUID
 ];
