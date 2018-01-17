@@ -69,16 +69,14 @@ VALUES ('echo_array', 'SELECT $1::bigint[] as echoed', '{"arr_value"}', 'ROW');
 INSERT INTO pgator_tests (method, sql_query, args, result_format)
 VALUES ('echo_json', 'SELECT $1::json as echoed', '{"json_value"}', 'CELL');
 
-INSERT INTO pgator_tests (method, sql_query, args, result_format)
-VALUES ('echo_uuid', 'SELECT $1::uuid as echoed', '{"uuid_value"}', 'CELL');
-
 INSERT INTO pgator_tests (method, sql_query, args, result_format) VALUES
 ('echo_numeric', 'SELECT $1::numeric', '{"value_for_echo"}', 'CELL'),
 ('echo_numeric_result', 'SELECT $1::text::numeric', '{"value_for_echo"}', 'CELL'),
 ('echo_fixedstring', 'SELECT $1::text::char(6)', '{"value_for_echo"}', 'CELL'),
 ('echo_bigint', 'SELECT $1::bigint', '{"value_for_echo"}', 'CELL'),
 ('echo_float8', 'SELECT $1::float8', '{"value_for_echo"}', 'CELL'),
-('echo_text', 'SELECT $1::text', '{"value_for_echo"}', 'CELL');
+('echo_text', 'SELECT $1::text', '{"value_for_echo"}', 'CELL'),
+('echo_uuid', 'SELECT $1::text::uuid', '{"value_for_echo"}', 'CELL');
 
 -- Multi-statement transactions test
 INSERT INTO pgator_tests (method, result_name, statement_num, sql_query, args, result_format) VALUES
