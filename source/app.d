@@ -964,7 +964,8 @@ private immutable OidType[] argsSupportedTypes =
     OidType.Int8,
     OidType.Float8,
     OidType.Text,
-    OidType.Json
+    OidType.Json,
+    OidType.UUID,
 ];
 
 // Types what can be converted to BSON
@@ -973,5 +974,4 @@ private immutable OidType[] resultSupportedTypes = argsSupportedTypes ~
     OidType.Numeric,
     OidType.FixedString,
     OidType.Jsonb,
-    //OidType.UUID
 ];
