@@ -247,12 +247,18 @@ void loop(in Bson cfg, PostgresClient client, immutable Method[string] methods)
         }
         catch(LoopException e)
         {
+            if(debugEnabled)
+                e.msg ~= "\nServer stack trace:\n"~e.info.toString;
+
             res.writeJsonBody(Bson(e.msg), e.httpCode); // FIXME: wrong error body format
 
             logWarn(e.msg);
         }
         catch(Exception e)
         {
+            if(debugEnabled)
+                e.msg ~= "\nServer stack trace:\n"~e.info.toString;
+
             logFatal(e.toString);
         }
     }
@@ -776,7 +782,12 @@ struct RpcRequest
             ret.responseBody = err;
             ret.exception = e;
 
-            logWarn(methodName~": "~e.httpCode.to!string~" "~err.toString);
+            string errMsg = methodName~": "~e.httpCode.to!string~" "~err.toString;
+
+            if(debugEnabled)
+                errMsg ~= "\nServer stack trace:\n"~e.info.toString;
+
+            logError(errMsg);
 
             return ret;
         }
@@ -956,7 +967,8 @@ private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
     return ret;
 }
 
-// Actually this is types what described in BSON specification
+// Actually this is types what supported by Vibe.d as BSON values and
+// at the same time supported as PostgreSQL binary arguments in dpq2
 private immutable OidType[] argsSupportedTypes =
 [
     OidType.Bool,
@@ -965,13 +977,13 @@ private immutable OidType[] argsSupportedTypes =
     OidType.Float8,
     OidType.Text,
     OidType.Json,
-    OidType.UUID,
 ];
 
-// Types what can be converted to BSON
+// Types what can be converted from PostgreSQL binary result to BSON
 private immutable OidType[] resultSupportedTypes = argsSupportedTypes ~
 [
     OidType.Numeric,
     OidType.FixedString,
     OidType.Jsonb,
+    OidType.UUID,
 ];
