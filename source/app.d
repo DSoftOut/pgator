@@ -3,7 +3,7 @@ module pgator.app;
 import pgator.rpc_table;
 import pgator.sql_transaction;
 import dpq2.oids: OidType;
-import dpq2.exception: AnswerConvException;
+import dpq2.value: ValueConvException;
 import std.getopt;
 import std.typecons: Tuple;
 import std.exception: enforce;
@@ -396,7 +396,7 @@ private Bson formatResult(immutable Answer answer, ResultFormat format)
         {
             return answer[rowNum][colNum].as!Bson;
         }
-        catch(AnswerConvException e)
+        catch(ValueConvException e)
         {
             e.msg = "Column "~columnName~" ("~rowNum.to!string~" row): "~e.msg;
             throw e;
@@ -734,7 +734,7 @@ struct RpcRequest
 
                 return ret;
             }
-            catch(AnswerConvException e)
+            catch(ValueConvException e)
             {
                 throw new LoopException(JsonRpcErrorCode.internalError, HTTPStatus.internalServerError, e.msg, __FILE__, __LINE__);
             }
@@ -929,7 +929,7 @@ private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
         {
             try
                 if(t == sup || t == oidConvTo!"array"(sup)) continue argsLoop;
-            catch(AnswerConvException)
+            catch(ValueConvException)
             {}
         }
 
@@ -946,7 +946,7 @@ private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
         {
             try
                 if(t == sup || t == oidConvTo!"array"(sup)) continue resultTypesLoop;
-            catch(AnswerConvException)
+            catch(ValueConvException)
             {}
         }
 

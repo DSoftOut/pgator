@@ -3,12 +3,10 @@ description "Application server that transforms JSON-RPC calls into SQL queries 
 authors "Denis Feklushkin <denis.feklushkin@gmail.com>"
 license "MIT"
 copyright "Copyright © 2016"
-dependency "vibe-d:http" version="~>0.8.1"
-dependency "vibe-d-postgresql" version="~>0.3.0-beta.3"
+dependency "vibe-d:http" version="~>0.8.2"
+dependency "dpq2" version="~>1.0.0-alpha.6"
+dependency "vibe-d-postgresql" version="~>1.0.0-alpha.2"
 targetType "executable"
-
-#FIXME: used by vibe.stream.zlib, please report to its author
-libs "zlib"
 
 subPackage {
     name "test"
