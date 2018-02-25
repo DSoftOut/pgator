@@ -155,18 +155,6 @@ int main(string[] args)
 
 void loop(in Bson cfg, PostgresClient client, immutable Method[string] methods)
 {
-    debug(BreakUpSomeConnections) // for testing purposes
-    {
-        auto s1 = client.lockConnection();
-        auto s2 = client.lockConnection();
-
-        s1.socket.send([0x12, 0x13]); // just garbage
-        s2.socket.send([0x12, 0x13]);
-
-        delete s1;
-        delete s2;
-    }
-
     // http-server
     import vibe.core.core;
 
