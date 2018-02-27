@@ -12,7 +12,7 @@ struct TransactionQueryParams
 
 struct SQLTransaction
 {
-    private LockedConnection!__Conn conn;
+    private LockedConnection conn;
     private bool opened = false;
 
     @disable this(this){}
@@ -49,7 +49,7 @@ struct SQLTransaction
         if(opened)
             execBuiltIn(BuiltInPrep.ROLLBACK);
 
-        delete conn;
+        destroy(conn);
     }
 
     immutable(Answer)[] execMethod(in Method method, TransactionQueryParams qp)

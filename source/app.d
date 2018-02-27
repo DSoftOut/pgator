@@ -91,7 +91,7 @@ int main(string[] args)
         };
 
         // delegate
-        void afterConnectOrReconnect(__Conn conn)
+        void afterConnectOrReconnect(Connection conn)
         {
             if(prepArgs.methodsLoadedFlag)
             {
@@ -134,7 +134,7 @@ int main(string[] args)
             // prepare statements for previously used connection
             afterConnectOrReconnect(conn);
 
-            delete conn;
+            destroy(conn);
         }
 
         if(!checkStatements)
@@ -840,7 +840,7 @@ class LoopException : Exception
 }
 
 /// returns names of unprepared methods, but length is number of unprepared statements
-private string[] prepareStatements(__Conn conn, ref PrepareStatementsArgs args)
+private string[] prepareStatements(Connection conn, ref PrepareStatementsArgs args)
 {
     {
         logDebugV("try to prepare internal statements");
@@ -902,7 +902,7 @@ string preparedName(in Method method, in Statement statement)
     }
 }
 
-private OidType[] retrieveArgsTypes(__Conn conn, string preparedStatementName)
+private OidType[] retrieveArgsTypes(Connection conn, string preparedStatementName)
 {
     auto desc = conn.describePreparedStatement(preparedStatementName);
 
