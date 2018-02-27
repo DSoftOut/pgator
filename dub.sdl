@@ -5,7 +5,7 @@ license "MIT"
 copyright "Copyright © 2016"
 dependency "vibe-d:http" version="~>0.8.2"
 dependency "dpq2" version="~>1.0.0-alpha.9"
-dependency "vibe-d-postgresql" version="~>1.0.0-alpha.3"
+dependency "vibe-d-postgresql" version="~>2.0.0-alpha.1"
 targetType "executable"
 
 subPackage {
