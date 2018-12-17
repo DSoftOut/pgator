@@ -249,7 +249,6 @@ void loop(in Bson cfg, PostgresClient client, immutable Method[string] methods)
 
     auto settings = new HTTPServerSettings;
     // settings.options |= HTTPServerOption.distribute; // causes stuck on epoll_wait () from /lib/x86_64-linux-gnu/libc.so.6
-    settings.options |= HTTPServerOption.parseJsonBody;
     settings.bindAddresses = cfg["listenAddresses"].deserializeBson!(string[]);
     settings.port = to!ushort(cfg["listenPort"].get!long);
 
