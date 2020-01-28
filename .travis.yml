@@ -4,7 +4,9 @@ language: d
 
 d:
   - dmd
+  - dmd-beta
   - ldc
+  - ldc-beta
   #- gdc disabled, waiting for std.experimental.logger
 
 addons:
