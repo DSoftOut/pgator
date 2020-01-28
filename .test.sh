@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ve
 
+echo ${1}
+echo ${2}
+
 dub build --build=debug
 dub build --build=unittest
 
