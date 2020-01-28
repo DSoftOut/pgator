@@ -25,5 +25,8 @@ ADDRESS=`jq '.listenAddresses[0]' ${1}`
 ADDRESS_UNQUOTED=`echo $ADDRESS | xargs`
 PORT=`jq '.listenPort' ${1}`
 
+echo $ADDRESS_UNQUOTED
+echo $PORT
+
 # Start test client
 dub run pgator:test --build=unittest -- "$ADDRESS_UNQUOTED" "$PORT"
