@@ -1,7 +1,6 @@
 #!/bin/bash
 set -ve
 
-#dub build --build=unittest
 dub build --build=release
 
 CONNINFO=`jq '.sqlServer.connString' ${1}`
