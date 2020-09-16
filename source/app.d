@@ -668,7 +668,7 @@ struct RpcRequest
         enforce(req.path.length > 0);
         r.methodName = req.path[1..$]; // strips first '/'
 
-        foreach(string key, ref value; req.query)
+        foreach(string key, ref value; req.query.byKeyValue)
             r.namedParamsStringValues[key] = value;
 
         r.id = Bson("REST request"); // Means what it isn't JSON-RPC "notify"
