@@ -1,8 +1,8 @@
 #!/bin/bash
 set -ve
 
+#dub build --build=unittest
 dub build --build=release
-dub build --build=unittest
 
 CONNINFO=`jq '.sqlServer.connString' ${1}`
 CONNINFO_UNQUOTED=`echo $CONNINFO | xargs`
@@ -11,7 +11,15 @@ CONNINFO_UNQUOTED=`echo $CONNINFO | xargs`
 psql -v ON_ERROR_STOP=ON -f .test_pgator_rpc_table.sql "$CONNINFO_UNQUOTED"
 
 # Test calls table by preparing statements
-`./pgator --config=${1} --debug=true --check=true > /dev/null; if [ $? -ne 2 ]; then exit 1; fi` # Some statements should be bad
+set +e
+./pgator --config=${1} --debug=true --check=true
+EXIT_CODE=$?
+echo $EXIT_CODE
+# Some statements should be bad, code 2 must be returned:
+if [ $EXIT_CODE -ne 2 ]; then
+    exit 1
+fi
+set -e
 
 # Start pgator server
 ./pgator --config=${1} --debug=true &
