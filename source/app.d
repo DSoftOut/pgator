@@ -665,10 +665,10 @@ struct RpcRequest
     {
         RpcRequest r;
 
-        enforce(req.path.length > 0);
-        r.methodName = req.path[1..$]; // strips first '/'
+        enforce(!req.requestPath.empty);
+        r.methodName = req.requestPath.toString[1..$]; // strips first '/'
 
-        foreach(string key, ref value; req.query)
+        foreach(string key, ref value; req.query.byKeyValue)
             r.namedParamsStringValues[key] = value;
 
         r.id = Bson("REST request"); // Means what it isn't JSON-RPC "notify"
@@ -682,8 +682,8 @@ struct RpcRequest
     {
         RpcRequest r;
 
-        enforce(req.path.length > 0);
-        r.methodName = req.path[1..$]; // strips first '/'
+        enforce(!req.requestPath.empty);
+        r.methodName = req.requestPath.toString[1..$]; // strips first '/'
 
         foreach(string key, ref value; j)
             r.namedParams[key] = value;
