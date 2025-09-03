@@ -62,14 +62,14 @@ struct SQLTransaction
             q.preparedStatementName = BuiltInPrep.SET_AUTH_VARS;
             q.args = [qp.auth.username.toValue, qp.auth.password.toValue];
 
-            conn.execPreparedStatement(q);
+            conn.execPrepared(q);
         }
 
         immutable(Answer)[] ret;
 
         foreach(i, s; method.statements)
         {
-            ret ~= conn.execPreparedStatement(qp.queryParams[i]);
+            ret ~= conn.execPrepared(qp.queryParams[i]);
         }
 
         return ret;
@@ -80,7 +80,7 @@ struct SQLTransaction
         QueryParams q;
         q.preparedStatementName = prepared;
 
-        conn.execPreparedStatement(q);
+        conn.execPrepared(q);
     }
 }
 

@@ -119,7 +119,7 @@ int main(string[] args)
 
             QueryParams p;
             p.sqlCommand = "SELECT * FROM "~prepArgs.tableName;
-            auto answer = conn.execStatement(p);
+            auto answer = conn.execParams(p);
 
             prepArgs.rpcTableLength = answer.length;
             auto readMethodsResult = readMethods(answer);
@@ -844,11 +844,11 @@ private string[] prepareStatements(Connection conn, ref PrepareStatementsArgs ar
     {
         logDebugV("try to prepare internal statements");
 
-        conn.prepareStatement(BuiltInPrep.BEGIN, "BEGIN");
-        conn.prepareStatement(BuiltInPrep.BEGIN_RO, "BEGIN READ ONLY");
-        conn.prepareStatement(BuiltInPrep.COMMIT, "COMMIT");
-        conn.prepareStatement(BuiltInPrep.ROLLBACK, "ROLLBACK");
-        conn.prepareStatement(BuiltInPrep.SET_AUTH_VARS,
+        conn.prepareEx(BuiltInPrep.BEGIN, "BEGIN");
+        conn.prepareEx(BuiltInPrep.BEGIN_RO, "BEGIN READ ONLY");
+        conn.prepareEx(BuiltInPrep.COMMIT, "COMMIT");
+        conn.prepareEx(BuiltInPrep.ROLLBACK, "ROLLBACK");
+        conn.prepareEx(BuiltInPrep.SET_AUTH_VARS,
             "SELECT set_config("~conn.escapeLiteral(args.varNames.username)~", $1, true), "~
             "set_config("~conn.escapeLiteral(args.varNames.password)~", $2, true)");
 
@@ -903,7 +903,7 @@ string preparedName(in Method method, in Statement statement)
 
 private OidType[] retrieveArgsTypes(Connection conn, string preparedStatementName)
 {
-    auto desc = conn.describePreparedStatement(preparedStatementName);
+    auto desc = conn.describePrepared(preparedStatementName);
 
     OidType[] ret = new OidType[desc.nParams];
 
